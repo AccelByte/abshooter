@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.16",
+	"EngineAssociation": "4.20",
 	"Category": "Samples",
 	"Description": "",
 	"Modules": [
@@ -16,6 +16,14 @@
 		}
 	],
 	"Plugins": [
+		{
+			"Name": "PlatformCrypto",
+			"Enabled": true
+		},
+		{
+			"Name": "AESHandlerComponent",
+			"Enabled": true
+		},
 		{
 			"Name": "OnlineSubsystem",
 			"Enabled": true
@@ -33,12 +41,18 @@
 			"Enabled": true,
 			"WhitelistPlatforms": [
 				"PS4"
+			],
+			"SupportedTargetPlatforms": [
+				"PS4"
 			]
 		},
 		{
 			"Name": "OnlineSubsystemLive",
 			"Enabled": true,
 			"WhitelistPlatforms": [
+				"XboxOne"
+			],
+			"SupportedTargetPlatforms": [
 				"XboxOne"
 			]
 		},
@@ -49,6 +63,10 @@
 		{
 			"Name": "SteamController",
 			"Enabled": true
+		},
+		{
+			"Name": "ReplicationGraph",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
@@ -56,7 +74,8 @@
 		"PS4",
 		"WindowsNoEditor",
 		"XboxOne",
-		"Switch"
+		"Switch",
+		"Quail"
 	],
 	"EpicSampleNameHash": "3868556100"
 }

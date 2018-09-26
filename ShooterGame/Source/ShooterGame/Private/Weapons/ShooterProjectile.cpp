@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "Weapons/ShooterProjectile.h"
@@ -124,7 +124,7 @@ void AShooterProjectile::OnRep_Exploded()
 	const FVector EndTrace = GetActorLocation() + ProjDirection * 150;
 	FHitResult Impact;
 	
-	if (!GetWorld()->LineTraceSingleByChannel(Impact, StartTrace, EndTrace, COLLISION_PROJECTILE, FCollisionQueryParams(TEXT("ProjClient"), true, Instigator)))
+	if (!GetWorld()->LineTraceSingleByChannel(Impact, StartTrace, EndTrace, COLLISION_PROJECTILE, FCollisionQueryParams(SCENE_QUERY_STAT(ProjClient), true, Instigator)))
 	{
 		// failsafe
 		Impact.ImpactPoint = GetActorLocation();

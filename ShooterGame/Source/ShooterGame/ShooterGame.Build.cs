@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -8,7 +8,6 @@ public class ShooterGame : ModuleRules
 	{
 		PrivateIncludePaths.AddRange(
 			new string[] { 
-				"ShooterGame/Classes/Player",
 				"ShooterGame/Private",
 				"ShooterGame/Private/UI",
 				"ShooterGame/Private/UI/Menu",
@@ -25,7 +24,8 @@ public class ShooterGame : ModuleRules
 				"OnlineSubsystem",
 				"OnlineSubsystemUtils",
 				"AssetRegistry",
-                "AIModule",
+				"NavigationSystem",
+				"AIModule",
 				"GameplayTasks",
 			}
 		);
@@ -36,7 +36,9 @@ public class ShooterGame : ModuleRules
 				"Slate",
 				"SlateCore",
 				"ShooterGameLoadingScreen",
-				"Json"
+				"Json",
+				"ApplicationCore",
+				"ReplicationGraph"
 			}
 		);
 
@@ -45,7 +47,8 @@ public class ShooterGame : ModuleRules
 				"OnlineSubsystemNull",
 				"NetworkReplayStreaming",
 				"NullNetworkReplayStreaming",
-				"HttpNetworkReplayStreaming"
+				"HttpNetworkReplayStreaming",
+				"LocalFileNetworkReplayStreaming"
 			}
 		);
 
@@ -54,5 +57,15 @@ public class ShooterGame : ModuleRules
 				"NetworkReplayStreaming"
 			}
 		);
+
+		if (Target.bBuildDeveloperTools || (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test))
+        {
+            PrivateDependencyModuleNames.Add("GameplayDebugger");
+            PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
+        }
+		else
+		{
+			PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=0");
+		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "Engine/Console.h"
@@ -11,6 +11,7 @@
 #include "ShooterGameInstance.h"
 #include "Player/ShooterLocalPlayer.h"
 #include "ShooterGameUserSettings.h"
+#include "Slate/SceneViewport.h"
 
 #define LOCTEXT_NAMESPACE "SShooterMenuWidget"
 
@@ -156,6 +157,8 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 						.AutoWidth()
 						[
 							SNew(SVerticalBox)
+							.Clipping(EWidgetClipping::ClipToBounds)
+
 							+ SVerticalBox::Slot()
 							.AutoHeight()
 							.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetLeftMenuOffset))
@@ -169,13 +172,17 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 								.HAlign(HAlign_Left)
 								[
 									SAssignNew(LeftBox, SVerticalBox)
+									.Clipping(EWidgetClipping::ClipToBounds)
 								]
 							]
 						]
+						
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
 						[
 							SNew(SVerticalBox)
+							.Clipping(EWidgetClipping::ClipToBounds)
+
 							+ SVerticalBox::Slot()
 							.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetSubMenuOffset))
 							.AutoHeight()
@@ -189,6 +196,7 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 								.HAlign(HAlign_Left)
 								[
 									SAssignNew(RightBox, SVerticalBox)
+									.Clipping(EWidgetClipping::ClipToBounds)
 								]
 							]
 						]
@@ -248,7 +256,7 @@ bool SShooterMenuWidget::ProfileUISwap(const int ControllerIndex) const
 	return false;
 }
 
-void SShooterMenuWidget::HandleProfileUISwapClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex)
+void SShooterMenuWidget::HandleProfileUISwapClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& Error)
 {
 	UShooterGameInstance * GameInstance = PlayerOwner.IsValid() ? Cast< UShooterGameInstance >( PlayerOwner->GetGameInstance() ) : nullptr;
 
@@ -262,7 +270,7 @@ void SShooterMenuWidget::HandleProfileUISwapClosed(TSharedPtr<const FUniqueNetId
 	{
 		// If the id is the same, the user picked the existing profile
 		// (use the cached unique net id, since we want to compare to the user that was selected at "press start"
-		const TSharedPtr<const FUniqueNetId> OwnerId = PlayerOwner->GetCachedUniqueNetId();
+		FUniqueNetIdRepl OwnerId = PlayerOwner->GetCachedUniqueNetId();
 		if( OwnerId.IsValid() && UniqueId.IsValid() && *OwnerId == *UniqueId)
 		{
 			return;
@@ -638,7 +646,8 @@ void SShooterMenuWidget::Tick( const FGeometry& AllottedGeometry, const double I
 		FViewport* Viewport = GEngine->GameViewport->ViewportFrame->GetViewport();
 		if (Viewport)
 		{
-			ScreenRes = Viewport->GetSizeXY();
+			const FVector2D Size = Viewport->GetSizeXY();
+			ScreenRes = (Size / AllottedGeometry.Scale).IntPoint();
 		}
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "OnlineIdentityInterface.h"
 #include "OnlineSessionInterface.h"
 #include "Engine/GameInstance.h"
+#include "Engine/NetworkDelegates.h"
 #include "ShooterGameInstance.generated.h"
 
 class FVariantData;
@@ -82,6 +83,13 @@ private:
 	FSlateColor GetTextColor() const;
 };
 
+UENUM()
+enum class EOnlineMode : uint8
+{
+	Offline,
+	LAN,
+	Online
+};
 
 
 UCLASS(config=Game)
@@ -99,7 +107,8 @@ public:
 	virtual void Init() override;
 	virtual void Shutdown() override;
 	virtual void StartGameInstance() override;
-
+	virtual void ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate) override;
+	virtual void ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate) override;
 
 	bool HostGame(ULocalPlayer* LocalPlayer, const FString& GameType, const FString& InTravelURL);
 	bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults);
@@ -110,6 +119,9 @@ public:
 	
 	/** Travel directly to the named session */
 	void TravelToSession(const FName& SessionName);
+
+	/** Get the Travel URL for a quick match */
+	static FString GetQuickMatchUrl();
 
 	/** Begin a hosted quick match */
 	void BeginHostingQuickMatch();
@@ -143,10 +155,10 @@ public:
 	TSharedPtr< const FUniqueNetId > GetUniqueNetIdFromControllerId( const int ControllerId );
 
 	/** Returns true if the game is in online mode */
-	bool GetIsOnline() const { return bIsOnline; }
+	EOnlineMode GetOnlineMode() const { return OnlineMode; }
 
 	/** Sets the online mode of the game */
-	void SetIsOnline(bool bInIsOnline);
+	void SetOnlineMode(EOnlineMode InOnlineMode);
 
 	/** Updates the status of using multiplayer features */
 	void UpdateUsingMultiplayerFeatures(bool bIsUsingMultiplayerFeatures);
@@ -188,6 +200,9 @@ public:
 	/** @return OnlineSession class to use for this player */
 	TSubclassOf<class UOnlineSession> GetOnlineSessionClass() override;
 
+	/** Create a session with the default map and game-type with the selected online settings */
+	bool HostQuickSession(ULocalPlayer& LocalPlayer, const FOnlineSessionSettings& SessionSettings);
+
 	/** Called when we receive a Play Together system event on PS4 */
 	void OnPlayTogetherEventReceived(const int32 UserIndex, const TArray<TSharedPtr<const FUniqueNetId>>& UserIdList);
 
@@ -213,8 +228,8 @@ private:
 	/** URL to travel to after pending network operations */
 	FString TravelURL;
 
-	/** Whether the match is online or not */
-	bool bIsOnline;
+	/** Current online mode of the game (offline, LAN, or online) */
+	EOnlineMode OnlineMode;
 
 	/** If true, enable splitscreen when map starts loading */
 	bool bPendingEnableSplitscreen;
@@ -259,7 +274,10 @@ private:
 	/** Local player login status when the system is suspended */
 	TArray<ELoginStatus::Type> LocalPlayerOnlineStatus;
 
-	void HandleNetworkConnectionStatusChanged(  EOnlineServerConnectionStatus::Type LastConnectionStatus, EOnlineServerConnectionStatus::Type ConnectionStatus );
+	/** A hard-coded encryption key used to try out the encryption code. This is NOT SECURE, do not use this technique in production! */
+	TArray<uint8> DebugTestEncryptionKey;
+
+	void HandleNetworkConnectionStatusChanged(const FString& ServiceName, EOnlineServerConnectionStatus::Type LastConnectionStatus, EOnlineServerConnectionStatus::Type ConnectionStatus );
 
 	void HandleSessionFailure( const FUniqueNetId& NetId, ESessionFailure::Type FailureType );
 	

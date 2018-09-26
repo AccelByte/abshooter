@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "SShooterLeaderboard.h"
@@ -199,12 +199,12 @@ bool SShooterLeaderboard::ProfileUIOpened() const
 	if( IsPlayerSelectedAndValid() )
 	{
 		check( PlayerOwner.IsValid() );
-		const TSharedPtr<const FUniqueNetId> OwnerNetId = PlayerOwner->GetPreferredUniqueNetId();
+		FUniqueNetIdRepl OwnerNetId = PlayerOwner->GetPreferredUniqueNetId();
 		check( OwnerNetId.IsValid() );
 
 		const TSharedPtr<const FUniqueNetId>& PlayerId = SelectedItem->PlayerId;
 		check( PlayerId.IsValid() );
-		return ShooterUIHelpers::Get().ProfileOpenedUI(*OwnerNetId.Get(), *PlayerId.Get(), NULL);
+		return ShooterUIHelpers::Get().ProfileOpenedUI(*OwnerNetId, *PlayerId.Get(), NULL);
 	}
 	return false;
 }

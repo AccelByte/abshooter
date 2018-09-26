@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "Weapons/ShooterWeapon_Instant.h"
@@ -192,7 +192,7 @@ bool AShooterWeapon_Instant::ShouldDealDamage(AActor* TestActor) const
 	{
 		if (GetNetMode() != NM_Client ||
 			TestActor->Role == ROLE_Authority ||
-			TestActor->bTearOff)
+			TestActor->GetTearOff())
 		{
 			return true;
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "ShooterUIHelpers.h"
@@ -63,7 +63,7 @@ bool ShooterUIHelpers::ProfileSwapUI(const int ControllerIndex, bool bShowOnline
 			// Create a dummy delegate, if one wasn't specified
 			struct Local
 			{
-				static void DummyOnProfileSwapUIClosedDelegate(TSharedPtr<const FUniqueNetId> UniqueId, const int InControllerIndex)
+				static void DummyOnProfileSwapUIClosedDelegate(TSharedPtr<const FUniqueNetId> UniqueId, const int InControllerIndex, const FOnlineError& Error)
 				{
 					// do nothing
 				}

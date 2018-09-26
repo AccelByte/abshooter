@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "BTDecorator_HasLoSTo.h"
@@ -34,7 +34,7 @@ bool UBTDecorator_HasLoSTo::CalculateRawConditionValue(class UBehaviorTreeCompon
 
 	bool bHasPath = false;
 
-	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp->GetWorld());
+	const UNavigationSystemV1* NavSys = UNavigationSystemV1::GetCurrent(OwnerComp->GetWorld());
 	if (NavSys && bHasPointA && bHasPointB)
 	{
 		const AAIController* AIOwner = Cast<AAIController>(OwnerComp->GetOwner());
@@ -102,7 +102,6 @@ bool UBTDecorator_HasLoSTo::CalculateRawConditionValue(UBehaviorTreeComponent& O
 
 bool UBTDecorator_HasLoSTo::LOSTrace(AActor* InActor, AActor* InEnemyActor, const FVector& EndLocation) const
 {
-	static FName LosTag = FName(TEXT("AILosTrace"));
 	AShooterAIController* MyController = Cast<AShooterAIController>(InActor);
 	AShooterBot* MyBot = MyController ? Cast<AShooterBot>(MyController->GetPawn()) : NULL; 
 
@@ -111,7 +110,7 @@ bool UBTDecorator_HasLoSTo::LOSTrace(AActor* InActor, AActor* InEnemyActor, cons
 		if (MyBot != NULL)
 		{
 			// Perform trace to retrieve hit info
-			FCollisionQueryParams TraceParams(LosTag, true, InActor);
+			FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(AILosTrace), true, InActor);
 			TraceParams.bTraceAsyncScene = true;
 			
 			TraceParams.bReturnPhysicalMaterial = true;

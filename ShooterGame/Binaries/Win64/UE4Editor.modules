@@ -1,9 +1,8 @@
 {
-	"Changelist" : 3452394,
-	"BuildId" : "3b4a7172-9407-4d67-93ef-2f9e6ae50c92",
-	"Modules" : 
+	"BuildId": "4212847",
+	"Modules": 
 	{
-		"ShooterGame" : "UE4Editor-ShooterGame.dll",
-		"ShooterGameLoadingScreen" : "UE4Editor-ShooterGameLoadingScreen.dll"
+		"ShooterGame": "UE4Editor-ShooterGame.dll",
+		"ShooterGameLoadingScreen": "UE4Editor-ShooterGameLoadingScreen.dll"
 	}
 }

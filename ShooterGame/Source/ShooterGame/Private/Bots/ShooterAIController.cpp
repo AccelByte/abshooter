@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "Bots/ShooterAIController.h"
@@ -133,13 +133,12 @@ bool AShooterAIController::FindClosestEnemyWithLOS(AShooterCharacter* ExcludeEne
 
 bool AShooterAIController::HasWeaponLOSToEnemy(AActor* InEnemyActor, const bool bAnyEnemy) const
 {
-	static FName LosTag = FName(TEXT("AIWeaponLosTrace"));
 	
 	AShooterBot* MyBot = Cast<AShooterBot>(GetPawn());
 
 	bool bHasLOS = false;
 	// Perform trace to retrieve hit info
-	FCollisionQueryParams TraceParams(LosTag, true, GetPawn());
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(AIWeaponLosTrace), true, GetPawn());
 	TraceParams.bTraceAsyncScene = true;
 
 	TraceParams.bReturnPhysicalMaterial = true;	

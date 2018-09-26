@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,10 +33,6 @@ public:
 
 	void SetIsJoining( const bool _bIsJoining ) { bIsJoining =_bIsJoining; }
 
-	void SetIsOnline( const bool _bIsOnline ) { bIsOnline =_bIsOnline; }
-
-	void SetIsLAN(const bool _bIsLAN) { bIsLAN = _bIsLAN; }
-
 private:
 	bool IsUniqueIdOnline( const FUniqueNetId& ControllerId ) const;
 
@@ -51,7 +47,7 @@ private:
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 
-	void HandleLoginUIClosedAndReady(TSharedPtr<const FUniqueNetId> UniqueId, const int UserIndex);
+	void HandleLoginUIClosedAndReady(TSharedPtr<const FUniqueNetId> UniqueId, const int UserIndex, const FOnlineError& Error = FOnlineError());
 
 	UShooterGameInstance* GetGameInstance() const;
 
@@ -92,10 +88,4 @@ private:
 
 	/** True if we joining a match */
 	bool bIsJoining;
-
-	/** True if we are online */
-	bool bIsOnline;
-
-	/** True if this is a LAN match (bIsOnline should also be true) */
-	bool bIsLAN;
 };

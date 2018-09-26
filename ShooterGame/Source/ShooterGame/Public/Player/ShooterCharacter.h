@@ -1,9 +1,11 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ShooterTypes.h"
 #include "ShooterCharacter.generated.h"
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnShooterCharacterWeaponChange, AShooterCharacter*, AShooterWeapon* /* new */, AShooterWeapon* /*old */);
 
 UCLASS(Abstract)
 class AShooterCharacter : public ACharacter
@@ -200,6 +202,9 @@ class AShooterCharacter : public ACharacter
 	/** get currently equipped weapon */
 	UFUNCTION(BlueprintCallable, Category = "Game|Weapon")
 	class AShooterWeapon* GetWeapon() const;
+
+	/** Global notification when a pawns weapon changes. Needed for replication graph. Use OnWeaponEquippedDelegate for actor notification */
+	SHOOTERGAME_API static FOnShooterCharacterWeaponChange NotifyWeaponChange;
 
 	/** get weapon attach point */
 	FName GetWeaponAttachPoint() const;

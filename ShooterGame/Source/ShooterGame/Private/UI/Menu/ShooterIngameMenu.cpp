@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "ShooterIngameMenu.h"
@@ -38,7 +38,7 @@ void FShooterIngameMenu::Construct(ULocalPlayer* _PlayerOwner)
 	if (!GameMenuWidget.IsValid())
 	{
 		SAssignNew(GameMenuWidget, SShooterMenuWidget)
-			.PlayerOwner(TWeakObjectPtr<ULocalPlayer>(PlayerOwner))
+			.PlayerOwner(MakeWeakObjectPtr(PlayerOwner))
 			.Cursor(EMouseCursor::Default)
 			.IsGameMenu(true);			
 
@@ -61,7 +61,7 @@ void FShooterIngameMenu::Construct(ULocalPlayer* _PlayerOwner)
 		MenuHelper::AddExistingMenuItem(RootMenuItem, ShooterOptions->OptionsItem.ToSharedRef());
 
 #if FRIENDS_SUPPORTED
-		if (GameInstance && GameInstance->GetIsOnline())
+		if (GameInstance && GameInstance->GetOnlineMode() == EOnlineMode::Online)
 		{
 #if !PLATFORM_XBOXONE
 			ShooterFriends = MakeShareable(new FShooterFriends());
@@ -80,7 +80,7 @@ void FShooterIngameMenu::Construct(ULocalPlayer* _PlayerOwner)
 #endif		
 
 #if SHOOTER_CONSOLE_UI			
-			TSharedPtr<FShooterMenuItem> ShowInvitesItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Invite Players", "INVITE PLAYERS"));
+			TSharedPtr<FShooterMenuItem> ShowInvitesItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Invite Players", "INVITE PLAYERS (via System UI)"));
 			ShowInvitesItem->OnConfirmMenuItem.BindRaw(this, &FShooterIngameMenu::OnShowInviteUI);		
 #endif
 		}

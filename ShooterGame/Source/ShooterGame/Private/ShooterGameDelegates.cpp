@@ -1,9 +1,12 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "Online/ShooterPlayerState.h"
 #include "GameDelegates.h"
 
+#include "UObject/PackageReload.h"
+
+//#include "Runtime/RHI/Public/RHICommandlist.h"
 
 #if !UE_BUILD_SHIPPING
 
@@ -119,9 +122,92 @@ static void ExtendedSaveGameInfoDelegate(const TCHAR* SaveName, const EGameDeleg
 	}
 }
 
+static void ReloadHandler( EPackageReloadPhase ReloadPhase, FPackageReloadedEvent* Event)
+{
+	if ( ReloadPhase == EPackageReloadPhase::PostPackageFixup)
+	{
+		// reinitialize allthe material instances
+
+
+		/*{
+			// fixup uniform expressions
+			UMaterialInterface::RecacheAllMaterialUniformExpressions();
+		}
+
+		ENQUEUE_UNIQUE_RENDER_COMMAND(
+		FRecreateBoundShaderStates,
+		{
+			RHIRecreateRecursiveBoundShaderStates();
+		});*/
+
+
+		/*for (TObjectIterator<UMaterialInstance> It; It; ++It)
+		{
+			UMaterialInstance* Material = *It;
+			//Material->InitResources();
+			Material->RebuildResource();
+		}*/
+	}
+}
+
+#define EXPERIMENTAL_ENABLEHOTRELOAD 0
+static void ReloadPackagesCallback( const TArray<FString>& PackageNames)
+{
+#if EXPERIMENTAL_ENABLEHOTRELOAD
+	TArray<UPackage*> PackagesToReload;
+	TArray<UPackage*> MaterialPackagesToReload;
+	for (const FString& PackageName : PackageNames)
+	{
+		UPackage* Package = FindPackage(nullptr, *PackageName);
+
+		if (Package == nullptr)
+		{
+			// UE_LOG(, Log, TEXT("Unable to find package in memory %s"), *PackageName);
+		}
+		else
+		{
+			if ( Package->HasAnyPackageFlags(PKG_ContainsMap || PKG_ContainsMap) )
+			{
+				continue;
+			}
+			PackagesToReload.Add(Package);
+		}
+	}
+
+
+	// see what's in these packages
+
+	if (PackagesToReload.Num())
+	{
+		SortPackagesForReload(PackagesToReload);
+
+		TArray<FReloadPackageData> PackagesToReloadData;
+		PackagesToReloadData.Empty(PackagesToReload.Num());
+		for (UPackage* PackageToReload : PackagesToReload)
+		{
+			PackagesToReloadData.Emplace(PackageToReload, LOAD_None);
+		}
+
+		TArray<UPackage*> ReloadedPackages;
+
+		FDelegateHandle Handle = FCoreUObjectDelegates::OnPackageReloaded.AddStatic(&ReloadHandler);
+
+		FText ErrorMessage;
+		GShouldVerifyGCAssumptions = false;
+		GUObjectArray.DisableDisregardForGC();
+
+		::ReloadPackages(PackagesToReloadData, ReloadedPackages, 500);
+
+		FCoreUObjectDelegates::OnPackageReloaded.Remove(Handle);
+	}
+#endif
+}
+
 void InitializeShooterGameDelegates()
 {
 	FGameDelegates::Get().GetWebServerActionDelegate() = FWebServerActionDelegate::CreateStatic(WebServerDelegate);
 	FGameDelegates::Get().GetAssignLayerChunkDelegate() = FAssignLayerChunkDelegate::CreateStatic(AssignLayerChunkDelegate);
 	FGameDelegates::Get().GetExtendedSaveGameInfoDelegate() = FExtendedSaveGameInfoDelegate::CreateStatic(ExtendedSaveGameInfoDelegate);
+
+	FCoreUObjectDelegates::NetworkFileRequestPackageReload.BindStatic(&ReloadPackagesCallback);
 }

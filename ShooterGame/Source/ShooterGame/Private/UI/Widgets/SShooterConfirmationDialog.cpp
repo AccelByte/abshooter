@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "ShooterStyle.h"
@@ -163,7 +163,7 @@ FReply SShooterConfirmationDialog::ExecuteConfirm(const int32 UserIndex)
 				if (IdentityInterface.IsValid())
 				{
 					TSharedPtr<const FUniqueNetId> IncomingUserId = IdentityInterface->GetUniquePlayerId(UserIndex);
-					TSharedPtr<const FUniqueNetId> DisconnectedId = PlayerOwner->GetCachedUniqueNetId();
+					FUniqueNetIdRepl DisconnectedId = PlayerOwner->GetCachedUniqueNetId();
 
 					if (*IncomingUserId == *DisconnectedId)
 					{

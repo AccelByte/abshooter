@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "Player/ShooterPlayerController.h"
@@ -57,6 +57,11 @@ AShooterPlayerController::AShooterPlayerController(const FObjectInitializer& Obj
 	ServerSayString = TEXT("Say");
 	ShooterFriendUpdateTimer = 0.0f;
 	bHasSentStartEvents = false;
+
+	StatMatchesPlayed = 0;
+	StatKills = 0;
+	StatDeaths = 0;
+	bHasFetchedPlatformData = false;
 }
 
 void AShooterPlayerController::SetupInputComponent()
@@ -85,6 +90,19 @@ void AShooterPlayerController::PostInitializeComponents()
 	ShooterFriendUpdateTimer = 0;
 }
 
+void AShooterPlayerController::ClearLeaderboardDelegate()
+{
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
+	{
+		IOnlineLeaderboardsPtr Leaderboards = OnlineSub->GetLeaderboardsInterface();
+		if (Leaderboards.IsValid())
+		{
+			Leaderboards->ClearOnLeaderboardReadCompleteDelegate_Handle(LeaderboardReadCompleteDelegateHandle);
+		}
+	}
+}
+
 void AShooterPlayerController::TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction)
 {
 	Super::TickActor(DeltaTime, TickType, ThisTickFunction);
@@ -103,7 +121,11 @@ void AShooterPlayerController::TickActor(float DeltaTime, enum ELevelTick TickTy
 			{
 				ShooterFriends->UpdateFriends(LocalPlayer->GetControllerId());
 			}
-			ShooterFriendUpdateTimer = 4; //make sure the time between calls is long enough that we won't trigger (0x80552C81) and not exceed the web api rate limit
+			
+			// Make sure the time between calls is long enough that we won't trigger (0x80552C81) and not exceed the web api rate limit
+			// That value is currently 75 requests / 15 minutes.
+			ShooterFriendUpdateTimer = 15;
+
 		}
 	}
 
@@ -136,6 +158,7 @@ void AShooterPlayerController::TickActor(float DeltaTime, enum ELevelTick TickTy
 void AShooterPlayerController::BeginDestroy()
 {
 	Super::BeginDestroy();
+	ClearLeaderboardDelegate();
 
 	if (!GExitPurge)
 	{
@@ -151,12 +174,15 @@ void AShooterPlayerController::SetPlayer( UPlayer* InPlayer )
 {
 	Super::SetPlayer( InPlayer );
 
-	//Build menu only after game is initialized
-	ShooterIngameMenu = MakeShareable(new FShooterIngameMenu());
-	ShooterIngameMenu->Construct(Cast<ULocalPlayer>(Player));
+	if (ULocalPlayer* const LocalPlayer = Cast<ULocalPlayer>(Player))
+	{
+		//Build menu only after game is initialized
+		ShooterIngameMenu = MakeShareable(new FShooterIngameMenu());
+		ShooterIngameMenu->Construct(Cast<ULocalPlayer>(Player));
 
-	FInputModeGameOnly InputMode;
-	SetInputMode(InputMode);
+		FInputModeGameOnly InputMode;
+		SetInputMode(InputMode);
+	}
 }
 
 void AShooterPlayerController::QueryAchievements()
@@ -208,6 +234,77 @@ void AShooterPlayerController::OnQueryAchievementsComplete(const FUniqueNetId& P
 	UE_LOG(LogOnline, Display, TEXT("AShooterPlayerController::OnQueryAchievementsComplete(bWasSuccessful = %s)"), bWasSuccessful ? TEXT("TRUE") : TEXT("FALSE"));
 }
 
+void AShooterPlayerController::OnLeaderboardReadComplete(bool bWasSuccessful)
+{
+	if (ReadObject.IsValid() && ReadObject->ReadState == EOnlineAsyncTaskState::Done && !bHasFetchedPlatformData)
+	{
+		bHasFetchedPlatformData = true;
+		ClearLeaderboardDelegate();
+
+		// We should only have one stat.
+		if (bWasSuccessful && ReadObject->Rows.Num() == 1)
+		{
+			FOnlineStatsRow& RowData = ReadObject->Rows[0];
+			if (const FVariantData* KillData = RowData.Columns.Find(LEADERBOARD_STAT_KILLS))
+			{
+				KillData->GetValue(StatKills);
+			}
+
+			if (const FVariantData* DeathData = RowData.Columns.Find(LEADERBOARD_STAT_DEATHS))
+			{
+				DeathData->GetValue(StatDeaths);
+			}
+
+			if (const FVariantData* MatchData = RowData.Columns.Find(LEADERBOARD_STAT_MATCHESPLAYED))
+			{
+				MatchData->GetValue(StatMatchesPlayed);
+			}
+
+			UE_LOG(LogOnline, Log, TEXT("Fetched player stat data. Kills %d Deaths %d Matches %d"), StatKills, StatDeaths, StatMatchesPlayed);
+		}
+	}
+}
+
+void AShooterPlayerController::QueryStats()
+{
+	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	if (LocalPlayer && LocalPlayer->GetControllerId() != -1)
+	{
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+		if (OnlineSub)
+		{
+			IOnlineIdentityPtr Identity = OnlineSub->GetIdentityInterface();
+			if (Identity.IsValid())
+			{
+				TSharedPtr<const FUniqueNetId> UserId = Identity->GetUniquePlayerId(LocalPlayer->GetControllerId());
+
+				if (UserId.IsValid())
+				{
+					IOnlineLeaderboardsPtr Leaderboards = OnlineSub->GetLeaderboardsInterface();
+					if (Leaderboards.IsValid() && !bHasFetchedPlatformData)
+					{
+						TArray<TSharedRef<const FUniqueNetId>> QueryPlayers;
+						QueryPlayers.Add(UserId.ToSharedRef());
+
+						LeaderboardReadCompleteDelegateHandle = Leaderboards->OnLeaderboardReadCompleteDelegates.AddUObject(this, &AShooterPlayerController::OnLeaderboardReadComplete);
+						ReadObject = MakeShareable(new FShooterAllTimeMatchResultsRead());
+						FOnlineLeaderboardReadRef ReadObjectRef = ReadObject.ToSharedRef();
+						if (Leaderboards->ReadLeaderboards(QueryPlayers, ReadObjectRef))
+						{
+							UE_LOG(LogOnline, Log, TEXT("Started process to fetch stats for current user."));
+						}
+						else
+						{
+							UE_LOG(LogOnline, Warning, TEXT("Could not start leaderboard fetch process. This will affect stat writes for this session."));
+						}
+						
+					}
+				}
+			}
+		}
+	}
+}
+
 void AShooterPlayerController::UnFreeze()
 {
 	ServerRestartPlayer();
@@ -236,10 +333,6 @@ void AShooterPlayerController::PawnPendingDestroy(APawn* P)
 
 void AShooterPlayerController::GameHasEnded(class AActor* EndGameFocus, bool bIsWinner)
 {
-	UpdateSaveFileOnGameEnd(bIsWinner);
-	UpdateAchievementsOnGameEnd();
-	UpdateLeaderboardsOnGameEnd();
-
 	Super::GameHasEnded(EndGameFocus, bIsWinner);
 }
 
@@ -257,7 +350,7 @@ bool AShooterPlayerController::FindDeathCameraSpot(FVector& CameraLocation, FRot
 
 	const float YawOffsets[] = { 0.0f, -180.0f, 90.0f, -90.0f, 45.0f, -45.0f, 135.0f, -135.0f };
 	const float CameraOffset = 600.0f;
-	FCollisionQueryParams TraceParams(TEXT("DeathCamera"), true, GetPawn());
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(DeathCamera), true, GetPawn());
 
 	FHitResult HitResult;
 	for (int32 i = 0; i < ARRAY_COUNT(YawOffsets); i++)
@@ -403,7 +496,7 @@ void AShooterPlayerController::UpdateAchievementProgress( const FString& Id, flo
 			IOnlineIdentityPtr Identity = OnlineSub->GetIdentityInterface();
 			if (Identity.IsValid())
 			{
-				TSharedPtr<const FUniqueNetId> UserId = LocalPlayer->GetCachedUniqueNetId();
+				FUniqueNetIdRepl UserId = LocalPlayer->GetCachedUniqueNetId();
 
 				if (UserId.IsValid())
 				{
@@ -537,6 +630,11 @@ void AShooterPlayerController::SetGodMode(bool bEnable)
 	bGodMode = bEnable;
 }
 
+void AShooterPlayerController::SetIsVibrationEnabled(bool bEnable)
+{
+	bIsVibrationEnabled = bEnable;
+}
+
 void AShooterPlayerController::ClientGameStarted_Implementation()
 {
 	bAllowGameActions = true;
@@ -553,6 +651,8 @@ void AShooterPlayerController::ClientGameStarted_Implementation()
 	bGameEndedFrame = false;
 
 	QueryAchievements();
+
+	QueryStats();
 
 	// Send round start event
 	const auto Events = Online::GetEventsInterface();
@@ -580,7 +680,7 @@ void AShooterPlayerController::ClientGameStarted_Implementation()
 			// Online matches require the MultiplayerRoundStart event as well
 			UShooterGameInstance* SGI = GetWorld() != NULL ? Cast<UShooterGameInstance>(GetWorld()->GetGameInstance()) : NULL;
 
-			if (SGI->GetIsOnline())
+			if (SGI && (SGI->GetOnlineMode() == EOnlineMode::Online))
 			{
 				FOnlineEventParms MultiplayerParams;
 
@@ -611,7 +711,7 @@ void AShooterPlayerController::ClientStartOnlineGame_Implementation()
 		if (OnlineSub)
 		{
 			IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
-			if (Sessions.IsValid())
+			if (Sessions.IsValid() && (Sessions->GetNamedSession(ShooterPlayerState->SessionName) != nullptr))
 			{
 				UE_LOG(LogOnline, Log, TEXT("Starting session %s on client"), *ShooterPlayerState->SessionName.ToString() );
 				Sessions->StartSession(ShooterPlayerState->SessionName);
@@ -638,7 +738,7 @@ void AShooterPlayerController::ClientEndOnlineGame_Implementation()
 		if (OnlineSub)
 		{
 			IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
-			if (Sessions.IsValid())
+			if (Sessions.IsValid() && (Sessions->GetNamedSession(ShooterPlayerState->SessionName) != nullptr))
 			{
 				UE_LOG(LogOnline, Log, TEXT("Ending session %s on client"), *ShooterPlayerState->SessionName.ToString() );
 				Sessions->EndSession(ShooterPlayerState->SessionName);
@@ -744,7 +844,7 @@ void AShooterPlayerController::ClientSendRoundEndEvent_Implementation(bool bIsWi
 
 			// Online matches require the MultiplayerRoundEnd event as well
 			UShooterGameInstance* SGI = GetWorld() != NULL ? Cast<UShooterGameInstance>(GetWorld()->GetGameInstance()) : NULL;
-			if (SGI->GetIsOnline())
+			if (SGI && (SGI->GetOnlineMode() == EOnlineMode::Online))
 			{
 				FOnlineEventParms MultiplayerParams;
 
@@ -875,6 +975,11 @@ bool AShooterPlayerController::HasGodMode() const
 	return bGodMode;
 }
 
+bool AShooterPlayerController::IsVibrationEnabled() const
+{
+	return bIsVibrationEnabled;
+}
+
 bool AShooterPlayerController::IsGameInputAllowed() const
 {
 	return bAllowGameActions && !bCinematicMode;
@@ -939,22 +1044,7 @@ bool AShooterPlayerController::SetPause(bool bPause, FCanUnpause CanUnpauseDeleg
 	const auto PresenceInterface = Online::GetPresenceInterface();
 	const auto Events = Online::GetEventsInterface();
 	const auto LocalPlayer = Cast<ULocalPlayer>(Player);
-	TSharedPtr<const FUniqueNetId> UserId = LocalPlayer ? LocalPlayer->GetCachedUniqueNetId() : nullptr;
-
-	if(PresenceInterface.IsValid() && UserId.IsValid())
-	{
-		FOnlineUserPresenceStatus PresenceStatus;
-		if(Result && bPause)
-		{
-			PresenceStatus.Properties.Add(DefaultPresenceKey, FString("Paused"));
-		}
-		else
-		{
-			PresenceStatus.Properties.Add(DefaultPresenceKey, FString("InGame"));
-		}
-		PresenceInterface->SetPresence(*UserId, PresenceStatus);
-
-	}
+	FUniqueNetIdRepl UserId = LocalPlayer ? LocalPlayer->GetCachedUniqueNetId() : FUniqueNetIdRepl();
 
 	// Don't send pause events while online since the game doesn't actually pause
 	if(GetNetMode() == NM_Standalone && Events.IsValid() && PlayerState->UniqueId.IsValid())
@@ -973,6 +1063,20 @@ bool AShooterPlayerController::SetPause(bool bPause, FCanUnpause CanUnpauseDeleg
 	}
 
 	return Result;
+}
+
+FVector AShooterPlayerController::GetFocalLocation() const
+{
+	const AShooterCharacter* ShooterCharacter = Cast<AShooterCharacter>(GetPawn());
+
+	// On death we want to use the player's death cam location rather than the location of where the pawn is at the moment
+	// This guarantees that the clients see their death cam correctly, as their pawns have delayed destruction.
+	if (ShooterCharacter && ShooterCharacter->bIsDying)
+	{
+		return GetSpawnLocation();
+	}
+
+	return Super::GetFocalLocation();
 }
 
 void AShooterPlayerController::ShowInGameMenu()
@@ -1163,7 +1267,7 @@ void AShooterPlayerController::UpdateAchievementsOnGameEnd()
 
 void AShooterPlayerController::UpdateLeaderboardsOnGameEnd()
 {
-	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+	UShooterLocalPlayer* LocalPlayer = Cast<UShooterLocalPlayer>(Player);
 	if (LocalPlayer)
 	{
 		// update leaderboards - note this does not respect existing scores and overwrites them. We would first need to read the leaderboards if we wanted to do that.
@@ -1183,11 +1287,20 @@ void AShooterPlayerController::UpdateLeaderboardsOnGameEnd()
 						if (ShooterPlayerState)
 						{
 							FShooterAllTimeMatchResultsWrite ResultsWriteObject;
+							int32 MatchWriteData = 1;
+							int32 KillsWriteData = ShooterPlayerState->GetKills();
+							int32 DeathsWriteData = ShooterPlayerState->GetDeaths();
 
-							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_SCORE, ShooterPlayerState->GetKills());
-							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_KILLS, ShooterPlayerState->GetKills());
-							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_DEATHS, ShooterPlayerState->GetDeaths());
-							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_MATCHESPLAYED, 1);
+#if !PLATFORM_XBOXONE
+							StatMatchesPlayed = (MatchWriteData += StatMatchesPlayed);
+							StatKills = (KillsWriteData += StatKills);
+							StatDeaths = (DeathsWriteData += StatDeaths);
+#endif
+
+							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_SCORE, KillsWriteData);
+							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_KILLS, KillsWriteData);
+							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_DEATHS, DeathsWriteData);
+							ResultsWriteObject.SetIntStat(LEADERBOARD_STAT_MATCHESPLAYED, MatchWriteData);
 
 							// the call will copy the user id and write object to its own memory
 							Leaderboards->WriteLeaderboards(ShooterPlayerState->SessionName, *UserId, ResultsWriteObject);

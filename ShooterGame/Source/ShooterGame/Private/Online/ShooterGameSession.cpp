@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "ShooterGameSession.h"
@@ -65,11 +65,11 @@ void AShooterGameSession::HandleMatchHasStarted()
 	if (OnlineSub)
 	{
 		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
-		if (Sessions.IsValid())
+		if (Sessions.IsValid() && (Sessions->GetNamedSession(NAME_GameSession) != nullptr))
 		{
-			UE_LOG(LogOnlineGame, Log, TEXT("Starting session %s on server"), *GameSessionName.ToString());
+			UE_LOG(LogOnlineGame, Log, TEXT("Starting session %s on server"), *FName(NAME_GameSession).ToString());
 			OnStartSessionCompleteDelegateHandle = Sessions->AddOnStartSessionCompleteDelegate_Handle(OnStartSessionCompleteDelegate);
-			Sessions->StartSession(GameSessionName);
+			Sessions->StartSession(NAME_GameSession);
 		}
 	}
 }
@@ -80,12 +80,12 @@ void AShooterGameSession::HandleMatchHasStarted()
  */
 void AShooterGameSession::HandleMatchHasEnded()
 {
-	// start online game locally and wait for completion
+	// end online game locally 
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 	if (OnlineSub)
 	{
 		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
-		if (Sessions.IsValid())
+		if (Sessions.IsValid() && (Sessions->GetNamedSession(NAME_GameSession) != nullptr))
 		{
 			// tell the clients to end
 			for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
@@ -98,8 +98,8 @@ void AShooterGameSession::HandleMatchHasEnded()
 			}
 
 			// server is handled here
-			UE_LOG(LogOnlineGame, Log, TEXT("Ending session %s on server"), *GameSessionName.ToString() );
-			Sessions->EndSession(GameSessionName);
+			UE_LOG(LogOnlineGame, Log, TEXT("Ending session %s on server"), *FName(NAME_GameSession).ToString() );
+			Sessions->EndSession(NAME_GameSession);
 		}
 	}
 }
@@ -117,8 +117,8 @@ bool AShooterGameSession::IsBusy() const
 		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
 		if (Sessions.IsValid())
 		{
-			EOnlineSessionState::Type GameSessionState = Sessions->GetSessionState(GameSessionName);
-			EOnlineSessionState::Type PartySessionState = Sessions->GetSessionState(PartySessionName);
+			EOnlineSessionState::Type GameSessionState = Sessions->GetSessionState(NAME_GameSession);
+			EOnlineSessionState::Type PartySessionState = Sessions->GetSessionState(NAME_PartySession);
 			if (GameSessionState != EOnlineSessionState::NoSession || PartySessionState != EOnlineSessionState::NoSession)
 			{
 				return true;
@@ -232,12 +232,36 @@ bool AShooterGameSession::HostSession(TSharedPtr<const FUniqueNetId> UserId, FNa
 	else 
 	{
 		// Hack workflow in development
-		OnCreatePresenceSessionComplete().Broadcast(GameSessionName, true);
+		OnCreatePresenceSessionComplete().Broadcast(NAME_GameSession, true);
 		return true;
 	}
 #endif
 
 	return false;
+}
+
+bool AShooterGameSession::HostSession(const TSharedPtr<const FUniqueNetId> UserId, const FName InSessionName, const FOnlineSessionSettings& SessionSettings)
+{
+	bool bResult = false;
+
+	IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get();
+	if (OnlineSub)
+	{
+		CurrentSessionParams.SessionName = InSessionName;
+		CurrentSessionParams.bIsLAN = SessionSettings.bIsLANMatch;
+		CurrentSessionParams.bIsPresence = SessionSettings.bUsesPresence;
+		CurrentSessionParams.UserId = UserId;
+		MaxPlayers = SessionSettings.NumPrivateConnections + SessionSettings.NumPublicConnections;
+
+		IOnlineSessionPtr Sessions = OnlineSub->GetSessionInterface();
+		if (Sessions.IsValid() && CurrentSessionParams.UserId.IsValid())
+		{
+			OnCreateSessionCompleteDelegateHandle = Sessions->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
+			bResult = Sessions->CreateSession(*UserId, InSessionName, SessionSettings);
+		}
+	}
+
+	return bResult;
 }
 
 void AShooterGameSession::OnFindSessionsComplete(bool bWasSuccessful)
@@ -446,12 +470,13 @@ void AShooterGameSession::RegisterServer()
 			ShooterHostSettings->Set(SETTING_MATCHING_HOPPER, FString("TeamDeathmatch"), EOnlineDataAdvertisementType::DontAdvertise);
 			ShooterHostSettings->Set(SETTING_MATCHING_TIMEOUT, 120.0f, EOnlineDataAdvertisementType::ViaOnlineService);
 			ShooterHostSettings->Set(SETTING_SESSION_TEMPLATE_NAME, FString("GameSession"), EOnlineDataAdvertisementType::DontAdvertise);
+			ShooterHostSettings->Set(SETTING_GAMEMODE, FString("TeamDeathmatch"), EOnlineDataAdvertisementType::ViaOnlineService);
 			ShooterHostSettings->Set(SETTING_MAPNAME, GetWorld()->GetMapName(), EOnlineDataAdvertisementType::ViaOnlineService);
 			ShooterHostSettings->bAllowInvites = true;
 			ShooterHostSettings->bIsDedicated = true;
 			HostSettings = ShooterHostSettings;
 			OnCreateSessionCompleteDelegateHandle = SessionInt->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
-			SessionInt->CreateSession(0, GameSessionName, *HostSettings);
+			SessionInt->CreateSession(0, NAME_GameSession, *HostSettings);
 		}
 	}
 }

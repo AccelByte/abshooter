@@ -1,4 +1,4 @@
-// Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 #include "ShooterGame.h"
 #include "ShooterGameInstance.h"
@@ -46,7 +46,7 @@ void AShooterGameMode::InitGame(const FString& MapName, const FString& Options, 
 	Super::InitGame(MapName, Options, ErrorMessage);
 
 	const UGameInstance* GameInstance = GetGameInstance();
-	if (GameInstance && Cast<UShooterGameInstance>(GameInstance)->GetIsOnline())
+	if (GameInstance && Cast<UShooterGameInstance>(GameInstance)->GetOnlineMode() != EOnlineMode::Offline)
 	{
 		bPauseable = false;
 	}
@@ -222,8 +222,8 @@ void AShooterGameMode::RequestFinishAndExitToMainMenu()
 
 		if (!Controller->IsLocalController())
 		{
-			const FString RemoteReturnReason = NSLOCTEXT("NetworkErrors", "HostHasLeft", "Host has left the game.").ToString();
-			Controller->ClientReturnToMainMenu(RemoteReturnReason);
+			const FText RemoteReturnReason = NSLOCTEXT("NetworkErrors", "HostHasLeft", "Host has left the game.");
+			Controller->ClientReturnToMainMenuWithTextReason(RemoteReturnReason);
 		}
 		else
 		{
@@ -513,7 +513,7 @@ void AShooterGameMode::InitBot(AShooterAIController* AIController, int32 BotNum)
 		if (AIController->PlayerState)
 		{
 			FString BotName = FString::Printf(TEXT("Bot %d"), BotNum);
-			AIController->PlayerState->PlayerName = BotName;
+			AIController->PlayerState->SetPlayerName(BotName);
 		}		
 	}
 }
