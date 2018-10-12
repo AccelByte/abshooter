@@ -4,6 +4,7 @@
 #include "SlateExtras.h"
 #include "Widgets/ShooterMenuItem.h"
 #include "Widgets/SShooterMenuWidget.h"
+#include "Widgets/SShooterUserProfileWidget.h"
 #include "Widgets/SShooterServerList.h"
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterLeaderboard.h"
@@ -72,8 +73,14 @@ protected:
 	/** menu widget */
 	TSharedPtr<class SShooterMenuWidget> MenuWidget;
 
+
+	/** menu widget */
+	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
+
+
 	/* used for removing the MenuWidget */
 	TSharedPtr<class SWeakWidget> MenuWidgetContainer;
+	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
 
 	/** SplitScreen Lobby Widget */
 	TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;

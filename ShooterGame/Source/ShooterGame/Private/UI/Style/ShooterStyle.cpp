@@ -52,63 +52,78 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	// The image used to draw the replay pause button
 	Style.Set("ShooterGame.ReplayPauseIcon", new IMAGE_BRUSH("Images/ReplayPause", FVector2D(32.0f, 32.0f)));
 
+	Style.Set("ShooterGame.ProfileBorder", new IMAGE_BRUSH("Images/ProfileBorder", FVector2D(84.0f, 84.0f)));
+
 	// Fonts still need to be specified in code for now
 	Style.Set("ShooterGame.MenuServerListTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 14))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 14))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 
 	Style.Set("ShooterGame.ScoreboardListTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 14))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 14))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 
 	Style.Set("ShooterGame.MenuProfileNameStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 18))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 18))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 
+	Style.Set("ShooterGame.UsernameTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Medium.ttf", 15))
+		.SetColorAndOpacity(FLinearColor(FColor(142, 246, 255)))
+		//.SetShadowOffset(FIntPoint(-1, 1))
+	);
+
+	Style.Set("ShooterGame.UserIDTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular.ttf", 11))
+		.SetColorAndOpacity(FLinearColor(FColor(24, 105, 112) ))
+		//.SetShadowOffset(FIntPoint(-1, 1))
+	);
+
+
 	Style.Set("ShooterGame.MenuTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 20))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 28))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 
 	Style.Set("ShooterGame.MenuHeaderTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 26))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 26))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 
 	Style.Set("ShooterGame.WelcomeScreen.WelcomeTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Medium", 32))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 32))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 
 	Style.Set("ShooterGame.DefaultScoreboard.Row.HeaderTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 24))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 24))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FVector2D(0,1))
 		);
 
 	Style.Set("ShooterGame.DefaultScoreboard.Row.StatTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 18))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 18))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FVector2D(0,1))
 		);
 
 	Style.Set("ShooterGame.SplitScreenLobby.StartMatchTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Regular", 16))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 16))
 		.SetColorAndOpacity(FLinearColor::Green)
 		.SetShadowOffset(FVector2D(0,1))
 		);
 
 	Style.Set("ShooterGame.DemoListCheckboxTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/Roboto-Black", 12))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 12))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);

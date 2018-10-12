@@ -76,3 +76,7 @@ Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+ShooterGame/Intermediate/
+*.bak
+ShooterGame/Saved/
+*.pdb

@@ -2,7 +2,7 @@
 
 #include "ShooterGame.h"
 #include "Engine/Console.h"
-#include "SShooterMenuWidget.h"
+#include "SShooterUserProfileWidget.h"
 #include "ShooterMenuItem.h"
 #include "SShooterMenuItem.h"
 #include "ShooterStyle.h"
@@ -12,8 +12,12 @@
 #include "Player/ShooterLocalPlayer.h"
 #include "ShooterGameUserSettings.h"
 #include "Slate/SceneViewport.h"
+#include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
+#include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 
-#define LOCTEXT_NAMESPACE "SShooterMenuWidget"
+
+
+#define LOCTEXT_NAMESPACE "SShooterUserProfileWidget"
 
 #if PLATFORM_XBOXONE
 #define PROFILE_SWAPPING	1
@@ -21,8 +25,12 @@
 #define PROFILE_SWAPPING	0
 #endif
 
-void SShooterMenuWidget::Construct(const FArguments& InArgs)
+FSlateBrush* StarIconBrush;
+TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
+
+void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 {
+	ThumbnailBrush.Reset();
 	MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 
 	bControlsLocked = false;
@@ -32,197 +40,114 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 	PlayerOwner = InArgs._PlayerOwner;
 	bGameMenu = InArgs._IsGameMenu;
 	ControllerHideMenuKey = EKeys::Gamepad_Special_Right;
-	Visibility.Bind(this, &SShooterMenuWidget::GetSlateVisibility);
-	FLinearColor MenuTitleTextColor =  FLinearColor(FColor(0,0,0, 51));
+	Visibility.Bind(this, &SShooterUserProfileWidget::GetSlateVisibility);
+	FLinearColor UserNameTextColor =  FLinearColor(FColor(142,246,255));
+	FLinearColor UserIDTextColor = FLinearColor(FColor(24, 105, 112));
 	MenuHeaderHeight = 62.0f;
 	MenuHeaderWidth = 287.0f;
 
 	// Calculate the size of the profile box based on the string it'll contain (+ padding)
-	const FText PlayerName = PlayerOwner.IsValid() ? FText::FromString(PlayerOwner->GetNickname()) : FText::GetEmpty();
-	const FText ProfileSwap = ShooterUIHelpers::Get().GetProfileSwapText();
+	const FText PlayerName = FText::FromString(TEXT("Hendra Darwintha"));// PlayerOwner.IsValid() ? FText::FromString(PlayerOwner->GetNickname()) : FText::GetEmpty();
+	const FText ProfileUserID = FText::FromString(TEXT("57ad67a5s74d68754asd")); //  ShooterUIHelpers::Get().GetProfileSwapText();
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FSlateFontInfo PlayerNameFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.MenuProfileNameStyle").Font;
 	const FSlateFontInfo ProfileSwapFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.MenuServerListTextStyle").Font;
-	MenuProfileWidth = FMath::Max( FontMeasure->Measure( PlayerName, PlayerNameFontInfo, 1.0f ).X, FontMeasure->Measure( ProfileSwap.ToString(), ProfileSwapFontInfo, 1.0f ).X ) + 32.0f;
+	//const FSlateImageBrush ProfileBorderBrush = FShooterStyle::Get().GetWidgetStyle<FSlateImageBrush>("ShooterGame.ProfileBorder");
+	MenuProfileWidth = FMath::Max( FontMeasure->Measure( PlayerName, PlayerNameFontInfo, 1.0f ).X, FontMeasure->Measure( ProfileUserID.ToString(), ProfileSwapFontInfo, 1.0f ).X ) + 32.0f;
+
+
+	//Texture2D'/Game/UI/Chat/ChatLog_Icon_Star.ChatLog_Icon_Star'
+	StarIconBrush = new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/SoundCue_SpeakerIcon.png", FVector2D(144, 144));
+
+	
 
 	ChildSlot
-	[
-		SNew(SOverlay)
-		+ SOverlay::Slot()
+	[	
+		SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Top)
+		.Padding(TAttribute<FMargin>(this, &SShooterUserProfileWidget::GetMenuOffset))
 		[
 			SNew(SOverlay)
-			//+ SOverlay::Slot()
-			//.HAlign(HAlign_Right)
-			//.VAlign(VAlign_Fill)
-			//.Padding( GetProfileSwapOffset() )
-			//[
-			//	SNew(SBox)
-			//	.WidthOverride(MenuProfileWidth)
-			//	[
-			//		SNew(SImage)
-			//		.Visibility(this, &SShooterMenuWidget::GetProfileSwapVisibility)
-			//		.ColorAndOpacity(this, &SShooterMenuWidget::GetHeaderColor)
-			//		.Image(&MenuStyle->HeaderBackgroundBrush)
-			//	]
-			//]
-			//+ SOverlay::Slot()
-			//.HAlign(HAlign_Right)
-			//.VAlign(VAlign_Fill)
-			//.Padding( GetProfileSwapOffset() )
-			//[
-			//	SNew(SVerticalBox)
-			//	.Visibility(this, &SShooterMenuWidget::GetProfileSwapVisibility)
-			//	+ SVerticalBox::Slot()
-			//	.AutoHeight()
-			//	.Padding( 16.0f, 10.0f, 16.0f, 1.0f )
-			//	.HAlign(HAlign_Right)
-			//	.VAlign(VAlign_Top)
-			//	[
-			//		SNew(STextBlock)
-			//		.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuProfileNameStyle")
-			//		.ColorAndOpacity(MenuTitleTextColor)
-			//		.Text(PlayerName)
-			//	]
-			//	+ SVerticalBox::Slot()
-			//	.AutoHeight()
-			//	.HAlign(HAlign_Right)
-			//	.VAlign(VAlign_Bottom)
-			//	.Padding( 16.0f, 1.0f, 16.0f, 10.0f )
-			//	[
-			//		SNew(STextBlock)
-			//		.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuServerListTextStyle")
-			//		.ColorAndOpacity(MenuTitleTextColor)
-			//		.Text(ProfileSwap)
-			//	]
-			//]
-		]
-		+ SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
+			+ SOverlay::Slot()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Top)
-			.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetMenuOffset))
 			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				SNew(SBox) // box kiri, buat border image
+				.WidthOverride(84.0f)
+				.HeightOverride(84.0f)
 				[
-					SNew(SOverlay)
-					//+ SOverlay::Slot()
-					//.HAlign(HAlign_Left)
-					//.VAlign(VAlign_Fill)
-					//[
-					//	SNew(SBox)
-					//	.WidthOverride(MenuHeaderWidth)
-					//	.HeightOverride(MenuHeaderHeight)
-					//	[
-					//		SNew(SImage)
-					//		.ColorAndOpacity(this, &SShooterMenuWidget::GetHeaderColor)
-					//		.Image(&MenuStyle->HeaderBackgroundBrush)
-					//	]
-					//]
-					+ SOverlay::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Fill)
-					[
-						SNew(SBox)
-						.WidthOverride(MenuHeaderWidth)
-						.HeightOverride(MenuHeaderHeight)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						[
-							SNew(STextBlock)
-							.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
-							.ColorAndOpacity(MenuTitleTextColor)
-							.Text(this,&SShooterMenuWidget::GetMenuTitle)
-						]
-					]
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					SNew(SBorder)
-					.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
-					.ColorAndOpacity(this, &SShooterMenuWidget::GetBottomColor)
-					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Left)
-					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						[
-							SNew(SVerticalBox)
-							.Clipping(EWidgetClipping::ClipToBounds)
-
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetLeftMenuOffset))
-							[
-								SNew(SBorder)
-								.BorderImage(&MenuStyle->LeftBackgroundBrush)
-								 //.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
-								.Padding(FMargin(OutlineWidth))
-								.DesiredSizeScale(this, &SShooterMenuWidget::GetBottomScale)
-								.VAlign(VAlign_Top)
-								.HAlign(HAlign_Left)
-								[
-									SAssignNew(LeftBox, SVerticalBox)
-									.Clipping(EWidgetClipping::ClipToBounds)
-								]
-							]
-						]
-						
-						//+ SHorizontalBox::Slot()
-						//.AutoWidth()
-						//[
-						//	SNew(SVerticalBox)
-						//	.Clipping(EWidgetClipping::ClipToBounds)
-
-						//	+ SVerticalBox::Slot()
-						//	.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetSubMenuOffset))
-						//	.AutoHeight()
-						//	[
-						//		SNew(SBorder)
-						//		.BorderImage(&MenuStyle->RightBackgroundBrush)
-						//		.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
-						//		.Padding(FMargin(OutlineWidth))
-						//		.DesiredSizeScale(this, &SShooterMenuWidget::GetBottomScale)
-						//		.VAlign(VAlign_Top)
-						//		.HAlign(HAlign_Left)
-						//		[
-						//			SAssignNew(RightBox, SVerticalBox)
-						//			.Clipping(EWidgetClipping::ClipToBounds)
-						//		]
-						//	]
-						//]
-					]
+					SNew(SImage) // gambar avatar, klo bisa dari URL				
+					.Image(FShooterStyle::Get().GetBrush("ShooterGame.ProfileBorder"))
 				]
 			]
+			+ SOverlay::Slot()
+			.HAlign(HAlign_Center)
+			.VAlign(VAlign_Center)
+			[
+				SNew(SBox) // box kiri, buat gambar profile			
+				.WidthOverride(56.0f)
+				.HeightOverride(56.0f)
+				[
+					SNew(SImage) // gambar avatar, klo bisa dari URL				
+					.Image(this, &SShooterUserProfileWidget::GetProfileAvatar)
+				]
+			]
+
+		]
+		+ SHorizontalBox::Slot()
+		.HAlign(HAlign_Left)
+		.VAlign(VAlign_Top)
+		//.Padding(TAttribute<FMargin>(this, &SShooterUserProfileWidget::GetMenuOffset))
+		[
+			SNew(SVerticalBox)					
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Bottom)
+			.Padding(15.0f, 70.0f, 0.0f, 0.0f)
+			[
+				SNew(STextBlock)
+				.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")				
+				.Text(PlayerName)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.HAlign(HAlign_Left)
+			.VAlign(VAlign_Top)			
+			.Padding(15.0f, 0.0f, 0.0f, 0.0f)
+			[
+				SNew(STextBlock)
+				.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")				
+				.Text(ProfileUserID)
+			]
+
 		]
 	];
 }
 
-EVisibility SShooterMenuWidget::GetSlateVisibility() const
+
+// load profile image
+// C:\Users\My Computer\Pictures\avatar\final\avatar3.jpg
+
+
+EVisibility SShooterUserProfileWidget::GetSlateVisibility() const
 {
 	return bConsoleVisible ? EVisibility::HitTestInvisible : EVisibility::Visible;
 }
 
-FText SShooterMenuWidget::GetMenuTitle() const 
+FText SShooterUserProfileWidget::GetMenuTitle() const 
 {
 	return CurrentMenuTitle;
 }
 
-FMargin SShooterMenuWidget::GetProfileSwapOffset() const
+FMargin SShooterUserProfileWidget::GetProfileSwapOffset() const
 {
 	return FMargin(0.0f, 50.0f, 50.0f, 0.0f);
 }
 
-bool SShooterMenuWidget::IsProfileSwapActive() const
+bool SShooterUserProfileWidget::IsProfileSwapActive() const
 {
 #if PROFILE_SWAPPING
 	// Dont' show if ingame or not on the main menu screen
@@ -232,16 +157,24 @@ bool SShooterMenuWidget::IsProfileSwapActive() const
 #endif
 }
 
-EVisibility SShooterMenuWidget::GetProfileSwapVisibility() const
+EVisibility SShooterUserProfileWidget::GetProfileSwapVisibility() const
 {
 	return IsProfileSwapActive() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-bool SShooterMenuWidget::ProfileUISwap(const int ControllerIndex) const
+const FSlateBrush* SShooterUserProfileWidget::GetProfileAvatar() const
+{
+	if(ThumbnailBrush.IsValid())
+		return ThumbnailBrush.Get();
+
+	return StarIconBrush;
+}
+
+bool SShooterUserProfileWidget::ProfileUISwap(const int ControllerIndex) const
 {
 	if(IsProfileSwapActive())
 	{
-		const FOnLoginUIClosedDelegate Delegate = FOnLoginUIClosedDelegate::CreateSP( this, &SShooterMenuWidget::HandleProfileUISwapClosed );
+		const FOnLoginUIClosedDelegate Delegate = FOnLoginUIClosedDelegate::CreateSP( this, &SShooterUserProfileWidget::HandleProfileUISwapClosed );
 		if ( ShooterUIHelpers::Get().ProfileSwapUI(ControllerIndex, false, &Delegate) )
 		{
 			UShooterGameInstance* GameInstance = PlayerOwner.IsValid() ? Cast< UShooterGameInstance >( PlayerOwner->GetGameInstance() ) : nullptr;
@@ -256,7 +189,7 @@ bool SShooterMenuWidget::ProfileUISwap(const int ControllerIndex) const
 	return false;
 }
 
-void SShooterMenuWidget::HandleProfileUISwapClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& Error)
+void SShooterUserProfileWidget::HandleProfileUISwapClosed(TSharedPtr<const FUniqueNetId> UniqueId, const int ControllerIndex, const FOnlineError& Error)
 {
 	UShooterGameInstance * GameInstance = PlayerOwner.IsValid() ? Cast< UShooterGameInstance >( PlayerOwner->GetGameInstance() ) : nullptr;
 
@@ -284,22 +217,22 @@ void SShooterMenuWidget::HandleProfileUISwapClosed(TSharedPtr<const FUniqueNetId
 	LocalPlayer->LoadPersistentUser();
 }
 
-void SShooterMenuWidget::LockControls(bool bEnable)
+void SShooterUserProfileWidget::LockControls(bool bEnable)
 {
 	bControlsLocked = bEnable;
 }
 
-int32 SShooterMenuWidget::GetOwnerUserIndex()
+int32 SShooterUserProfileWidget::GetOwnerUserIndex()
 {
 	return PlayerOwner.IsValid() ? PlayerOwner->GetControllerId() : 0;
 }
 
-int32 SShooterMenuWidget::GetMenuLevel()
+int32 SShooterUserProfileWidget::GetMenuLevel()
 {
 	return MenuHistory.Num();
 }
 
-void SShooterMenuWidget::BuildAndShowMenu()
+void SShooterUserProfileWidget::BuildAndShowMenu()
 {
 	//grab the user settings
 	UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
@@ -326,9 +259,75 @@ void SShooterMenuWidget::BuildAndShowMenu()
 
 	bMenuHiding = false;
 	FSlateApplication::Get().PlaySound(MenuStyle->MenuEnterSound, GetOwnerUserIndex());
+
+
+
+	// start download avatar
+	TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+	ThumbRequest->SetVerb("GET");
+	ThumbRequest->SetURL("https://s3-us-west-2.amazonaws.com/justice-platform-service/integration/avatar/442dd73025c74282b14fe8ed3aa5fb7a.jpg");
+	ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterUserProfileWidget::OnThumbImageReceived);
+	ThumbRequest->ProcessRequest();
 }
 
-void SShooterMenuWidget::HideMenu()
+void SShooterUserProfileWidget::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (bWasSuccessful && Response.IsValid())
+	{
+		TArray<uint8> ImageData = Response->GetContent();
+		ThumbnailBrush = CreateBrush(FName(*Request->GetURL()), ImageData);
+
+		//FButtonStyle ButtonStyle = FButtonStyle()
+		//	.SetNormal(*ThumbnailBrush.Get())
+		//	.SetHovered(*ThumbnailBrush.Get())
+		//	.SetPressed(*ThumbnailBrush.Get());
+
+		//Container->ClearChildren();
+		//Container->AddSlot()
+		//	[
+		//		SNew(SBorder)
+		//		.BorderImage(ThumbnailBrush.Get())
+		//	.OnMouseButtonDown(this, &SFeaturedImageWidget::OnThumbClicked)
+		//	];
+	}
+}
+
+TSharedPtr<FSlateDynamicImageBrush> SShooterUserProfileWidget::CreateBrush(FName ResourceName, TArray<uint8> ImageData)
+{
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
+
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
+
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
+
+		const TArray<uint8>* RawData = NULL;
+
+		if (ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
+
+	return Brush;
+}
+
+void SShooterUserProfileWidget::HideMenu()
 {
 	if (!bMenuHiding)
 	{
@@ -345,7 +344,7 @@ void SShooterMenuWidget::HideMenu()
 }
 
 
-void SShooterMenuWidget::SetupAnimations()
+void SShooterUserProfileWidget::SetupAnimations()
 {
 	//Setup a curve
 	const float StartDelay = 0.0f;
@@ -378,14 +377,14 @@ void SShooterMenuWidget::SetupAnimations()
 	ButtonsPosXCurve = MenuWidgetAnimation.AddCurve(StartDelay+SecondDelay, AnimDuration, ECurveEaseFunction::QuadInOut);
 }
 
-void SShooterMenuWidget::BuildLeftPanel(bool bInGoingBack)
+void SShooterUserProfileWidget::BuildLeftPanel(bool bInGoingBack)
 {
 	if (CurrentMenu.Num() == 0)
 	{
 		//do not build anything if we do not have any active menu
 		return;
 	}
-	LeftBox->ClearChildren();
+	//LeftBox->ClearChildren();
 	int32 PreviousIndex = -1;
 	if (bLeftMenuChanging)
 	{
@@ -419,7 +418,7 @@ void SShooterMenuWidget::BuildLeftPanel(bool bInGoingBack)
 			{
 				TmpWidget = SAssignNew(CurrentMenu[i]->Widget, SShooterMenuItem)
 					.PlayerOwner(PlayerOwner)
-					.OnClicked(this, &SShooterMenuWidget::ButtonClicked, i)
+					.OnClicked(this, &SShooterUserProfileWidget::ButtonClicked, i)
 					.Text(CurrentMenu[i]->GetText())
 					.bIsMultichoice(false);
 			} 
@@ -427,11 +426,11 @@ void SShooterMenuWidget::BuildLeftPanel(bool bInGoingBack)
 			{
 				TmpWidget = SAssignNew(CurrentMenu[i]->Widget, SShooterMenuItem)
 					.PlayerOwner(PlayerOwner)
-					.OnClicked(this, &SShooterMenuWidget::ButtonClicked, i)
+					.OnClicked(this, &SShooterUserProfileWidget::ButtonClicked, i)
 					.Text(CurrentMenu[i]->GetText() )
 					.bIsMultichoice(true)
-					.OnArrowPressed(this, &SShooterMenuWidget::ChangeOption)
-					.OptionText(this, &SShooterMenuWidget::GetOptionText, CurrentMenu[i]);
+					.OnArrowPressed(this, &SShooterUserProfileWidget::ChangeOption)
+					.OptionText(this, &SShooterUserProfileWidget::GetOptionText, CurrentMenu[i]);
 				UpdateArrows(CurrentMenu[i]);
 			}
 			else if (CurrentMenu[i]->MenuItemType == EShooterMenuItemType::CustomWidget)
@@ -445,10 +444,10 @@ void SShooterMenuWidget::BuildLeftPanel(bool bInGoingBack)
 				{
 					SelectedIndex = i;
 				}
-				LeftBox->AddSlot()	.HAlign(HAlign_Left)	.AutoHeight()
-				[
-					TmpWidget.ToSharedRef()
-				];
+				//LeftBox->AddSlot()	.HAlign(HAlign_Left)	.AutoHeight()
+				//[
+				//	TmpWidget.ToSharedRef()
+				//];
 			}
 		}
 	}
@@ -462,7 +461,7 @@ void SShooterMenuWidget::BuildLeftPanel(bool bInGoingBack)
 	}
 }
 
-FText SShooterMenuWidget::GetOptionText(TSharedPtr<FShooterMenuItem> MenuItem) const
+FText SShooterUserProfileWidget::GetOptionText(TSharedPtr<FShooterMenuItem> MenuItem) const
 {
 	FText Result = FText::GetEmpty();
 	if (MenuItem->SelectedMultiChoice > -1 && MenuItem->SelectedMultiChoice < MenuItem->MultiChoice.Num())
@@ -472,7 +471,7 @@ FText SShooterMenuWidget::GetOptionText(TSharedPtr<FShooterMenuItem> MenuItem) c
 	return Result;
 }
 
-void SShooterMenuWidget::BuildRightPanel()
+void SShooterUserProfileWidget::BuildRightPanel()
 {
 	//RightBox->ClearChildren();
 	
@@ -499,7 +498,7 @@ void SShooterMenuWidget::BuildRightPanel()
 					.Text(NextMenu[i]->GetText() )
 					.InactiveTextAlpha(0.3f)
 					.bIsMultichoice(true)
-					.OptionText(this, &SShooterMenuWidget::GetOptionText, NextMenu[i]);
+					.OptionText(this, &SShooterUserProfileWidget::GetOptionText, NextMenu[i]);
 			}
 			if(TmpButton.IsValid())
 			{
@@ -514,7 +513,7 @@ void SShooterMenuWidget::BuildRightPanel()
 	}
 }
 
-void SShooterMenuWidget::UpdateArrows(TSharedPtr<FShooterMenuItem> MenuItem)
+void SShooterUserProfileWidget::UpdateArrows(TSharedPtr<FShooterMenuItem> MenuItem)
 {
 	const int32 MinIndex = MenuItem->MinMultiChoiceIndex > -1 ? MenuItem->MinMultiChoiceIndex : 0;
 	const int32 MaxIndex = MenuItem->MaxMultiChoiceIndex > -1 ? MenuItem->MaxMultiChoiceIndex : MenuItem->MultiChoice.Num()-1;
@@ -537,14 +536,14 @@ void SShooterMenuWidget::UpdateArrows(TSharedPtr<FShooterMenuItem> MenuItem)
 	}
 }
 
-void SShooterMenuWidget::EnterSubMenu()
+void SShooterUserProfileWidget::EnterSubMenu()
 {
 	bLeftMenuChanging = true;
 	bGoingBack = false;
 	FSlateApplication::Get().PlaySound(MenuStyle->MenuEnterSound, GetOwnerUserIndex());
 }
 
-void SShooterMenuWidget::MenuGoBack(bool bSilent)
+void SShooterUserProfileWidget::MenuGoBack(bool bSilent)
 {
 	if (MenuHistory.Num() > 0)
 	{
@@ -573,7 +572,7 @@ void SShooterMenuWidget::MenuGoBack(bool bSilent)
 	}
 }
 
-void SShooterMenuWidget::ConfirmMenuItem()
+void SShooterUserProfileWidget::ConfirmMenuItem()
 {
 	if (CurrentMenu[SelectedIndex]->OnConfirmMenuItem.IsBound())
 	{
@@ -585,7 +584,7 @@ void SShooterMenuWidget::ConfirmMenuItem()
 	}
 }
 
-void SShooterMenuWidget::ControllerFacebuttonLeftPressed()
+void SShooterUserProfileWidget::ControllerFacebuttonLeftPressed()
 {
 	if (CurrentMenu[SelectedIndex]->OnControllerFacebuttonLeftPressed.IsBound())
 	{
@@ -593,7 +592,7 @@ void SShooterMenuWidget::ControllerFacebuttonLeftPressed()
 	} 
 }
 
-void SShooterMenuWidget::ControllerUpInputPressed()
+void SShooterUserProfileWidget::ControllerUpInputPressed()
 {
 	if (CurrentMenu[SelectedIndex]->OnControllerUpInputPressed.IsBound())
 	{
@@ -601,7 +600,7 @@ void SShooterMenuWidget::ControllerUpInputPressed()
 	}
 }
 
-void SShooterMenuWidget::ControllerDownInputPressed()
+void SShooterUserProfileWidget::ControllerDownInputPressed()
 {
 	if (CurrentMenu[SelectedIndex]->OnControllerDownInputPressed.IsBound())
 	{
@@ -609,7 +608,7 @@ void SShooterMenuWidget::ControllerDownInputPressed()
 	}
 }
 
-void SShooterMenuWidget::ControllerFacebuttonDownPressed()
+void SShooterUserProfileWidget::ControllerFacebuttonDownPressed()
 {
 	if (CurrentMenu[SelectedIndex]->OnControllerFacebuttonDownPressed.IsBound())
 	{
@@ -617,7 +616,7 @@ void SShooterMenuWidget::ControllerFacebuttonDownPressed()
 	}
 }
 
-void SShooterMenuWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+void SShooterUserProfileWidget::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
 	//Always tick the super
 	SCompoundWidget::Tick( AllottedGeometry, InCurrentTime, InDeltaTime );
@@ -718,39 +717,22 @@ void SShooterMenuWidget::Tick( const FGeometry& AllottedGeometry, const double I
 	}
 }
 
-FMargin SShooterMenuWidget::GetMenuOffset() const
+FMargin SShooterUserProfileWidget::GetMenuOffset() const
 {
-	const float WidgetWidth = LeftBox->GetDesiredSize().X;// +RightBox->GetDesiredSize().X;
-	const float WidgetHeight = LeftBox->GetDesiredSize().Y + MenuHeaderHeight;
-	const float OffsetX = (ScreenRes.X - WidgetWidth - OutlineWidth*2)/2;
-	const float AnimProgress = ButtonsPosXCurve.GetLerp();
-	FMargin Result;
-
-	switch (AnimNumber)
-	{
-		case 0:
-			Result = FMargin(OffsetX + ScreenRes.X - AnimProgress*ScreenRes.X, (ScreenRes.Y - WidgetHeight)/2, 0, 0);
-		break;
-		case 1:
-			Result = FMargin(OffsetX - ScreenRes.X + AnimProgress*ScreenRes.X, (ScreenRes.Y - WidgetHeight)/2, 0, 0);
-		break;
-		case 2:
-			Result = FMargin(OffsetX, (ScreenRes.Y - WidgetHeight)/2 + ScreenRes.Y - AnimProgress*ScreenRes.Y, 0, 0);
-		break;
-		case 3:
-			Result = FMargin(OffsetX, (ScreenRes.Y - WidgetHeight)/2 + -ScreenRes.Y + AnimProgress*ScreenRes.Y, 0, 0);
-		break;
-	}
+	//const float WidgetWidth = 100; //LeftBox->GetDesiredSize().X;// +RightBox->GetDesiredSize().X;
+	//const float WidgetHeight = 50;// LeftBox->GetDesiredSize().Y + MenuHeaderHeight;
+	const float OffsetX = (ScreenRes.X - MenuProfileWidth - 200); // 84 avatar width	
+	FMargin Result = FMargin(OffsetX, 53.0f, 0, 0);
 	return Result;
 }
 
-FMargin SShooterMenuWidget::GetLeftMenuOffset() const
+FMargin SShooterUserProfileWidget::GetLeftMenuOffset() const
 {
-	const float LeftBoxSizeX = LeftBox->GetDesiredSize().X + OutlineWidth * 2;
+	const float LeftBoxSizeX = 100; // LeftBox->GetDesiredSize().X + OutlineWidth * 2;
 	return FMargin(0, 0,-LeftBoxSizeX + LeftMenuScrollOutCurve.GetLerp() * LeftBoxSizeX,0);
 }
 
-FMargin SShooterMenuWidget::GetSubMenuOffset() const
+FMargin SShooterUserProfileWidget::GetSubMenuOffset() const
 {
 	//const float RightBoxSizeX = RightBox->GetDesiredSize().X + OutlineWidth * 2;
 	//return FMargin(0, 0,-RightBoxSizeX + SubMenuScrollOutCurve.GetLerp() * RightBoxSizeX,0);
@@ -758,27 +740,27 @@ FMargin SShooterMenuWidget::GetSubMenuOffset() const
 }
 
 
-FVector2D SShooterMenuWidget::GetBottomScale() const
+FVector2D SShooterUserProfileWidget::GetBottomScale() const
 {
 	return FVector2D(BottomScaleYCurve.GetLerp(), BottomScaleYCurve.GetLerp());
 }
 
-FLinearColor SShooterMenuWidget::GetBottomColor() const
+FLinearColor SShooterUserProfileWidget::GetBottomColor() const
 {
 	return FMath::Lerp(FLinearColor(1,1,1,0), FLinearColor(1,1,1,1), BottomColorCurve.GetLerp());
 }
 
-FLinearColor SShooterMenuWidget::GetTopColor() const
+FLinearColor SShooterUserProfileWidget::GetTopColor() const
 {
 	return FMath::Lerp(FLinearColor(1,1,1,0), FLinearColor(1,1,1,1), TopColorCurve.GetLerp());
 }
 
-FSlateColor SShooterMenuWidget::GetHeaderColor() const
+FSlateColor SShooterUserProfileWidget::GetHeaderColor() const
 {
 	return CurrentMenuTitle.IsEmpty() ? FLinearColor::Transparent : FLinearColor::White;
 }
 
-FReply SShooterMenuWidget::ButtonClicked(int32 ButtonIndex)
+FReply SShooterUserProfileWidget::ButtonClicked(int32 ButtonIndex)
 {
 	if (bControlsLocked)
 	{
@@ -804,7 +786,7 @@ FReply SShooterMenuWidget::ButtonClicked(int32 ButtonIndex)
 	return FReply::Handled().SetUserFocus(SharedThis(this), EFocusCause::SetDirectly);
 }
 
-void SShooterMenuWidget::FadeIn()
+void SShooterUserProfileWidget::FadeIn()
 {
 	//Start the menu widget playing
 	MenuWidgetAnimation.Play(this->AsShared());
@@ -813,7 +795,7 @@ void SShooterMenuWidget::FadeIn()
 	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 }
 
-FReply SShooterMenuWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
+FReply SShooterUserProfileWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
 	//If we clicked anywhere, jump to the end
 	if(MenuWidgetAnimation.IsPlaying())
@@ -826,7 +808,7 @@ FReply SShooterMenuWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const 
 		.SetUserFocus(SharedThis(this), EFocusCause::SetDirectly);
 }
 
-void SShooterMenuWidget::ChangeOption(int32 MoveBy)
+void SShooterUserProfileWidget::ChangeOption(int32 MoveBy)
 {
 	TSharedPtr<FShooterMenuItem> MenuItem = CurrentMenu[SelectedIndex];
 
@@ -846,7 +828,7 @@ void SShooterMenuWidget::ChangeOption(int32 MoveBy)
 	}
 }
 
-int32 SShooterMenuWidget::GetNextValidIndex(int32 MoveBy)
+int32 SShooterUserProfileWidget::GetNextValidIndex(int32 MoveBy)
 {
 	int32 Result = SelectedIndex;
 	if (MoveBy != 0 && SelectedIndex + MoveBy > -1 && SelectedIndex+MoveBy < CurrentMenu.Num())
@@ -867,10 +849,10 @@ int32 SShooterMenuWidget::GetNextValidIndex(int32 MoveBy)
 	return Result;
 }
 
-FReply SShooterMenuWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+FReply SShooterUserProfileWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	FReply Result = FReply::Unhandled();
-	const int32 UserIndex = InKeyEvent.GetUserIndex();
+	/*const int32 UserIndex = InKeyEvent.GetUserIndex();
 	bool bEventUserCanInteract = GetOwnerUserIndex() == -1 || UserIndex == GetOwnerUserIndex();
 
 	if (!bControlsLocked && bEventUserCanInteract)
@@ -937,11 +919,11 @@ FReply SShooterMenuWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 			OnToggleMenu.ExecuteIfBound();
 			Result = FReply::Handled();
 		}
-	}
+	}*/
 	return Result;
 }
 
-FReply SShooterMenuWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
+FReply SShooterUserProfileWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	//Focus the custom widget
 	if (CurrentMenu.Num() == 1 && CurrentMenu.Top()->MenuItemType == EShooterMenuItemType::CustomWidget)

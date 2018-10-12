@@ -119,6 +119,8 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 	//Now that we are here, build our menu 
 	MenuWidget.Reset();
 	MenuWidgetContainer.Reset();
+	UserProfileWidgetContainer.Reset();
+	UserProfileWidget.Reset();
 
 	TArray<FString> Keys;
 	GConfig->GetSingleLineArray(TEXT("/Script/SwitchRuntimeSettings.SwitchRuntimeSettings"), TEXT("LeaderboardMap"), Keys, GEngineIni);
@@ -130,8 +132,17 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			.PlayerOwner(GetPlayerOwner())
 			.IsGameMenu(false);
 
+		// Justice user profile logged-in		
+		SAssignNew(UserProfileWidget, SShooterUserProfileWidget)
+			.Cursor(EMouseCursor::Default)
+			.PlayerOwner(GetPlayerOwner())
+			.IsGameMenu(false);
+
 		SAssignNew(MenuWidgetContainer, SWeakWidget)
-			.PossiblyNullContent(MenuWidget);		
+			.PossiblyNullContent(MenuWidget);
+
+		SAssignNew(UserProfileWidgetContainer, SWeakWidget)
+			.PossiblyNullContent(UserProfileWidget);
 
 		TSharedPtr<FShooterMenuItem> RootMenuItem;
 
@@ -178,6 +189,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		SAssignNew(QuickMatchStoppingWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(QuickMatchStoppingWidget);
+
+
+
 
 #if PLATFORM_XBOXONE
 		TSharedPtr<FShooterMenuItem> MenuItem;
@@ -358,6 +372,10 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		ShooterOptions->UpdateOptions();
 		MenuWidget->BuildAndShowMenu();
+
+
+		UserProfileWidget->CurrentMenuTitle = LOCTEXT("UserProfile", "Hendra Darwintha");
+		UserProfileWidget->BuildAndShowMenu();
 	}
 }
 
@@ -366,7 +384,10 @@ void FShooterMainMenu::AddMenuToGameViewport()
 	if (GEngine && GEngine->GameViewport)
 	{
 		UGameViewportClient* const GVC = GEngine->GameViewport;
-		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+		
+		GVC->AddViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
+		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
+		
 	}
 }
 
@@ -375,6 +396,8 @@ void FShooterMainMenu::RemoveMenuFromGameViewport()
 	if (GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+		GEngine->GameViewport->RemoveViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
+
 	}
 }
 

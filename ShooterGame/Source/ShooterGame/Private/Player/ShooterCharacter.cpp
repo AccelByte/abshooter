@@ -38,7 +38,10 @@ AShooterCharacter::AShooterCharacter(const FObjectInitializer& ObjectInitializer
 	Mesh1P->bOwnerNoSee = false;
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->bReceivesDecals = false;
+
 	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	//Mesh1P->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered; // UE 4.21
+	
 	Mesh1P->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Mesh1P->SetCollisionObjectType(ECC_Pawn);
 	Mesh1P->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -182,9 +185,12 @@ void AShooterCharacter::UpdatePawnMeshes()
 	bool const bFirstPerson = IsFirstPerson();
 
 	Mesh1P->MeshComponentUpdateFlag = !bFirstPerson ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	//Mesh1P->VisibilityBasedAnimTickOption = !bFirstPerson ? EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered : EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones; // 4.21
+
 	Mesh1P->SetOwnerNoSee(!bFirstPerson);
 
 	GetMesh()->MeshComponentUpdateFlag = bFirstPerson ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	//GetMesh()->VisibilityBasedAnimTickOption = bFirstPerson ? EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered : EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones; // 4.21
 	GetMesh()->SetOwnerNoSee(bFirstPerson);
 }
 

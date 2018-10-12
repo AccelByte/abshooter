@@ -11,6 +11,7 @@ AShooterWeapon::AShooterWeapon(const FObjectInitializer& ObjectInitializer) : Su
 {
 	Mesh1P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
 	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	//Mesh1P->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered; // 4.21
 	Mesh1P->bReceivesDecals = false;
 	Mesh1P->CastShadow = false;
 	Mesh1P->SetCollisionObjectType(ECC_WorldDynamic);
@@ -20,6 +21,7 @@ AShooterWeapon::AShooterWeapon(const FObjectInitializer& ObjectInitializer) : Su
 
 	Mesh3P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
 	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	//Mesh3P->VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::OnlyTickPoseWhenRendered; // 4.21
 	Mesh3P->bReceivesDecals = false;
 	Mesh3P->CastShadow = true;
 	Mesh3P->SetCollisionObjectType(ECC_WorldDynamic);

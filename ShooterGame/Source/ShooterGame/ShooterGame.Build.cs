@@ -27,6 +27,7 @@ public class ShooterGame : ModuleRules
 				"NavigationSystem",
 				"AIModule",
 				"GameplayTasks",
+				"Http",
 			}
 		);
 
