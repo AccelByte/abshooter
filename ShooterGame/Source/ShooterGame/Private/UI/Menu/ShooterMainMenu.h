@@ -10,6 +10,7 @@
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
 #include "Widgets/SShooterLeaderboard.h"
+#include "Widgets/SLobbyFriendList.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
 #include "ShooterOptions.h"
 
@@ -96,6 +97,11 @@ protected:
 
 	/** server list widget */
 	TSharedPtr<class SShooterServerList> ServerListWidget;
+
+	/** lobby friend list widget */
+	TSharedPtr<class SLobbyFriendList> FriendListWidget;
+	/** yet another custom menu */
+	TSharedPtr<class FShooterMenuItem> FriendItem;
 
 	/** demo list widget */
 	TSharedPtr<class SShooterDemoList> DemoListWidget;
@@ -230,6 +236,8 @@ protected:
 
 	/** Join server */
 	void OnJoinServer();
+
+	void OnShowLobby();
 
 	/** Show leaderboard */
 	void OnShowLeaderboard();

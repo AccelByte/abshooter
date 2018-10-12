@@ -340,6 +340,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		// Server list widget that will be called up if appropriate
 		MenuHelper::AddCustomMenuItem(JoinServerItem,SAssignNew(ServerListWidget,SShooterServerList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 #endif
+		// Lobby
+		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Lobby", "LOBBY"), this, &FShooterMainMenu::OnShowLobby);
+		MenuHelper::AddCustomMenuItem(FriendItem, SAssignNew(FriendListWidget, SLobbyFriendList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 
 		// Leaderboards
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Leaderboards", "LEADERBOARDS"), this, &FShooterMainMenu::OnShowLeaderboard);
@@ -1365,6 +1368,14 @@ void FShooterMainMenu::OnShowLeaderboard()
 #else
 	LeaderboardWidget->ReadStats();
 #endif
+	MenuWidget->EnterSubMenu();
+}
+
+void FShooterMainMenu::OnShowLobby()
+{
+	MenuWidget->NextMenu = FriendItem->SubMenu;
+	FriendListWidget->BeginFriendSearch();
+	FriendListWidget->UpdateSearchStatus();
 	MenuWidget->EnterSubMenu();
 }
 
