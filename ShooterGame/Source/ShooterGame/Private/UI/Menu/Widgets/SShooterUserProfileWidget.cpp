@@ -15,7 +15,11 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 
-
+// accelbyte
+#include "Api/AccelByteApiUser.h"
+#include "Core/AccelByteCredentials.h"
+#include "Core/AccelByteHttpRetrySystem.h"
+// accelbyte
 
 #define LOCTEXT_NAMESPACE "SShooterUserProfileWidget"
 
@@ -32,7 +36,7 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 {
 	ThumbnailBrush.Reset();
 	MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
-
+	bProfileUpdated = false;
 	bControlsLocked = false;
 	bConsoleVisible = false;
 	OutlineWidth = 20.0f;
@@ -110,7 +114,7 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 			[
 				SNew(STextBlock)
 				.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")				
-				.Text(PlayerName)
+				.Text(this, &SShooterUserProfileWidget::GetProfileName)
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -120,17 +124,12 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 			[
 				SNew(STextBlock)
 				.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")				
-				.Text(ProfileUserID)
+				.Text(this, &SShooterUserProfileWidget::GetProfileUserID)
 			]
 
 		]
 	];
 }
-
-
-// load profile image
-// C:\Users\My Computer\Pictures\avatar\final\avatar3.jpg
-
 
 EVisibility SShooterUserProfileWidget::GetSlateVisibility() const
 {
@@ -168,6 +167,16 @@ const FSlateBrush* SShooterUserProfileWidget::GetProfileAvatar() const
 		return ThumbnailBrush.Get();
 
 	return StarIconBrush;
+}
+
+FText SShooterUserProfileWidget::GetProfileName() const
+{
+	return UserName;
+}
+
+FText SShooterUserProfileWidget::GetProfileUserID() const
+{
+	return UserID;
 }
 
 bool SShooterUserProfileWidget::ProfileUISwap(const int ControllerIndex) const
@@ -260,14 +269,27 @@ void SShooterUserProfileWidget::BuildAndShowMenu()
 	bMenuHiding = false;
 	FSlateApplication::Get().PlaySound(MenuStyle->MenuEnterSound, GetOwnerUserIndex());
 
+	UserName = FText::FromString(TEXT("[Username]"));
+	UserID = FText::FromString(TEXT("[+]"));
+}
 
+void SShooterUserProfileWidget::UpdateAvatar(FString Url)
+{
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Start Downloading avatar"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Url);
+	}
+	if (!bProfileUpdated)
+	{
+		// start download avatar
+		TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+		ThumbRequest->SetVerb("GET");
+		ThumbRequest->SetURL("https://s3-us-west-2.amazonaws.com/justice-platform-service/integration/avatar/3e482bd1240d4639a046c93eb3973bbe.jpg");
+		ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterUserProfileWidget::OnThumbImageReceived);
+		ThumbRequest->ProcessRequest();
+	}
 
-	// start download avatar
-	TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-	ThumbRequest->SetVerb("GET");
-	ThumbRequest->SetURL("https://s3-us-west-2.amazonaws.com/justice-platform-service/integration/avatar/442dd73025c74282b14fe8ed3aa5fb7a.jpg");
-	ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterUserProfileWidget::OnThumbImageReceived);
-	ThumbRequest->ProcessRequest();
 }
 
 void SShooterUserProfileWidget::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
@@ -276,19 +298,7 @@ void SShooterUserProfileWidget::OnThumbImageReceived(FHttpRequestPtr Request, FH
 	{
 		TArray<uint8> ImageData = Response->GetContent();
 		ThumbnailBrush = CreateBrush(FName(*Request->GetURL()), ImageData);
-
-		//FButtonStyle ButtonStyle = FButtonStyle()
-		//	.SetNormal(*ThumbnailBrush.Get())
-		//	.SetHovered(*ThumbnailBrush.Get())
-		//	.SetPressed(*ThumbnailBrush.Get());
-
-		//Container->ClearChildren();
-		//Container->AddSlot()
-		//	[
-		//		SNew(SBorder)
-		//		.BorderImage(ThumbnailBrush.Get())
-		//	.OnMouseButtonDown(this, &SFeaturedImageWidget::OnThumbClicked)
-		//	];
+		bProfileUpdated = true;
 	}
 }
 
@@ -719,8 +729,6 @@ void SShooterUserProfileWidget::Tick( const FGeometry& AllottedGeometry, const d
 
 FMargin SShooterUserProfileWidget::GetMenuOffset() const
 {
-	//const float WidgetWidth = 100; //LeftBox->GetDesiredSize().X;// +RightBox->GetDesiredSize().X;
-	//const float WidgetHeight = 50;// LeftBox->GetDesiredSize().Y + MenuHeaderHeight;
 	const float OffsetX = (ScreenRes.X - MenuProfileWidth - 200); // 84 avatar width	
 	FMargin Result = FMargin(OffsetX, 53.0f, 0, 0);
 	return Result;
@@ -734,8 +742,6 @@ FMargin SShooterUserProfileWidget::GetLeftMenuOffset() const
 
 FMargin SShooterUserProfileWidget::GetSubMenuOffset() const
 {
-	//const float RightBoxSizeX = RightBox->GetDesiredSize().X + OutlineWidth * 2;
-	//return FMargin(0, 0,-RightBoxSizeX + SubMenuScrollOutCurve.GetLerp() * RightBoxSizeX,0);
 	return FMargin(0, 0, 0, 0);
 }
 
@@ -852,74 +858,6 @@ int32 SShooterUserProfileWidget::GetNextValidIndex(int32 MoveBy)
 FReply SShooterUserProfileWidget::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	FReply Result = FReply::Unhandled();
-	/*const int32 UserIndex = InKeyEvent.GetUserIndex();
-	bool bEventUserCanInteract = GetOwnerUserIndex() == -1 || UserIndex == GetOwnerUserIndex();
-
-	if (!bControlsLocked && bEventUserCanInteract)
-	{
-		const FKey Key = InKeyEvent.GetKey();
-		if (Key == EKeys::Up || Key == EKeys::Gamepad_DPad_Up || Key == EKeys::Gamepad_LeftStick_Up)
-		{
-			ControllerUpInputPressed();
-			int32 NextValidIndex = GetNextValidIndex(-1);
-			if (NextValidIndex != SelectedIndex)
-			{
-				ButtonClicked(NextValidIndex);
-			}
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Down || Key == EKeys::Gamepad_DPad_Down || Key == EKeys::Gamepad_LeftStick_Down)
-		{
-			ControllerDownInputPressed();
-			int32 NextValidIndex = GetNextValidIndex(1);
-			if (NextValidIndex != SelectedIndex)
-			{
-				ButtonClicked(NextValidIndex);
-			}
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Left || Key == EKeys::Gamepad_DPad_Left || Key == EKeys::Gamepad_LeftStick_Left)
-		{
-			ChangeOption(-1);
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Right ||Key == EKeys::Gamepad_DPad_Right || Key == EKeys::Gamepad_LeftStick_Right)
-		{
-			ChangeOption(1);
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Gamepad_FaceButton_Top)
-		{
-			ProfileUISwap(UserIndex);
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Enter)
-		{
-			ConfirmMenuItem();
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Virtual_Accept && !InKeyEvent.IsRepeat())
-		{
-			ControllerFacebuttonDownPressed();
-			ConfirmMenuItem();
-			Result = FReply::Handled();
-		}
-		else if ((Key == EKeys::Escape || Key == EKeys::Virtual_Back || Key == EKeys::Gamepad_Special_Left || Key == EKeys::Global_Back || Key == EKeys::Global_View) && !InKeyEvent.IsRepeat())
-		{
-			MenuGoBack();
-			Result = FReply::Handled();
-		}
-		else if (Key == EKeys::Gamepad_FaceButton_Left)
-		{
-			ControllerFacebuttonLeftPressed();
-			Result = FReply::Handled();
-		}
-		else if ((Key == ControllerHideMenuKey || Key == EKeys::Global_Play || Key == EKeys::Global_Menu) && !InKeyEvent.IsRepeat())
-		{
-			OnToggleMenu.ExecuteIfBound();
-			Result = FReply::Handled();
-		}
-	}*/
 	return Result;
 }
 

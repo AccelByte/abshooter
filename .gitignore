@@ -80,3 +80,6 @@ ShooterGame/Intermediate/
 *.bak
 ShooterGame/Saved/
 *.pdb
+ShooterGame/Output/
+ShooterGame/Build/
+ShooterGame/Binaries/

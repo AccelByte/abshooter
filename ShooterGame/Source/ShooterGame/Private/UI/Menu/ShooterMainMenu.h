@@ -24,6 +24,8 @@ public:
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
 
+	void UpdateUserProfile(FString Username, FString UserID, FString AvatarURL);
+
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	
 

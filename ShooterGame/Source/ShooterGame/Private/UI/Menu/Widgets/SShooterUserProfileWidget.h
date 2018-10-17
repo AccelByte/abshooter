@@ -139,6 +139,11 @@ public:
 	/** if console is currently opened */
 	bool bConsoleVisible;	
 
+	FText UserName;
+	FText UserID;
+
+	void UpdateAvatar(FString Url);
+
 private:
 
 	// http 
@@ -181,6 +186,12 @@ private:
 
 
 	const FSlateBrush* GetProfileAvatar() const;
+
+
+	FText GetProfileName() const;
+
+	FText GetProfileUserID() const;
+
 
 	/** called when we want to swap the logged in user */
 	bool ProfileUISwap(const int ControllerIndex) const; 
@@ -272,4 +283,7 @@ private:
 
 	/** style for the menu widget */
 	const struct FShooterMenuStyle *MenuStyle;
+
+
+
 };

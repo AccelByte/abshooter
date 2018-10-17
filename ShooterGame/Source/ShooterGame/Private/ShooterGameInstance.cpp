@@ -18,6 +18,13 @@
 #include "Online/ShooterPlayerState.h"
 #include "Online/ShooterGameSession.h"
 #include "Online/ShooterOnlineSessionClient.h"
+// accelbyte
+#include "Api/AccelByteApiUser.h"
+#include "Core/AccelByteCredentials.h"
+#include "Core/AccelByteHttpRetrySystem.h"
+#include "HttpModule.h"
+#include "HttpManager.h"
+//AccelByte::Credentials CredentialStore;
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -151,6 +158,72 @@ void UShooterGameInstance::Init()
 	{
 		DebugTestEncryptionKey[i] = uint8(i);
 	}
+	
+
+	JusticeDebugText.Enqueue("[Accelbyte SDK] Accelbyte SDK Login Started...");
+
+
+	// debug
+	//FWindowsPlatformMisc::SetEnvironmentVar(TEXT("JUSTICE_AUTHORIZATION_CODE"), TEXT("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiI5ZTFjYjQ3ZjI2NmM0OTE5YjM3NjUwODQ1YTMzN2RjMiIsImV4cCI6MTUzOTY1NTgzMiwicmVkaXIiOiJodHRwOi8vMTI3LjAuMC4xIiwiaWF0IjoxNTM5NjU1MjMyLCJuYW1lc3BhY2UiOiJzaG9vdGVyZ2FtZSIsInN1YiI6ImRiMzNiMTExMjM5ZjQ4Nzc4ZTk5MmFhYmMzNWM3NzYzIn0.smXTnRi25zHKDAK_A9wVBF9sjxj0raWeRiQTqQ32Ynk"));
+
+	TCHAR AuthorizationCode[512];
+#ifdef _WIN32
+ 	FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 512);
+#elif __linux__ || __clang__
+	FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode.Get(), 512);
+#endif
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("JUSTICE_AUTHORIZATION_CODE"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString(AuthorizationCode));
+	}
+
+	JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), AuthorizationCode));
+
+
+	// Justice Login
+	JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Login From Launcher")));
+	bool bHasDone = false;
+	AccelByte::Api::User::LoginFromLauncher("https://alpha.justice.accelbyte.net", "9e1cb47f266c4919b37650845a337dc2", "9fcb47d683be47babed6e354dc9b9fcb", "http://127.0.0.1",
+		FSimpleDelegate::CreateLambda([&]() {
+		
+		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Success, Access Token: %s"), *AccelByte::Api::User::GetUserAccessToken()));
+
+		bHasDone = true;
+
+
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Login With Launcher Success"));
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, AccelByte::Api::User::GetUserAccessToken());		
+		}
+
+	    }), AccelByte::ErrorDelegate::CreateLambda([&](int32 Code, FString Message) {
+		
+		bHasDone = true;
+		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Error: %s"), *Message));
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Login With Launcher ERROR"));
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Message);
+		}
+	}));
+
+	// Blocking here
+	double LastTime = FPlatformTime::Seconds();
+	while (!bHasDone)
+	{
+		const double AppTime = FPlatformTime::Seconds();
+		AccelByte::RetrySystem.Manager.Update();
+		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+		LastTime = AppTime;
+		FPlatformProcess::Sleep(0.5f);
+	}
+
+
+
 }
 
 void UShooterGameInstance::Shutdown()
@@ -724,6 +797,35 @@ void UShooterGameInstance::BeginMainMenuState()
 		Player->SetCachedUniqueNetId(Player->GetUniqueNetIdFromCachedControllerId().GetUniqueNetId());
 	}
 #endif
+
+	// output log
+	APlayerController* MyPC = (APlayerController*)this->GetPrimaryPlayerController();
+	if (MyPC != nullptr)
+	{
+
+		while (!JusticeDebugText.IsEmpty())
+		{
+			FString currentText;
+			JusticeDebugText.Dequeue(currentText);
+			MyPC->ClientMessage(currentText);
+		}		
+	}
+
+
+	MyPC->ClientMessage(TEXT("Get User Profile"));
+	AccelByte::Api::User::GetProfile("https://alpha.justice.accelbyte.net", AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&, MyPC](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
+		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.DisplayName));
+		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId));
+		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.AvatarSmallUrl));
+		MainMenuUI->UpdateUserProfile(UserProfileInfo.DisplayName, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+
+	}),
+		AccelByte::ErrorDelegate::CreateLambda([&](int32 Code, FString Message) {
+		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile Error: %s"), *Message));
+	}));
+
+
+
 
 	RemoveNetworkFailureHandlers();
 }

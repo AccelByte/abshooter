@@ -1,0 +1,13 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-AccelByteCustomWebBrowserWidget.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"E:\justice-ue4-shootergame-new\ShooterGame\Intermediate\Build\Win64\ShooterGameEditor\Development\Slate\SharedPCH.Slate.h.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteCustomWebBrowserWidget\Intermediate\Build\Win64\UE4Editor\Development\AccelByteCustomWebBrowserWidget\Module.AccelByteCustomWebBrowserWidget.cpp.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteCustomWebBrowserWidget\Intermediate\Build\Win64\UE4Editor\Development\AccelByteCustomWebBrowserWidget\Module.AccelByteCustomWebBrowserWidget.gen.cpp.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteCustomWebBrowserWidget\Intermediate\Build\Win64\UE4Editor\Development\AccelByteCustomWebBrowserWidget\PCLaunch.rc.res"
+/OUT:"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteCustomWebBrowserWidget\Intermediate\Build\Win64\UE4Editor\Development\AccelByteCustomWebBrowserWidget\UE4Editor-AccelByteCustomWebBrowserWidget.lib"
