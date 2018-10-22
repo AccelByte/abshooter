@@ -349,6 +349,12 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Demos", "DEMOS"), this, &FShooterMainMenu::OnShowDemoBrowser);
 			MenuHelper::AddCustomMenuItem(DemoBrowserItem,SAssignNew(DemoListWidget,SShooterDemoList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 		}
+
+        // Inventory
+        {
+            MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Inventory", "INVENTORY"), this, &FShooterMainMenu::OnShowInventory);
+            MenuHelper::AddCustomMenuItem(InventoryItem, SAssignNew(InventoryWidget, SShooterInventory).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+        }
 #endif
 
 		// Options
@@ -1355,6 +1361,14 @@ void FShooterMainMenu::OnShowDemoBrowser()
 	DemoListWidget->BuildDemoList();
 	MenuWidget->EnterSubMenu();
 }
+
+void FShooterMainMenu::OnShowInventory()
+{
+    MenuWidget->NextMenu = InventoryItem->SubMenu;
+    DemoListWidget->BuildDemoList();
+    MenuWidget->EnterSubMenu();
+}
+
 
 void FShooterMainMenu::OnUIQuit()
 {
