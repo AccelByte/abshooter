@@ -2,7 +2,6 @@
 #include "SShooterInventoryItem.h"
 #include "ShooterStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
-#include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 
@@ -181,13 +180,33 @@ void SShooterInventoryItem::OnThumbImageReceived(FHttpRequestPtr Request, FHttpR
 {
     if (bWasSuccessful && Response.IsValid())
     {
-        TArray<uint8> ImageData = Response->GetContent();
-        ImageBrush = CreateBrush(FName(*Request->GetURL()), ImageData);
-        ImageBrush->ImageSize = {50, 50};
+        FString ContentType = Response->GetHeader("Content-Type");
+        EImageFormat ImageFormat = EImageFormat::Invalid;
+
+        if (ContentType == "image/jpeg")
+        {
+            ImageFormat = EImageFormat::JPEG;
+        }
+        else if (ContentType == "image/png")
+        {
+            ImageFormat = EImageFormat::PNG;
+        }
+        else if (ContentType == "image/bmp")
+        {
+            ImageFormat = EImageFormat::BMP;
+        }
+
+        if (ImageFormat != EImageFormat::Invalid)
+        {
+            TArray<uint8> ImageData = Response->GetContent();
+            ImageBrush = CreateBrush(FName(*Request->GetURL()), ImageData, ImageFormat);
+            ImageBrush->ImageSize = { 50, 50 };
+        }
+
     }
 }
 
-TSharedPtr<FSlateDynamicImageBrush> SShooterInventoryItem::CreateBrush(FName ResourceName, TArray<uint8> ImageData)
+TSharedPtr<FSlateDynamicImageBrush> SShooterInventoryItem::CreateBrush(FName ResourceName, TArray<uint8> ImageData, const EImageFormat InFormat)
 {
     TSharedPtr<FSlateDynamicImageBrush> Brush;
 
@@ -198,7 +217,7 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterInventoryItem::CreateBrush(FName Res
     bool bSucceeded = false;
     TArray<uint8> DecodedImage;
     IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(InFormat);
 
     if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
     {
@@ -206,8 +225,13 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterInventoryItem::CreateBrush(FName Res
         Height = ImageWrapper->GetHeight();
 
         const TArray<uint8>* RawData = NULL;
+        ERGBFormat RGBFormat = ERGBFormat::RGBA;
+        if (InFormat == EImageFormat::PNG)
+        {
+            RGBFormat = ERGBFormat::BGRA;
+        }
 
-        if (ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
+        if (ImageWrapper->GetRaw(RGBFormat, 8, RawData))
         {
             DecodedImage = *RawData;
             bSucceeded = true;

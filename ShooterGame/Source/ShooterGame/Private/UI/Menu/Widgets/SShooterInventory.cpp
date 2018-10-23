@@ -45,9 +45,9 @@ void SShooterInventory::BuildInventoryItem()
 
     //Dummy data
     InventoryList.Add(MakeShareable(new FInventoryEntry{ "Riffle", imageURL, 2000, false, true, EItemType::WEAPON }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", imageURL, 100, true, true, EItemType::AMMO, 100 }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate Thrower", imageURL, 1500, false, true, EItemType::WEAPON }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate", "Slate/Images/SoundCue_SpeakerIcon.png", 200, true, true, EItemType::AMMO, 5 }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", "https://emoji.slack-edge.com/T3WDKH0L8/p0/27ea357ecaf8ff9f.png", 100, true, true, EItemType::AMMO, 100 }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate Thrower", "Slate/Images/SoundCue_SpeakerIcon.png", 1500, false, true, EItemType::WEAPON }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate", "https://emoji.slack-edge.com/T3WDKH0L8/p1/7256c94088c93cd0.png", 200, true, true, EItemType::AMMO, 5 }));
 
     InventoryListWidget->RequestListRefresh();
 }

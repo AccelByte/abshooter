@@ -5,6 +5,7 @@
 #include "SShooterInventory.h"
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Http.h"
+#include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 
 //class declare
 class SShooterInventoryItem : public STableRow< TSharedPtr<FInventoryEntry> >
@@ -42,7 +43,7 @@ private:
     void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
     /** create brush from raw data */
-    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FName ResourceName, TArray<uint8> ImageData);
+    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FName ResourceName, TArray<uint8> ImageData, const EImageFormat InFormat);
 
     /** getter for tile item background color */
     FSlateColor GetButtonBgColor() const;
