@@ -54,7 +54,6 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 			SAssignNew(TextWidget, STextBlock)
 			.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuTextStyle")
 			.ColorAndOpacity(this,&SShooterMenuItem::GetButtonTextColor)
-			//.ShadowColorAndOpacity(this, &SShooterMenuItem::GetButtonTextShadowColor)
 			.Text(Text)
 		]
 		+SOverlay::Slot()

@@ -49,56 +49,6 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 	[
 		SNew(SOverlay)
 		+ SOverlay::Slot()
-		.HAlign(HAlign_Right)
-		.VAlign(VAlign_Top)
-		[
-			SNew(SOverlay)
-			//+ SOverlay::Slot()
-			//.HAlign(HAlign_Right)
-			//.VAlign(VAlign_Fill)
-			//.Padding( GetProfileSwapOffset() )
-			//[
-			//	SNew(SBox)
-			//	.WidthOverride(MenuProfileWidth)
-			//	[
-			//		SNew(SImage)
-			//		.Visibility(this, &SShooterMenuWidget::GetProfileSwapVisibility)
-			//		.ColorAndOpacity(this, &SShooterMenuWidget::GetHeaderColor)
-			//		.Image(&MenuStyle->HeaderBackgroundBrush)
-			//	]
-			//]
-			//+ SOverlay::Slot()
-			//.HAlign(HAlign_Right)
-			//.VAlign(VAlign_Fill)
-			//.Padding( GetProfileSwapOffset() )
-			//[
-			//	SNew(SVerticalBox)
-			//	.Visibility(this, &SShooterMenuWidget::GetProfileSwapVisibility)
-			//	+ SVerticalBox::Slot()
-			//	.AutoHeight()
-			//	.Padding( 16.0f, 10.0f, 16.0f, 1.0f )
-			//	.HAlign(HAlign_Right)
-			//	.VAlign(VAlign_Top)
-			//	[
-			//		SNew(STextBlock)
-			//		.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuProfileNameStyle")
-			//		.ColorAndOpacity(MenuTitleTextColor)
-			//		.Text(PlayerName)
-			//	]
-			//	+ SVerticalBox::Slot()
-			//	.AutoHeight()
-			//	.HAlign(HAlign_Right)
-			//	.VAlign(VAlign_Bottom)
-			//	.Padding( 16.0f, 1.0f, 16.0f, 10.0f )
-			//	[
-			//		SNew(STextBlock)
-			//		.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuServerListTextStyle")
-			//		.ColorAndOpacity(MenuTitleTextColor)
-			//		.Text(ProfileSwap)
-			//	]
-			//]
-		]
-		+ SOverlay::Slot()
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
 		[
@@ -113,19 +63,6 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				[
 					SNew(SOverlay)
-					//+ SOverlay::Slot()
-					//.HAlign(HAlign_Left)
-					//.VAlign(VAlign_Fill)
-					//[
-					//	SNew(SBox)
-					//	.WidthOverride(MenuHeaderWidth)
-					//	.HeightOverride(MenuHeaderHeight)
-					//	[
-					//		SNew(SImage)
-					//		.ColorAndOpacity(this, &SShooterMenuWidget::GetHeaderColor)
-					//		.Image(&MenuStyle->HeaderBackgroundBrush)
-					//	]
-					//]
 					+ SOverlay::Slot()
 					.HAlign(HAlign_Left)
 					.VAlign(VAlign_Fill)
@@ -164,8 +101,7 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 							.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetLeftMenuOffset))
 							[
 								SNew(SBorder)
-								.BorderImage(&MenuStyle->LeftBackgroundBrush)
-								 //.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
+								.BorderImage(&MenuStyle->LeftBackgroundBrush)								 
 								.Padding(FMargin(OutlineWidth))
 								.DesiredSizeScale(this, &SShooterMenuWidget::GetBottomScale)
 								.VAlign(VAlign_Top)
@@ -176,30 +112,6 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 								]
 							]
 						]
-						
-						//+ SHorizontalBox::Slot()
-						//.AutoWidth()
-						//[
-						//	SNew(SVerticalBox)
-						//	.Clipping(EWidgetClipping::ClipToBounds)
-
-						//	+ SVerticalBox::Slot()
-						//	.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetSubMenuOffset))
-						//	.AutoHeight()
-						//	[
-						//		SNew(SBorder)
-						//		.BorderImage(&MenuStyle->RightBackgroundBrush)
-						//		.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
-						//		.Padding(FMargin(OutlineWidth))
-						//		.DesiredSizeScale(this, &SShooterMenuWidget::GetBottomScale)
-						//		.VAlign(VAlign_Top)
-						//		.HAlign(HAlign_Left)
-						//		[
-						//			SAssignNew(RightBox, SVerticalBox)
-						//			.Clipping(EWidgetClipping::ClipToBounds)
-						//		]
-						//	]
-						//]
 					]
 				]
 			]

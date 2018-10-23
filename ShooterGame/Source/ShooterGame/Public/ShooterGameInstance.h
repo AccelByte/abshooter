@@ -7,6 +7,7 @@
 #include "OnlineSessionInterface.h"
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
+#include "Api/AccelByteUserProfileApi.h"
 #include "ShooterGameInstance.generated.h"
 
 class FVariantData;
@@ -209,6 +210,7 @@ public:
 	/** Resets Play Together PS4 system event info after it's been handled */
 	void ResetPlayTogetherInfo() { PlayTogetherInfo = FShooterPlayTogetherInfo(); }
 
+	FAccelByteModelsUserProfileInfo UserProfileInfo;
 private:
 
 	UPROPERTY(config)

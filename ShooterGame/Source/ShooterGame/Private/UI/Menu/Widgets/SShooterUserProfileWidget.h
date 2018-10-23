@@ -245,7 +245,7 @@ private:
 	float MenuHeaderWidth;
 
 	/** menu profile width */
-	float MenuProfileWidth;
+	//float MenuProfileWidth;
 
 	/** animation type index */
 	int32 AnimNumber;
@@ -271,6 +271,8 @@ private:
 
 	/** if moving around menu is currently locked */
 	bool bControlsLocked;		
+
+	bool bProfileUpdated;
 	
 	/** menu that will override current one after transition animation */
 	MenuPtr PendingLeftMenu;

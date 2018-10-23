@@ -87,7 +87,7 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 
 
 	Style.Set("ShooterGame.MenuTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 28))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 24))
 		.SetColorAndOpacity(FLinearColor::White)
 		.SetShadowOffset(FIntPoint(-1,1))
 		);

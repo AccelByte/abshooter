@@ -52,7 +52,7 @@ protected:
 
 	enum class EMap
 	{
-		ESancturary,
+		/*ESancturary,*/
 		EHighRise,
 		EMax,
 	};	

@@ -16,9 +16,8 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 
 // accelbyte
-#include "Api/AccelByteApiUser.h"
+#include "Api/AccelByteUserProfileApi.h"
 #include "Core/AccelByteCredentials.h"
-#include "Core/AccelByteHttpRetrySystem.h"
 // accelbyte
 
 #define LOCTEXT_NAMESPACE "SShooterUserProfileWidget"
@@ -50,20 +49,7 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 	MenuHeaderHeight = 62.0f;
 	MenuHeaderWidth = 287.0f;
 
-	// Calculate the size of the profile box based on the string it'll contain (+ padding)
-	const FText PlayerName = FText::FromString(TEXT("Hendra Darwintha"));// PlayerOwner.IsValid() ? FText::FromString(PlayerOwner->GetNickname()) : FText::GetEmpty();
-	const FText ProfileUserID = FText::FromString(TEXT("57ad67a5s74d68754asd")); //  ShooterUIHelpers::Get().GetProfileSwapText();
-	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const FSlateFontInfo PlayerNameFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.MenuProfileNameStyle").Font;
-	const FSlateFontInfo ProfileSwapFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.MenuServerListTextStyle").Font;
-	//const FSlateImageBrush ProfileBorderBrush = FShooterStyle::Get().GetWidgetStyle<FSlateImageBrush>("ShooterGame.ProfileBorder");
-	MenuProfileWidth = FMath::Max( FontMeasure->Measure( PlayerName, PlayerNameFontInfo, 1.0f ).X, FontMeasure->Measure( ProfileUserID.ToString(), ProfileSwapFontInfo, 1.0f ).X ) + 32.0f;
-
-
-	//Texture2D'/Game/UI/Chat/ChatLog_Icon_Star.ChatLog_Icon_Star'
 	StarIconBrush = new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/SoundCue_SpeakerIcon.png", FVector2D(144, 144));
-
-	
 
 	ChildSlot
 	[	
@@ -103,7 +89,6 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 		+ SHorizontalBox::Slot()
 		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Top)
-		//.Padding(TAttribute<FMargin>(this, &SShooterUserProfileWidget::GetMenuOffset))
 		[
 			SNew(SVerticalBox)					
 			+ SVerticalBox::Slot()
@@ -285,7 +270,7 @@ void SShooterUserProfileWidget::UpdateAvatar(FString Url)
 		// start download avatar
 		TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
 		ThumbRequest->SetVerb("GET");
-		ThumbRequest->SetURL("https://s3-us-west-2.amazonaws.com/justice-platform-service/integration/avatar/3e482bd1240d4639a046c93eb3973bbe.jpg");
+		ThumbRequest->SetURL(Url);
 		ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterUserProfileWidget::OnThumbImageReceived);
 		ThumbRequest->ProcessRequest();
 	}
@@ -512,12 +497,7 @@ void SShooterUserProfileWidget::BuildRightPanel()
 			}
 			if(TmpButton.IsValid())
 			{
-				//RightBox->AddSlot()
-				//.HAlign(HAlign_Center)
-				//.AutoHeight()
-				//[
-				//	TmpButton.ToSharedRef()
-				//];
+
 			}
 		}
 	}
@@ -729,6 +709,12 @@ void SShooterUserProfileWidget::Tick( const FGeometry& AllottedGeometry, const d
 
 FMargin SShooterUserProfileWidget::GetMenuOffset() const
 {
+
+	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	const FSlateFontInfo PlayerNameFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.UsernameTextStyle").Font;
+	const FSlateFontInfo ProfileSwapFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.UserIDTextStyle").Font;
+	const float MenuProfileWidth = FMath::Max(FontMeasure->Measure(UserName, PlayerNameFontInfo, 1.0f).X, FontMeasure->Measure(UserID.ToString(), ProfileSwapFontInfo, 1.0f).X) + 32.0f;
+
 	const float OffsetX = (ScreenRes.X - MenuProfileWidth - 200); // 84 avatar width	
 	FMargin Result = FMargin(OffsetX, 53.0f, 0, 0);
 	return Result;

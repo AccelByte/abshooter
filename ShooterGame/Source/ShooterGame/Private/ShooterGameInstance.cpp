@@ -19,9 +19,8 @@
 #include "Online/ShooterGameSession.h"
 #include "Online/ShooterOnlineSessionClient.h"
 // accelbyte
-#include "Api/AccelByteApiUser.h"
+#include "Api/AccelByteOauth2Api.h"
 #include "Core/AccelByteCredentials.h"
-#include "Core/AccelByteHttpRetrySystem.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
 //AccelByte::Credentials CredentialStore;
@@ -184,11 +183,9 @@ void UShooterGameInstance::Init()
 	// Justice Login
 	JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Login From Launcher")));
 	bool bHasDone = false;
-	AccelByte::Api::User::LoginFromLauncher("https://alpha.justice.accelbyte.net", "9e1cb47f266c4919b37650845a337dc2", "9fcb47d683be47babed6e354dc9b9fcb", "http://127.0.0.1",
-		FSimpleDelegate::CreateLambda([&]() {
-		
-		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Success, Access Token: %s"), *AccelByte::Api::User::GetUserAccessToken()));
-
+	AccelByte::Api::Oauth2::GetAccessTokenWithAuthorizationCodeGrant("9e1cb47f266c4919b37650845a337dc2", "9fcb47d683be47babed6e354dc9b9fcb", FString(AuthorizationCode), "http://127.0.0.1",
+		AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([&](const FAccelByteModelsOauth2Token& token) {
+		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Success, Access Token: %s"), *token.Access_token));
 		bHasDone = true;
 
 
@@ -196,10 +193,10 @@ void UShooterGameInstance::Init()
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Login With Launcher Success"));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, AccelByte::Api::User::GetUserAccessToken());		
+			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, token.Access_token);
 		}
 
-	    }), AccelByte::ErrorDelegate::CreateLambda([&](int32 Code, FString Message) {
+	    }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
 		
 		bHasDone = true;
 		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Error: %s"), *Message));
@@ -215,8 +212,7 @@ void UShooterGameInstance::Init()
 	double LastTime = FPlatformTime::Seconds();
 	while (!bHasDone)
 	{
-		const double AppTime = FPlatformTime::Seconds();
-		AccelByte::RetrySystem.Manager.Update();
+		const double AppTime = FPlatformTime::Seconds();		
 		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
 		LastTime = AppTime;
 		FPlatformProcess::Sleep(0.5f);
@@ -813,14 +809,15 @@ void UShooterGameInstance::BeginMainMenuState()
 
 
 	MyPC->ClientMessage(TEXT("Get User Profile"));
-	AccelByte::Api::User::GetProfile("https://alpha.justice.accelbyte.net", AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&, MyPC](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
+	AccelByte::Api::UserProfile::GetUserProfileEasy(AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&, MyPC](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
 		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.DisplayName));
 		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId));
 		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.AvatarSmallUrl));
 		MainMenuUI->UpdateUserProfile(UserProfileInfo.DisplayName, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+		this->UserProfileInfo = UserProfileInfo; // save our own
 
 	}),
-		AccelByte::ErrorDelegate::CreateLambda([&](int32 Code, FString Message) {
+		AccelByte::FErrorHandler::CreateLambda([&, MyPC](int32 Code, FString Message) {
 		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile Error: %s"), *Message));
 	}));
 
