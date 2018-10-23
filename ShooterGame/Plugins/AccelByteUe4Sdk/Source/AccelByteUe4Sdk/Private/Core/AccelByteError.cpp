@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -7,7 +7,7 @@
 namespace AccelByte
 {
 
-const std::unordered_map<int32, FString> ErrorMessages::Default
+const std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> ErrorMessages::Default
 {
 	// HTTP 1xx
 	{ static_cast<int32>(ErrorCodes::StatusContinue), TEXT("StatusContinue Reference: RFC 7231, Section 6.2.1") },
@@ -87,7 +87,7 @@ const std::unordered_map<int32, FString> ErrorMessages::Default
 	{ static_cast<int32>(ErrorCodes::ServiceUnavailableException), TEXT("errors.net.accelbyte.platform.service_unavailable") },
 	{ static_cast<int32>(ErrorCodes::UnsupportedMediaTypeException), TEXT("errors.net.accelbyte.platform.unsupported_media_type") },
 	{ static_cast<int32>(ErrorCodes::OptimisticLockException), TEXT("errors.net.accelbyte.platform.optimistic_lock") },
-	// Namespace Error Code List
+	// GameId Error Code List
 	{ static_cast<int32>(ErrorCodes::NamespaceNotFoundException), TEXT("errors.net.accelbyte.platform.namespace.namespace_not_found") },
 	{ static_cast<int32>(ErrorCodes::NamespaceAlreadyExistsException), TEXT("errors.net.accelbyte.platform.namespace.namespace_already_exists") },
 	// Profile Error Code List
@@ -240,6 +240,7 @@ const std::unordered_map<int32, FString> ErrorMessages::Default
 		
 	{ static_cast<int32>(ErrorCodes::UnknownError), TEXT("Unknown error.") },
 	{ static_cast<int32>(ErrorCodes::JsonDeserializationFailed), TEXT("JSON deserialization failed.") },
+	{ static_cast<int32>(ErrorCodes::WebSocketConnectFailed), TEXT("WebSocket connect failed.") },
 
 
 };
@@ -256,10 +257,7 @@ void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& Ou
 		OutMessage += ErrorMessages::Default.at(Code);
 		OutMessage += " " + Error.ErrorMessage;
 	}
-	else
-	{
-		Code = Response->GetResponseCode();
-	}
+	Code = Response->GetResponseCode();
 	// Debug message. Delete this code section for production
 	#if 1
 	OutMessage += "\n\nResponse";
@@ -275,13 +273,14 @@ void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& Ou
 	{
 		OutMessage += a + "\n";
 	}
-	OutCode = Code;
 	OutMessage += "\nContent: \n";
 	for (auto a : Request->GetContent())
 	{
 		OutMessage += static_cast<char>(a);
 	}
+	OutMessage += "\n";
 #endif
+	OutCode = Code;
 }
 
 } // Namespace AccelByte

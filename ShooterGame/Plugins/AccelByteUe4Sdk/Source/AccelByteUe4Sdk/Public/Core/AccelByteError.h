@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2018 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -13,7 +13,7 @@
 #include "AccelByteError.generated.h"
 
 USTRUCT(BlueprintType)
-struct FAccelByteModelsErrorEntity
+struct ACCELBYTEUE4SDK_API FAccelByteModelsErrorEntity
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
@@ -27,10 +27,12 @@ struct FAccelByteModelsErrorEntity
 namespace AccelByte
 {
 
-DECLARE_DELEGATE_TwoParams(ErrorDelegate, int32, FString);
+DECLARE_DELEGATE_TwoParams(FErrorHandler, int32, FString);
 
+UENUM(BlueprintType)
 enum class ErrorCodes : int32
 {
+	// If there are no error models, then we just use these HTTP codes
 	StatusContinue = 100, // Reference: RFC 7231, Section 6.2.1
 	StatusSwitchingProtocols = 101, // Reference: RFC 7231, Section 6.2.2
 	StatusProcessing = 102, // Reference: RFC 2518, Section 10.1
@@ -105,7 +107,7 @@ enum class ErrorCodes : int32
 	ServiceUnavailableException,
 	UnsupportedMediaTypeException,
 	OptimisticLockException,
-	// Namespace Error Code List
+	// GameId Error Code List
 	NamespaceNotFoundException = 2141,
 	NamespaceAlreadyExistsException = 2171,
 	// Profile Error Code List
@@ -258,6 +260,7 @@ enum class ErrorCodes : int32
 		
 	UnknownError = 14000,
 	JsonDeserializationFailed = 14001,
+	WebSocketConnectFailed = 14201,
 };
 
 class ErrorMessages
@@ -266,10 +269,10 @@ public:
 	/**
 	 * @brief Contains dictionary for default error messages (English).
 	 */
-	const static std::unordered_map<int32, FString> Default;
+	const static std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> Default;
 };
 
-void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage);
+ACCELBYTEUE4SDK_API void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage);
 
 } // Namespace AccelByte
 
