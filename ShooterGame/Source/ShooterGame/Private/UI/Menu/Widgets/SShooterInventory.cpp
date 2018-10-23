@@ -10,7 +10,7 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 {
     PlayerOwner = InArgs._PlayerOwner;
     OwnerWidget = InArgs._OwnerWidget;
-    const int32 TileSize = 200;
+    const int32 TileSize = 240;
     const int32 TileColumn = 2;
     const int32 TileRow = 2;
 
@@ -47,47 +47,16 @@ void SShooterInventory::BuildInventoryItem()
     InventoryList.Add(MakeShareable(new FInventoryEntry{ "Riffle", imageURL, 2000, false, true, EItemType::WEAPON }));
     InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", imageURL, 100, true, true, EItemType::AMMO, 100 }));
     InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate Thrower", imageURL, 1500, false, true, EItemType::WEAPON }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate", imageURL, 200, true, true, EItemType::AMMO, 5 }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate", "Slate/Images/SoundCue_SpeakerIcon.png", 200, true, true, EItemType::AMMO, 5 }));
 
     InventoryListWidget->RequestListRefresh();
 }
 
 TSharedRef<ITableRow> SShooterInventory::OnGenerateWidgetForTileView(TSharedPtr<FInventoryEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	class SInventoryRowWidget : public STableRow< TSharedPtr<FInventoryEntry> >
-	{
-	public:
-		SLATE_BEGIN_ARGS(SInventoryRowWidget){}
-		SLATE_END_ARGS()
-
-		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakObjectPtr<class ULocalPlayer> PlayerOwner, TSharedPtr<FInventoryEntry> InItem)
-		{
-			Item = InItem;
-            STableRow< TSharedPtr<FInventoryEntry> >::Construct(STableRow::FArguments(), InOwnerTable);
-
-            SAssignNew(Widget, SShooterInventoryItem)
-                .Item(TWeakPtr<FInventoryEntry>(Item))
-                .PlayerOwner(PlayerOwner);
-            SetContent(Widget->AsShared());
-		}
-
-		TSharedPtr<FInventoryEntry> Item;
-        TSharedPtr<SShooterInventoryItem> Widget;
-	};
-	return SNew(SInventoryRowWidget, OwnerTable, PlayerOwner, Item);
+    return SNew(SShooterInventoryItem, OwnerTable, PlayerOwner, Item);
 }
 
 void SShooterInventory::EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem, ESelectInfo::Type SelectInfo)
 {
-    if (SelectedItem.IsValid())
-    {
-        SelectedItem->Selected = false;
-    }
-    
-    SelectedItem = InItem;
-
-    if (SelectedItem.IsValid())
-    {
-        SelectedItem->Selected = true;
-    }
 }

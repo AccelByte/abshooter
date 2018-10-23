@@ -138,6 +138,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			.PlayerOwner(GetPlayerOwner())
 			.IsGameMenu(false);
 
+        SAssignNew(CoinsWidgetContainer, SShooterCoinsWidget)
+            .Cursor(EMouseCursor::Default);
+
 		SAssignNew(MenuWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(MenuWidget);
 
@@ -382,6 +385,8 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		UserProfileWidget->CurrentMenuTitle = LOCTEXT("UserProfile", "User Profile");
 		UserProfileWidget->BuildAndShowMenu();
+
+        CoinsWidgetContainer->BuildAndShowMenu();
 	}
 }
 
@@ -392,6 +397,7 @@ void FShooterMainMenu::AddMenuToGameViewport()
 		UGameViewportClient* const GVC = GEngine->GameViewport;
 		
 		GVC->AddViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
+        GVC->AddViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
 		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
 		
 	}
@@ -424,6 +430,7 @@ void FShooterMainMenu::RemoveMenuFromGameViewport()
 	if (GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+        GEngine->GameViewport->RemoveViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
 		GEngine->GameViewport->RemoveViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
 
 	}

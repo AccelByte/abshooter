@@ -7,25 +7,20 @@
 #include "Http.h"
 
 //class declare
-class SShooterInventoryItem : public SCompoundWidget
+class SShooterInventoryItem : public STableRow< TSharedPtr<FInventoryEntry> >
 {
 public:
-    SLATE_BEGIN_ARGS(SShooterInventoryItem)
-    {}
-
-    SLATE_ARGUMENT(TWeakPtr<FInventoryEntry>, Item)
-    SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer >, PlayerOwner)
-
+    SLATE_BEGIN_ARGS(SShooterInventoryItem){}
     /** end of slate attributes definition */
     SLATE_END_ARGS()
 
     /** needed for every widget */
-    void Construct(const FArguments& InArgs);
+    void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakObjectPtr<class ULocalPlayer> PlayerOwner, TSharedPtr<FInventoryEntry> InItem);
 
 protected:
 
 private:
-    /** pointer to our parent PC */
+    /** pointer to Item */
     TWeakPtr<struct FInventoryEntry> Item;
 
     /** pointer to our owner PC */
@@ -35,16 +30,13 @@ private:
 
     TSharedPtr<FSlateBrush> ImageBrush;
 
-    /** style for the menu item */
-    const struct FShooterMenuItemStyle *MenuItemStyle;
+    /** style for the inventory */
+    const struct FShooterInventoryStyle *InventoryStyle;
 
     TSharedRef<SWidget> GetBottomWidget(const FInventoryEntry * item) const;
 
     /** get content image*/
     const FSlateBrush* GetImage() const;
-
-    /** getter for active flag */
-    bool IsActive() const;
 
     /** image received callback */
     void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);

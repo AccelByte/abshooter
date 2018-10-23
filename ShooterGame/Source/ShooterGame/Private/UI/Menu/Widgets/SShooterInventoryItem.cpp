@@ -1,12 +1,12 @@
 #include "ShooterGame.h"
 #include "SShooterInventoryItem.h"
 #include "ShooterStyle.h"
-#include "ShooterMenuItemWidgetStyle.h"
+#include "ShooterInventoryWidgetStyle.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 
-#define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
+#define LOCTEXT_NAMESPACE "SShooterInventoryItem"
 
 /** item type conversion*/
 FText GetItemTypeAsText(EItemType EnumValue) {
@@ -15,13 +15,16 @@ FText GetItemTypeAsText(EItemType EnumValue) {
     return EnumPtr->GetDisplayNameText((int64)EnumValue);
 }
 
-void SShooterInventoryItem::Construct(const FArguments& InArgs)
+void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakObjectPtr<class ULocalPlayer> InPlayerOwner, TSharedPtr<FInventoryEntry> InItem)
 {
-    Item = InArgs._Item;
+    Item = InItem;
+    PlayerOwner = InPlayerOwner;
+
+    STableRow< TSharedPtr<FInventoryEntry> >::Construct(STableRow::FArguments().ShowSelection(false), InOwnerTable);
 
     if (Item.IsValid()) 
     {
-        MenuItemStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuItemStyle>("DefaultShooterMenuItemStyle");
+        InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
         TSharedPtr<FInventoryEntry> item = Item.Pin();
 
         if (item->ImageURL.StartsWith("http")) 
@@ -41,9 +44,6 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs)
             ImageBrush = MakeShareable(new FSlateImageBrush(FPaths::ProjectContentDir() / item->ImageURL, FVector2D(144, 144)));
         }
 
-        DefaultBrush = MakeShareable(new FSlateBrush());
-        DefaultBrush->ImageSize = { 10.0f, 10.0f };
-
         TSharedPtr<SVerticalBox> BottomVerticalBox;
 
         ChildSlot
@@ -56,9 +56,8 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs)
             .HAlign(HAlign_Fill) // Background
             [
                 SNew(SImage)
-                .Image(&MenuItemStyle->BackgroundBrush)
-                .ColorAndOpacity(FLinearColor(1, 1, 1))
-                //.ColorAndOpacity(this, &SShooterInventoryItem::GetButtonBgColor)
+                .Image(&InventoryStyle->BackgroundBrush)
+                .ColorAndOpacity(this, &SShooterInventoryItem::GetButtonBgColor)
             ]
             + SOverlay::Slot()
             .VAlign(VAlign_Fill)
@@ -83,14 +82,15 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs)
                         .HAlign(HAlign_Fill) // Type background
                         [
                             SNew(SImage)
-                            .Image(DefaultBrush.Get())
-                            .ColorAndOpacity(FLinearColor(1, 1, 1))
+                            .Image(&InventoryStyle->TypeBackgroundBrush)
                         ]
                         + SOverlay::Slot()
                         .VAlign(VAlign_Center)
-                        .HAlign(HAlign_Center)
+                        .HAlign(HAlign_Left)
                         [
                             SNew(STextBlock)
+                            .Margin(FMargin(5, 0, 0, 0))
+                            .TextStyle(&InventoryStyle->TypeTextStyle)
                             .Text(GetItemTypeAsText(item->Type))
                         ]
                     ]
@@ -100,6 +100,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs)
                     .FillWidth(1)
                     [
                         SNew(STextBlock)
+                        .TextStyle(&InventoryStyle->AmountTextStyle)
                         .Text(FText::AsNumber(item->Amount))
                         .Visibility(item->Consumable ? EVisibility::Visible : EVisibility::Collapsed)
                     ]
@@ -119,11 +120,12 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs)
                     ]
                 ]
                 + SVerticalBox::Slot()
-                .VAlign(VAlign_Fill)
-                .HAlign(HAlign_Fill) // Name
+                .VAlign(VAlign_Center)
+                .HAlign(HAlign_Center) // Name
                 .AutoHeight()
                 [
                     SNew(STextBlock)
+                    .TextStyle(&InventoryStyle->NameTextStyle)
                     .Text(FText::FromString(item->Name))
                 ]
                 + SVerticalBox::Slot()
@@ -143,6 +145,7 @@ TSharedRef<SWidget> SShooterInventoryItem::GetBottomWidget(const FInventoryEntry
     if (!item->Consumable && item->Owned)
     {
         return SNew(STextBlock)
+            .TextStyle(&InventoryStyle->OwnedTextStyle)
             .Text(FText::FromString("YOU ALREADY OWN"));
     }
     else
@@ -154,16 +157,16 @@ TSharedRef<SWidget> SShooterInventoryItem::GetBottomWidget(const FInventoryEntry
         .AutoWidth()
         [
             SNew(SImage)
-            .Image(DefaultBrush.Get())
-            .ColorAndOpacity(FLinearColor(1, 1, 1))
+            .Image(&InventoryStyle->CoinImage)
         ]
         + SHorizontalBox::Slot()
-        .VAlign(VAlign_Fill)
-        .HAlign(HAlign_Fill)
+        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Center)
         .AutoWidth()
         [
             SNew(STextBlock)
             .Margin(FMargin(5, 0))
+            .TextStyle(&InventoryStyle->PriceTextStyle)
             .Text(FText::AsNumber(item->Price))
         ];
     }
@@ -238,11 +241,6 @@ FSlateColor SShooterInventoryItem::GetButtonBgColor() const
         }
     }
 
-    const float BgAlpha = IsActive() ? FMath::Lerp(MinAlpha, MaxAlpha, AnimPercent) : 0.f;
+    const float BgAlpha = IsSelected() ? FMath::Lerp(MinAlpha, MaxAlpha, AnimPercent) : 0.2f;
     return FLinearColor(1.f, 1.f, 1.f, BgAlpha);
-}
-
-bool SShooterInventoryItem::IsActive() const
-{
-    return Item.IsValid() && Item.Pin()->Selected;
 }

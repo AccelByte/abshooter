@@ -37,9 +37,6 @@ struct FInventoryEntry
 
     /** item amount*/
     int32 Amount = 1;
-
-    /** item selected*/
-    bool Selected = false;
 };
 
 //class declare
@@ -84,9 +81,6 @@ protected:
 
 	/** pointer to our parent widget */
 	TSharedPtr<class SWidget> OwnerWidget;
-
-private:
-    void SetInventoryWidgetActive(TSharedPtr<FInventoryEntry> InItem, bool bIsItemActive);
 };
 
 

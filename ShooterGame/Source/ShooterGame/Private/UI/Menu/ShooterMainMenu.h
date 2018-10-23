@@ -5,6 +5,7 @@
 #include "Widgets/ShooterMenuItem.h"
 #include "Widgets/SShooterMenuWidget.h"
 #include "Widgets/SShooterUserProfileWidget.h"
+#include "Widgets/SShooterCoinsWidget.h"
 #include "Widgets/SShooterServerList.h"
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
@@ -80,6 +81,8 @@ protected:
 	/** menu widget */
 	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
 
+    /** menu widget */
+    TSharedPtr<class SShooterCoinsWidget> CoinsWidgetContainer;
 
 	/* used for removing the MenuWidget */
 	TSharedPtr<class SWeakWidget> MenuWidgetContainer;
