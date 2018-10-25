@@ -78,15 +78,6 @@ void SShooterCoinsWidget::Construct(const FArguments& InArgs)
     ];
 }
 
-//FMargin SShooterCoinsWidget::GetMenuOffset() const
-//{
-//    //const float WidgetWidth = 100; //LeftBox->GetDesiredSize().X;// +RightBox->GetDesiredSize().X;
-//    //const float WidgetHeight = 50;// LeftBox->GetDesiredSize().Y + MenuHeaderHeight;
-//    const float OffsetX = (ScreenRes.X - MenuProfileWidth - 200); // 84 avatar width	
-//    FMargin Result = FMargin(OffsetX, 53.0f, 0, 0);
-//    return Result;
-//}
-
 void SShooterCoinsWidget::BuildAndShowMenu()
 {
 }

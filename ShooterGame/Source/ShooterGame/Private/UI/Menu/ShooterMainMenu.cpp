@@ -387,6 +387,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		UserProfileWidget->BuildAndShowMenu();
 
         CoinsWidgetContainer->BuildAndShowMenu();
+        CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
 }
 
@@ -1063,6 +1064,11 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	{
 		GameInstance->SetOnlineMode(EOnlineMode::Offline);
 	}
+
+    if (InventoryItem->SubMenu == Menu)
+    {
+        CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
+    }
 }
 
 void FShooterMainMenu::BotCountOptionChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex)
@@ -1374,8 +1380,8 @@ void FShooterMainMenu::OnShowInventory()
     MenuWidget->NextMenu = InventoryItem->SubMenu;
     DemoListWidget->BuildDemoList();
     MenuWidget->EnterSubMenu();
+    CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
 }
-
 
 void FShooterMainMenu::OnUIQuit()
 {

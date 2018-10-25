@@ -23,6 +23,7 @@ void FShooterInventoryStyle::GetResources(TArray<const FSlateBrush*>& OutBrushes
 {
 	OutBrushes.Add(&BackgroundBrush);
 	OutBrushes.Add(&TypeBackgroundBrush);
+    OutBrushes.Add(&CoinImage);
 }
 
 

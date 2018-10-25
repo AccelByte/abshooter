@@ -44,12 +44,12 @@ void SShooterInventory::BuildInventoryItem()
     FString imageURL = "https://s3-us-west-2.amazonaws.com/justice-platform-service/integration/avatar/442dd73025c74282b14fe8ed3aa5fb7a.jpg";
 
     //Dummy data
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Riffle", imageURL, 2000, false, true, EItemType::WEAPON }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", "https://emoji.slack-edge.com/T3WDKH0L8/p0/27ea357ecaf8ff9f.png", 100, true, true, EItemType::AMMO, 100 }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate Thrower", "Slate/Images/SoundCue_SpeakerIcon.png", 1500, false, true, EItemType::WEAPON }));
-    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Granate", "https://emoji.slack-edge.com/T3WDKH0L8/p1/7256c94088c93cd0.png", 200, true, true, EItemType::AMMO, 5 }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "WPUNTORCH", "https://png.icons8.com/color/96/000000/submachine-gun.png", 2000, false, true, EItemType::WEAPON }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", "https://png.icons8.com/color/96/000000/bullet.png", 100, true, true, EItemType::AMMO, 100 }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "TRONIX-3900", "https://png.icons8.com/color/96/000000/phaser.png", 1500, false, false, EItemType::WEAPON }));
+    InventoryList.Add(MakeShareable(new FInventoryEntry{ "Beam 11XZ", "https://png.icons8.com/color/96/000000/laser-beam.png", 200, true, true, EItemType::AMMO, 5 }));
 
-    InventoryListWidget->RequestListRefresh();
+    InventoryListWidget->RequestListRefresh();                                                                                                                                                                                                                                                                                           
 }
 
 TSharedRef<ITableRow> SShooterInventory::OnGenerateWidgetForTileView(TSharedPtr<FInventoryEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)

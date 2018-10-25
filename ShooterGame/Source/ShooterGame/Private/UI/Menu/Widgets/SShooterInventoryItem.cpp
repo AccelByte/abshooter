@@ -11,7 +11,8 @@
 FText GetItemTypeAsText(EItemType EnumValue) {
     const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EItemType"), true);
     if (!EnumPtr) return FText::FromString("Invalid");
-    return EnumPtr->GetDisplayNameText((int64)EnumValue);
+
+    return FText::FromString(EnumPtr->GetNameStringByValue((int64)EnumValue));
 }
 
 void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakObjectPtr<class ULocalPlayer> InPlayerOwner, TSharedPtr<FInventoryEntry> InItem)
@@ -43,98 +44,125 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
             ImageBrush = MakeShareable(new FSlateImageBrush(FPaths::ProjectContentDir() / item->ImageURL, FVector2D(144, 144)));
         }
 
-        TSharedPtr<SVerticalBox> BottomVerticalBox;
+        TSharedRef<SWidget> TileContent = SNew(SOverlay)
+        + SOverlay::Slot()
+        .VAlign(VAlign_Fill)
+        .HAlign(HAlign_Fill) // Background
+        [
+            SNew(SImage)
+            .Image(&InventoryStyle->BackgroundBrush)
+            .ColorAndOpacity(this, &SShooterInventoryItem::GetButtonBgColor)
+        ]
+        + SOverlay::Slot()
+        .VAlign(VAlign_Fill)
+        .HAlign(HAlign_Fill)
+        .Padding(12.0f)
+        [
+            SNew(SVerticalBox)
+            + SVerticalBox::Slot()
+            .AutoHeight()
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill)
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot()
+                .VAlign(VAlign_Fill)
+                .HAlign(HAlign_Fill) // Top
+                .AutoWidth()
+                [
+                    SNew(SOverlay)
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Top)
+                    .HAlign(HAlign_Fill) // Type background
+                    [
+                        SNew(SImage)
+                        .Image(&InventoryStyle->TypeBackgroundBrush)
+                    ]
+                    + SOverlay::Slot()
+                    .VAlign(VAlign_Top)
+                    .HAlign(HAlign_Left)
+                    [
+                        SNew(STextBlock)
+                        .Margin(FMargin(5, 0, 0, 0))
+                        .TextStyle(&InventoryStyle->TypeTextStyle)
+                        .Text(GetItemTypeAsText(item->Type))
+                    ]
+                ]
+                + SHorizontalBox::Slot()
+                .VAlign(VAlign_Center)
+                .HAlign(HAlign_Right) // Amount
+                .FillWidth(1)
+                [
+                    SNew(STextBlock)
+                    .TextStyle(&InventoryStyle->AmountTextStyle)
+                    .Text(FText::AsNumber(item->Amount))
+                    .Visibility(item->Consumable ? EVisibility::Visible : EVisibility::Collapsed)
+                ]
+            ]
+            + SVerticalBox::Slot()
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill)
+            .FillHeight(1) // Content image
+            [
+                SNew(SScaleBox)
+                .VAlign(VAlign_Fill)
+                .HAlign(HAlign_Center)
+                .Stretch(EStretch::ScaleToFit)
+                [
+                    SNew(SImage)
+                    .Image(this, &SShooterInventoryItem::GetImage)
+                ]
+            ]
+            + SVerticalBox::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Left) // Name
+            .AutoHeight()
+            [
+                SNew(STextBlock)
+                .TextStyle(&InventoryStyle->NameTextStyle)
+                .Text(FText::FromString(item->Name))
+            ]
+            + SVerticalBox::Slot()
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill) // Price
+            .AutoHeight()
+            [
+                GetBottomWidget(item.Get())
+            ]
+        ];
+
+        TSharedRef<SWidget> ChildContent = TileContent;
+        if (!item->Consumable && !item->Owned)
+        {
+            ChildContent = SNew(SOverlay)
+            + SOverlay::Slot()
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill)
+            [
+                TileContent
+            ]
+            + SOverlay::Slot()
+            .VAlign(VAlign_Fill)
+            .HAlign(HAlign_Fill)
+            [
+                SNew(SImage)
+                .ColorAndOpacity(FLinearColor(0, 0, 0, 0.75))
+            ]
+            + SOverlay::Slot()
+            .VAlign(VAlign_Center)
+            .HAlign(HAlign_Center)
+            [
+                SNew(STextBlock)
+                .TextStyle(&InventoryStyle->PriceTextStyle)
+                .Text(FText::FromString("LOCKED"))
+            ];
+        }
 
         ChildSlot
         .VAlign(VAlign_Fill)
         .HAlign(HAlign_Fill)
         [
-            SNew(SOverlay)
-            + SOverlay::Slot()
-            .VAlign(VAlign_Fill)
-            .HAlign(HAlign_Fill) // Background
-            [
-                SNew(SImage)
-                .Image(&InventoryStyle->BackgroundBrush)
-                .ColorAndOpacity(this, &SShooterInventoryItem::GetButtonBgColor)
-            ]
-            + SOverlay::Slot()
-            .VAlign(VAlign_Fill)
-            .HAlign(HAlign_Fill)
-            .Padding(10.0f)
-            [
-                SAssignNew(BottomVerticalBox, SVerticalBox)
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .VAlign(VAlign_Fill)
-                .HAlign(HAlign_Fill)
-                [
-                    SNew(SHorizontalBox)
-                    + SHorizontalBox::Slot()
-                    .VAlign(VAlign_Fill)
-                    .HAlign(HAlign_Fill) // Top
-                    .AutoWidth()
-                    [
-                        SNew(SOverlay)
-                        + SOverlay::Slot()
-                        .VAlign(VAlign_Fill)
-                        .HAlign(HAlign_Fill) // Type background
-                        [
-                            SNew(SImage)
-                            .Image(&InventoryStyle->TypeBackgroundBrush)
-                        ]
-                        + SOverlay::Slot()
-                        .VAlign(VAlign_Center)
-                        .HAlign(HAlign_Left)
-                        [
-                            SNew(STextBlock)
-                            .Margin(FMargin(5, 0, 0, 0))
-                            .TextStyle(&InventoryStyle->TypeTextStyle)
-                            .Text(GetItemTypeAsText(item->Type))
-                        ]
-                    ]
-                    + SHorizontalBox::Slot()
-                    .VAlign(VAlign_Center)
-                    .HAlign(HAlign_Right) // Amount
-                    .FillWidth(1)
-                    [
-                        SNew(STextBlock)
-                        .TextStyle(&InventoryStyle->AmountTextStyle)
-                        .Text(FText::AsNumber(item->Amount))
-                        .Visibility(item->Consumable ? EVisibility::Visible : EVisibility::Collapsed)
-                    ]
-                ]
-                + SVerticalBox::Slot()
-                .VAlign(VAlign_Fill)
-                .HAlign(HAlign_Fill)
-                .FillHeight(1) // Content image
-                [
-                    SNew(SScaleBox)
-                    .VAlign(VAlign_Fill)
-                    .HAlign(HAlign_Center)
-                    .Stretch(EStretch::ScaleToFit)
-                    [
-                        SNew(SImage)
-                        .Image(this, &SShooterInventoryItem::GetImage)
-                    ]
-                ]
-                + SVerticalBox::Slot()
-                .VAlign(VAlign_Center)
-                .HAlign(HAlign_Center) // Name
-                .AutoHeight()
-                [
-                    SNew(STextBlock)
-                    .TextStyle(&InventoryStyle->NameTextStyle)
-                    .Text(FText::FromString(item->Name))
-                ]
-                + SVerticalBox::Slot()
-                .VAlign(VAlign_Fill)
-                .HAlign(HAlign_Fill) // Price
-                .AutoHeight()
-                [
-                    GetBottomWidget(item.Get())
-                ]
-            ]
+            ChildContent
         ];
     }
 }
@@ -200,7 +228,6 @@ void SShooterInventoryItem::OnThumbImageReceived(FHttpRequestPtr Request, FHttpR
         {
             TArray<uint8> ImageData = Response->GetContent();
             ImageBrush = CreateBrush(FName(*Request->GetURL()), ImageData, ImageFormat);
-            ImageBrush->ImageSize = { 50, 50 };
         }
 
     }
@@ -225,13 +252,8 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterInventoryItem::CreateBrush(FName Res
         Height = ImageWrapper->GetHeight();
 
         const TArray<uint8>* RawData = NULL;
-        ERGBFormat RGBFormat = ERGBFormat::RGBA;
-        if (InFormat == EImageFormat::PNG)
-        {
-            RGBFormat = ERGBFormat::BGRA;
-        }
 
-        if (ImageWrapper->GetRaw(RGBFormat, 8, RawData))
+        if (ImageWrapper->GetRaw(InFormat == EImageFormat::PNG ? ERGBFormat::BGRA : ERGBFormat::RGBA, 8, RawData))
         {
             DecodedImage = *RawData;
             bSucceeded = true;
