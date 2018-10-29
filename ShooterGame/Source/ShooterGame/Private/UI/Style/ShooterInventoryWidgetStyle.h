@@ -29,82 +29,82 @@ struct FShooterInventoryStyle : public FSlateWidgetStyle
 	FSlateBrush BackgroundBrush;
 	FShooterInventoryStyle& SetBackgroundBrush(const FSlateBrush& InBrush) { BackgroundBrush = InBrush; return *this; }
 
-    /**
-     * The brush used for the item selected background
-     */
-    UPROPERTY(EditAnywhere, Category = Appearance)
-        FSlateBrush BackgroundSelectedBrush;
-    FShooterInventoryStyle& SetBackgroundSelectedBrush(const FSlateBrush& InBrush) { BackgroundSelectedBrush = InBrush; return *this; }
+	/**
+	 * The brush used for the item selected background
+	 */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+		FSlateBrush BackgroundSelectedBrush;
+	FShooterInventoryStyle& SetBackgroundSelectedBrush(const FSlateBrush& InBrush) { BackgroundSelectedBrush = InBrush; return *this; }
 
-    /**
-     * The brush used for the item background
-     */
-    UPROPERTY(EditAnywhere, Category = Appearance)
-        FSlateBrush TypeBackgroundBrush;
-    FShooterInventoryStyle& SetTypeBackgroundBrush(const FSlateBrush& InBrush) { TypeBackgroundBrush = InBrush; return *this; }
+	/**
+	 * The brush used for the item background
+	 */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+		FSlateBrush TypeBackgroundBrush;
+	FShooterInventoryStyle& SetTypeBackgroundBrush(const FSlateBrush& InBrush) { TypeBackgroundBrush = InBrush; return *this; }
 
-    /**
-     * The brush used for the item background
-     */
-    UPROPERTY(EditAnywhere, Category = Appearance)
-        FSlateBrush TypeSelectedBackgroundBrush;
-    FShooterInventoryStyle& SetTypeSelectedBackgroundBrush(const FSlateBrush& InBrush) { TypeSelectedBackgroundBrush = InBrush; return *this; }
+	/**
+	 * The brush used for the item background
+	 */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+		FSlateBrush TypeSelectedBackgroundBrush;
+	FShooterInventoryStyle& SetTypeSelectedBackgroundBrush(const FSlateBrush& InBrush) { TypeSelectedBackgroundBrush = InBrush; return *this; }
 
-    /**
-     * The brush used for the item background
-     */
-    UPROPERTY(EditAnywhere, Category = Appearance)
-        FSlateBrush LockedBackgroundBrush;
-    FShooterInventoryStyle& SetLockedBackgroundBrush(const FSlateBrush& InBrush) { LockedBackgroundBrush = InBrush; return *this; }
+	/**
+	 * The brush used for the item background
+	 */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+		FSlateBrush LockedBackgroundBrush;
+	FShooterInventoryStyle& SetLockedBackgroundBrush(const FSlateBrush& InBrush) { LockedBackgroundBrush = InBrush; return *this; }
 
-    /**
-     * The brush used for the item background
-     */
-    UPROPERTY(EditAnywhere, Category = Appearance)
-        FSlateBrush CoinImage;
-    FShooterInventoryStyle& SetCoinImage(const FSlateBrush& InBrush) { CoinImage = InBrush; return *this; }
+	/**
+	 * The brush used for the item background
+	 */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+		FSlateBrush CoinImage;
+	FShooterInventoryStyle& SetCoinImage(const FSlateBrush& InBrush) { CoinImage = InBrush; return *this; }
 
-    /**
-     * The brush used for the item background
-     */
-    UPROPERTY(EditAnywhere, Category = Appearance)
-        FSlateBrush CartImage;
-    FShooterInventoryStyle& SetCartImage(const FSlateBrush& InBrush) { CartImage = InBrush; return *this; }
+	/**
+	 * The brush used for the item background
+	 */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+		FSlateBrush CartImage;
+	FShooterInventoryStyle& SetCartImage(const FSlateBrush& InBrush) { CartImage = InBrush; return *this; }
 
-    /**
-     * The type text style
-     */
-    UPROPERTY(EditAnywhere, Category = Text)
-        FTextBlockStyle TypeTextStyle;
-    FShooterInventoryStyle& SetTypeTextStyle(const FTextBlockStyle& InTextStyle) { TypeTextStyle = InTextStyle; return *this; }
+	/**
+	 * The type text style
+	 */
+	UPROPERTY(EditAnywhere, Category = Text)
+		FTextBlockStyle TypeTextStyle;
+	FShooterInventoryStyle& SetTypeTextStyle(const FTextBlockStyle& InTextStyle) { TypeTextStyle = InTextStyle; return *this; }
 
-    /**
-     * The amount text style
-     */
-    UPROPERTY(EditAnywhere, Category = Text)
-        FTextBlockStyle AmountTextStyle;
-    FShooterInventoryStyle& SetAmountTextStyle(const FTextBlockStyle& InTextStyle) { AmountTextStyle = InTextStyle; return *this; }
+	/**
+	 * The amount text style
+	 */
+	UPROPERTY(EditAnywhere, Category = Text)
+		FTextBlockStyle AmountTextStyle;
+	FShooterInventoryStyle& SetAmountTextStyle(const FTextBlockStyle& InTextStyle) { AmountTextStyle = InTextStyle; return *this; }
 
-    /**
-     * The name text style
-     */
-    UPROPERTY(EditAnywhere, Category = Text)
-        FTextBlockStyle NameTextStyle;
-    FShooterInventoryStyle& SetNameTextStyle(const FTextBlockStyle& InTextStyle) { NameTextStyle = InTextStyle; return *this; }
+	/**
+	 * The name text style
+	 */
+	UPROPERTY(EditAnywhere, Category = Text)
+		FTextBlockStyle NameTextStyle;
+	FShooterInventoryStyle& SetNameTextStyle(const FTextBlockStyle& InTextStyle) { NameTextStyle = InTextStyle; return *this; }
 
-    /**
-     * The price text style
-     */
-    UPROPERTY(EditAnywhere, Category = Text)
-        FTextBlockStyle PriceTextStyle;
-    FShooterInventoryStyle& SetPriceTextStyle(const FTextBlockStyle& InTextStyle) { PriceTextStyle = InTextStyle; return *this; }
+	/**
+	 * The price text style
+	 */
+	UPROPERTY(EditAnywhere, Category = Text)
+		FTextBlockStyle PriceTextStyle;
+	FShooterInventoryStyle& SetPriceTextStyle(const FTextBlockStyle& InTextStyle) { PriceTextStyle = InTextStyle; return *this; }
 
-    /**
-     * The owned text style
-     */
-    UPROPERTY(EditAnywhere, Category = Text)
-        FTextBlockStyle OwnedTextStyle;
-    FShooterInventoryStyle& SetOwnedTextStyle(const FTextBlockStyle& InTextStyle) { OwnedTextStyle = InTextStyle; return *this; }
+	/**
+	 * The owned text style
+	 */
+	UPROPERTY(EditAnywhere, Category = Text)
+		FTextBlockStyle OwnedTextStyle;
+	FShooterInventoryStyle& SetOwnedTextStyle(const FTextBlockStyle& InTextStyle) { OwnedTextStyle = InTextStyle; return *this; }
 };
 
 

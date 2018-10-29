@@ -10,33 +10,33 @@
 UENUM()
 enum class EItemType : uint8
 {
-    WEAPON UMETA(DisplayName = "Weapon"),
-    AMMO UMETA(DisplayName = "Ammo")
+	WEAPON UMETA(DisplayName = "Weapon"),
+	AMMO UMETA(DisplayName = "Ammo")
 };
 
 /** inventory display information */
 struct FInventoryEntry
 {
-    /** item name*/
-    FString Name;
+	/** item name*/
+	FString Name;
 
-    /** item image URL*/
-    FString ImageURL;
+	/** item image URL*/
+	FString ImageURL;
 
-    /** item price*/
-    int32 Price;
+	/** item price*/
+	int32 Price;
 
-    /** item consumable flag*/
-    bool Consumable;
+	/** item consumable flag*/
+	bool Consumable;
 
-    /** item owned flag*/
-    bool Owned;
+	/** item owned flag*/
+	bool Owned;
 
-    /** item type*/
-    EItemType Type;
+	/** item type*/
+	EItemType Type;
 
-    /** item amount*/
-    int32 Amount = 1;
+	/** item amount*/
+	int32 Amount = 1;
 };
 
 //class declare
@@ -57,15 +57,15 @@ public:
 	/** if we want to receive focus */
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
-    /** Populates inventory item */
-    void BuildInventoryItem();
+	/** Populates inventory item */
+	void BuildInventoryItem();
 
 	/** creates single item widget, called for every list item */
 	TSharedRef<ITableRow> OnGenerateWidgetForTileView(TSharedPtr<FInventoryEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
-    void EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem, ESelectInfo::Type SelectInfo);
+	void EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem, ESelectInfo::Type SelectInfo);
 
-    void OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem);
+	void OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem);
 
 protected:
 
@@ -73,7 +73,7 @@ protected:
 	TArray< TSharedPtr<FInventoryEntry> > InventoryList;
 
 	/** action bindings list slate widget */
-    TSharedPtr < STileView< TSharedPtr<FInventoryEntry> > > InventoryListWidget;
+	TSharedPtr < STileView< TSharedPtr<FInventoryEntry> > > InventoryListWidget;
 
 	/** currently selected list item */
 	TSharedPtr<FInventoryEntry> SelectedItem;

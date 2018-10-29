@@ -13,9 +13,7 @@
 #include "ShooterGameUserSettings.h"
 #include "Slate/SceneViewport.h"
 
-#ifndef LOCTEXT_NAMESPACE
 #define LOCTEXT_NAMESPACE "SShooterMenuWidget"
-#endif
 
 #if PLATFORM_XBOXONE
 #define PROFILE_SWAPPING	1

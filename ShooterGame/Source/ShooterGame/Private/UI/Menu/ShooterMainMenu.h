@@ -81,8 +81,8 @@ protected:
 	/** menu widget */
 	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
 
-    /** menu widget */
-    TSharedPtr<class SShooterCoinsWidget> CoinsWidgetContainer;
+	/** menu widget */
+	TSharedPtr<class SShooterCoinsWidget> CoinsWidgetContainer;
 
 	/* used for removing the MenuWidget */
 	TSharedPtr<class SWeakWidget> MenuWidgetContainer;
@@ -100,8 +100,8 @@ protected:
 	/** demo list widget */
 	TSharedPtr<class SShooterDemoList> DemoListWidget;
 
-    /** demo list widget */
-    TSharedPtr<class SShooterInventory> InventoryWidget;
+	/** demo list widget */
+	TSharedPtr<class SShooterInventory> InventoryWidget;
 
 	/** leaderboard widget */
 	TSharedPtr<class SShooterLeaderboard> LeaderboardWidget;
@@ -115,8 +115,8 @@ protected:
 	/** Custom demo browser menu */
 	TSharedPtr<class FShooterMenuItem> DemoBrowserItem;
 
-    /** Custom inventory menu */
-    TSharedPtr<class FShooterMenuItem> InventoryItem;
+	/** Custom inventory menu */
+	TSharedPtr<class FShooterMenuItem> InventoryItem;
 
 	/** LAN Options */
 	TSharedPtr<class FShooterMenuItem> HostLANItem;
@@ -237,8 +237,8 @@ protected:
 	/** Show demo browser */
 	void OnShowDemoBrowser();
 
-    /** Show inventory */
-    void OnShowInventory();
+	/** Show inventory */
+	void OnShowInventory();
 
 	/** Plays sound and calls Quit */
 	void OnUIQuit();
