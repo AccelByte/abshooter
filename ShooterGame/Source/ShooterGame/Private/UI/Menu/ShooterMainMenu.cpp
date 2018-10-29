@@ -22,9 +22,9 @@
 
 #define MAX_BOT_COUNT 8
 
-static const FString MapNames[] = { TEXT("Sanctuary"), TEXT("Highrise") };
-static const FString JoinMapNames[] = { TEXT("Any"), TEXT("Sanctuary"), TEXT("Highrise") };
-static const FName PackageNames[] = { TEXT("Sanctuary.umap"), TEXT("Highrise.umap") };
+static const FString MapNames[] = { /*TEXT("Sanctuary"),*/ TEXT("Highrise") };
+static const FString JoinMapNames[] = { TEXT("Any"), /*TEXT("Sanctuary"),*/ TEXT("Highrise") };
+static const FName PackageNames[] = { /*TEXT("Sanctuary.umap"),*/ TEXT("Highrise.umap") };
 static const int DefaultTDMMap = 1;
 static const int DefaultFFAMap = 0; 
 static const float QuickmatchUIAnimationTimeDuration = 30.f;
@@ -119,6 +119,8 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 	//Now that we are here, build our menu 
 	MenuWidget.Reset();
 	MenuWidgetContainer.Reset();
+	UserProfileWidgetContainer.Reset();
+	UserProfileWidget.Reset();
 
 	TArray<FString> Keys;
 	GConfig->GetSingleLineArray(TEXT("/Script/SwitchRuntimeSettings.SwitchRuntimeSettings"), TEXT("LeaderboardMap"), Keys, GEngineIni);
@@ -130,8 +132,17 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			.PlayerOwner(GetPlayerOwner())
 			.IsGameMenu(false);
 
+		// Justice user profile logged-in		
+		SAssignNew(UserProfileWidget, SShooterUserProfileWidget)
+			.Cursor(EMouseCursor::Default)
+			.PlayerOwner(GetPlayerOwner())
+			.IsGameMenu(false);
+
 		SAssignNew(MenuWidgetContainer, SWeakWidget)
-			.PossiblyNullContent(MenuWidget);		
+			.PossiblyNullContent(MenuWidget);
+
+		SAssignNew(UserProfileWidgetContainer, SWeakWidget)
+			.PossiblyNullContent(UserProfileWidget);
 
 		TSharedPtr<FShooterMenuItem> RootMenuItem;
 
@@ -178,6 +189,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		SAssignNew(QuickMatchStoppingWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(QuickMatchStoppingWidget);
+
+
+
 
 #if PLATFORM_XBOXONE
 		TSharedPtr<FShooterMenuItem> MenuItem;
@@ -358,6 +372,10 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		ShooterOptions->UpdateOptions();
 		MenuWidget->BuildAndShowMenu();
+
+
+		UserProfileWidget->CurrentMenuTitle = LOCTEXT("UserProfile", "User Profile");
+		UserProfileWidget->BuildAndShowMenu();
 	}
 }
 
@@ -366,8 +384,33 @@ void FShooterMainMenu::AddMenuToGameViewport()
 	if (GEngine && GEngine->GameViewport)
 	{
 		UGameViewportClient* const GVC = GEngine->GameViewport;
-		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+		
+		GVC->AddViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
+		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
+		
 	}
+}
+
+void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FString AvatarURL)
+{
+	// update the ui, download the image
+
+	if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("UpdateUserProfile Username"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Username);
+
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("UpdateUserProfile UserID"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, UserID);
+
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("UpdateUserProfile Avatar"));
+		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, AvatarURL);
+	}
+
+
+	UserProfileWidget->UserName = FText::FromString(Username);
+	UserProfileWidget->UserID = FText::FromString(UserID);
+	UserProfileWidget->UpdateAvatar(AvatarURL);
 }
 
 void FShooterMainMenu::RemoveMenuFromGameViewport()
@@ -375,6 +418,8 @@ void FShooterMainMenu::RemoveMenuFromGameViewport()
 	if (GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+		GEngine->GameViewport->RemoveViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
+
 	}
 }
 
@@ -977,7 +1022,7 @@ FShooterMainMenu::EMap FShooterMainMenu::GetSelectedMap() const
 		return (EMap)HostOfflineMapOption->SelectedMultiChoice;
 	}
 
-	return EMap::ESancturary;	// Need to return something (we can hit this path in cooking)
+	return EMap::EHighRise;	// Need to return something (we can hit this path in cooking)
 }
 
 void FShooterMainMenu::CloseSubMenu()

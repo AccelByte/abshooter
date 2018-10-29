@@ -27,6 +27,8 @@ public class ShooterGame : ModuleRules
 				"NavigationSystem",
 				"AIModule",
 				"GameplayTasks",
+				"Http",
+				"AccelByteUe4Sdk",
 			}
 		);
 
@@ -38,7 +40,8 @@ public class ShooterGame : ModuleRules
 				"ShooterGameLoadingScreen",
 				"Json",
 				"ApplicationCore",
-				"ReplicationGraph"
+				"ReplicationGraph",
+				"AccelByteUe4Sdk",
 			}
 		);
 
@@ -54,7 +57,7 @@ public class ShooterGame : ModuleRules
 
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
-				"NetworkReplayStreaming"
+				"NetworkReplayStreaming",				
 			}
 		);
 
@@ -67,5 +70,9 @@ public class ShooterGame : ModuleRules
 		{
 			PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=0");
 		}
+
+
+		// Accelbyte SDK
+		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
 	}
 }

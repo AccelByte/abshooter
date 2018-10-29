@@ -22,8 +22,11 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 	InactiveTextAlpha = InArgs._InactiveTextAlpha.Get(1.0f);
 
 	const float ArrowMargin = 3.0f;
-	ItemMargin = 10.0f;
-	TextColor = FLinearColor(FColor(155,164,182));
+	ItemMargin = 10;
+	TextColor = FLinearColor(FColor(112,253,255)); // warna menu
+
+	//.WidthOverride(551.0f)
+	//.HeightOverride(134.0f)
 
 	ChildSlot
 	.VAlign(VAlign_Fill)
@@ -44,14 +47,13 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 			]
 		]
 		+SOverlay::Slot()
-		.HAlign(bIsMultichoice ? HAlign_Left : HAlign_Center)
+		.HAlign(HAlign_Left)
 		.VAlign(VAlign_Center)
 		.Padding(FMargin(ItemMargin,0,0,0))
 		[
 			SAssignNew(TextWidget, STextBlock)
 			.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuTextStyle")
 			.ColorAndOpacity(this,&SShooterMenuItem::GetButtonTextColor)
-			.ShadowColorAndOpacity(this, &SShooterMenuItem::GetButtonTextShadowColor)
 			.Text(Text)
 		]
 		+SOverlay::Slot()
@@ -86,7 +88,7 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 				.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuTextStyle")
 				.Visibility(bIsMultichoice ? EVisibility:: Visible : EVisibility::Collapsed )
 				.ColorAndOpacity(this,&SShooterMenuItem::GetButtonTextColor)
-				.ShadowColorAndOpacity(this, &SShooterMenuItem::GetButtonTextShadowColor)
+				//.ShadowColorAndOpacity(this, &SShooterMenuItem::GetButtonTextShadowColor)
 				.Text(OptionText)
 			]
 			+SHorizontalBox::Slot()

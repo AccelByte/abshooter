@@ -15,8 +15,12 @@ public class ShooterGameLoadingScreen : ModuleRules
 				"MoviePlayer",
 				"Slate",
 				"SlateCore",
-				"InputCore"
+				"InputCore",				
 			}
 		);
+
+		// Accelbyte SDK
+		PublicDependencyModuleNames.AddRange(new string[] { "AccelByteUe4Sdk", });
+		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
 	}
 }

@@ -1,0 +1,15 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-AccelByteUe4Sdk.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"E:\justice-ue4-shootergame-new\ShooterGame\Intermediate\Build\Win64\ShooterGameEditor\Development\Engine\SharedPCH.Engine.h.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteUe4Sdk\Intermediate\Build\Win64\UE4Editor\Development\AccelByteUe4Sdk\Module.AccelByteUe4Sdk.cpp.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteUe4Sdk\Intermediate\Build\Win64\UE4Editor\Development\AccelByteUe4Sdk\Module.AccelByteUe4Sdk.gen.1_of_3.cpp.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteUe4Sdk\Intermediate\Build\Win64\UE4Editor\Development\AccelByteUe4Sdk\Module.AccelByteUe4Sdk.gen.2_of_3.cpp.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteUe4Sdk\Intermediate\Build\Win64\UE4Editor\Development\AccelByteUe4Sdk\Module.AccelByteUe4Sdk.gen.3_of_3.cpp.obj"
+"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteUe4Sdk\Intermediate\Build\Win64\UE4Editor\Development\AccelByteUe4Sdk\PCLaunch.rc.res"
+/OUT:"E:\justice-ue4-shootergame-new\ShooterGame\Plugins\AccelByteUe4Sdk\Intermediate\Build\Win64\UE4Editor\Development\AccelByteUe4Sdk\UE4Editor-AccelByteUe4Sdk.lib"

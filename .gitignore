@@ -76,3 +76,12 @@ Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+ShooterGame/Intermediate/
+*.bak
+ShooterGame/Saved/
+*.pdb
+ShooterGame/Output/
+ShooterGame/Build/
+ShooterGame/Binaries/
+ShooterGame/Plugins/AccelByteCustomWebBrowserWidget/Intermediate/
+ShooterGame/Plugins/AccelByteUe4Sdk/Intermediate/

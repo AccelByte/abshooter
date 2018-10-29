@@ -4,6 +4,7 @@
 #include "SlateExtras.h"
 #include "Widgets/ShooterMenuItem.h"
 #include "Widgets/SShooterMenuWidget.h"
+#include "Widgets/SShooterUserProfileWidget.h"
 #include "Widgets/SShooterServerList.h"
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterLeaderboard.h"
@@ -22,6 +23,8 @@ public:
 
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
+
+	void UpdateUserProfile(FString Username, FString UserID, FString AvatarURL);
 
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	
@@ -49,7 +52,7 @@ protected:
 
 	enum class EMap
 	{
-		ESancturary,
+		/*ESancturary,*/
 		EHighRise,
 		EMax,
 	};	
@@ -72,8 +75,14 @@ protected:
 	/** menu widget */
 	TSharedPtr<class SShooterMenuWidget> MenuWidget;
 
+
+	/** menu widget */
+	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
+
+
 	/* used for removing the MenuWidget */
 	TSharedPtr<class SWeakWidget> MenuWidgetContainer;
+	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
 
 	/** SplitScreen Lobby Widget */
 	TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;
