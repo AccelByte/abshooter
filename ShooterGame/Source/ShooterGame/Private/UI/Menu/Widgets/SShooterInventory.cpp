@@ -44,10 +44,10 @@ void SShooterInventory::BuildInventoryItem()
 	InventoryList.Empty();
 
 	//Dummy data
-	InventoryList.Add(MakeShareable(new FInventoryEntry{ "WPUNTORCH", "https://png.icons8.com/color/96/000000/submachine-gun.png", 2000, false, true, EItemType::WEAPON }));
-	InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", "https://png.icons8.com/color/96/000000/bullet.png", 100, true, true, EItemType::AMMO, 100 }));
-	InventoryList.Add(MakeShareable(new FInventoryEntry{ "TRONIX-3900", "https://png.icons8.com/color/96/000000/phaser.png", 1500, false, false, EItemType::WEAPON }));
-	InventoryList.Add(MakeShareable(new FInventoryEntry{ "Beam 11XZ", "https://png.icons8.com/color/96/000000/laser-beam.png", 200, true, true, EItemType::AMMO, 5 }));
+	InventoryList.Add(MakeShareable(new FInventoryEntry{ "WPUNTORCH", "Slate/Images/SubmachineGun.png", 2000, false, true, EItemType::WEAPON }));
+	InventoryList.Add(MakeShareable(new FInventoryEntry{ "Bullet 20mm", "Slate/Images/Bullet.png", 100, true, true, EItemType::AMMO, 100 }));
+	InventoryList.Add(MakeShareable(new FInventoryEntry{ "TRONIX-3900", "Slate/Images/Phaser.png", 1500, false, false, EItemType::WEAPON }));
+	InventoryList.Add(MakeShareable(new FInventoryEntry{ "Beam 11XZ", "Slate/Images/LaserBeam.png", 200, true, true, EItemType::AMMO, 5 }));
 
 	InventoryListWidget->RequestListRefresh();																																																																						   
 }

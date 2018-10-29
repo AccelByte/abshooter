@@ -100,7 +100,7 @@ protected:
 	/** demo list widget */
 	TSharedPtr<class SShooterDemoList> DemoListWidget;
 
-	/** demo list widget */
+	/** inventory widget */
 	TSharedPtr<class SShooterInventory> InventoryWidget;
 
 	/** leaderboard widget */
