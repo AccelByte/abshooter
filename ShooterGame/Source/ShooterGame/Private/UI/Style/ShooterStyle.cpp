@@ -43,6 +43,18 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	// Load the speaker icon to be used for displaying when a user is talking
 	Style.Set("ShooterGame.Speaker", new IMAGE_BRUSH("Images/SoundCue_SpeakerIcon", FVector2D(32, 32)));
 
+	// Load the coins icon
+	Style.Set("ShooterGame.Coins", new IMAGE_BRUSH("Images/CoinsIcon", FVector2D(32, 32)));
+
+	// Load the image icon to be used for displaying when a image loading
+	Style.Set("ShooterGame.Image", new IMAGE_BRUSH("Images/ImageIcon", FVector2D(32, 32)));
+
+	// Load inventory icons
+	Style.Set("ShooterGame.LaserBeam", new IMAGE_BRUSH("Images/LaserBeam", FVector2D(96, 96)));
+	Style.Set("ShooterGame.Bullet", new IMAGE_BRUSH("Images/Bullet", FVector2D(96, 96)));
+	Style.Set("ShooterGame.Phaser", new IMAGE_BRUSH("Images/Phaser", FVector2D(96, 96)));
+	Style.Set("ShooterGame.SubmachineGun", new IMAGE_BRUSH("Images/SubmachineGun", FVector2D(96, 96)));
+
 	// The border image used to draw the replay timeline bar
 	Style.Set("ShooterGame.ReplayTimelineBorder", new BOX_BRUSH("Images/ReplayTimeline", FMargin(3.0f / 8.0f)));
 

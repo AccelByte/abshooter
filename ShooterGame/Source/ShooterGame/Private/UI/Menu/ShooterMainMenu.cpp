@@ -138,6 +138,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			.PlayerOwner(GetPlayerOwner())
 			.IsGameMenu(false);
 
+		SAssignNew(CoinsWidgetContainer, SShooterCoinsWidget)
+			.Cursor(EMouseCursor::Default);
+
 		SAssignNew(MenuWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(MenuWidget);
 
@@ -349,6 +352,12 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Demos", "DEMOS"), this, &FShooterMainMenu::OnShowDemoBrowser);
 			MenuHelper::AddCustomMenuItem(DemoBrowserItem,SAssignNew(DemoListWidget,SShooterDemoList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 		}
+
+		// Inventory
+		{
+			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Inventory", "INVENTORY"), this, &FShooterMainMenu::OnShowInventory);
+			MenuHelper::AddCustomMenuItem(InventoryItem, SAssignNew(InventoryWidget, SShooterInventory).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+		}
 #endif
 
 		// Options
@@ -376,6 +385,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		UserProfileWidget->CurrentMenuTitle = LOCTEXT("UserProfile", "User Profile");
 		UserProfileWidget->BuildAndShowMenu();
+
+		CoinsWidgetContainer->BuildAndShowMenu();
+		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
 }
 
@@ -386,6 +398,7 @@ void FShooterMainMenu::AddMenuToGameViewport()
 		UGameViewportClient* const GVC = GEngine->GameViewport;
 		
 		GVC->AddViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
+		GVC->AddViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
 		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
 		
 	}
@@ -418,6 +431,7 @@ void FShooterMainMenu::RemoveMenuFromGameViewport()
 	if (GEngine && GEngine->GameViewport)
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+		GEngine->GameViewport->RemoveViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
 		GEngine->GameViewport->RemoveViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
 
 	}
@@ -1050,6 +1064,11 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	{
 		GameInstance->SetOnlineMode(EOnlineMode::Offline);
 	}
+
+	if (InventoryItem->SubMenu == Menu)
+	{
+		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
+	}
 }
 
 void FShooterMainMenu::BotCountOptionChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex)
@@ -1354,6 +1373,14 @@ void FShooterMainMenu::OnShowDemoBrowser()
 	MenuWidget->NextMenu = DemoBrowserItem->SubMenu;
 	DemoListWidget->BuildDemoList();
 	MenuWidget->EnterSubMenu();
+}
+
+void FShooterMainMenu::OnShowInventory()
+{
+	MenuWidget->NextMenu = InventoryItem->SubMenu;
+	DemoListWidget->BuildDemoList();
+	MenuWidget->EnterSubMenu();
+	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::OnUIQuit()
