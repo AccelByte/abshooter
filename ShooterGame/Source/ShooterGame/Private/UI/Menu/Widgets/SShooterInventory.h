@@ -65,6 +65,8 @@ public:
 
     void EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem, ESelectInfo::Type SelectInfo);
 
+    void OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem);
+
 protected:
 
 	/** action bindings array */

@@ -34,7 +34,7 @@ private:
     /** style for the inventory */
     const struct FShooterInventoryStyle *InventoryStyle;
 
-    TSharedRef<SWidget> GetBottomWidget(const FInventoryEntry * item) const;
+    TSharedRef<SWidget> GetPriceWidget(const FInventoryEntry * item) const;
 
     /** get content image*/
     const FSlateBrush* GetImage() const;
@@ -47,4 +47,16 @@ private:
 
     /** getter for tile item background color */
     FSlateColor GetButtonBgColor() const;
+
+    /** getter for tile item background color */
+    FSlateColor GetTypeTextColor() const;
+
+    /** getter for tile item background color */
+    const FSlateBrush* GetBackgroundBrush() const;
+
+    /** getter for tile item background color */
+    const FSlateBrush* GetTypeBackgroundBrush() const;
+
+    /** getter for cart icon visibility */
+    EVisibility GetCartIconVisibility() const;
 };

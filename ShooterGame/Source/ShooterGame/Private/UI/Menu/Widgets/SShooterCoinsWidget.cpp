@@ -6,12 +6,8 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 
-#define LOCTEXT_NAMESPACE "SShooterCoinsWidget"
-
 void SShooterCoinsWidget::Construct(const FArguments& InArgs)
 {
-    CoinsIcon = MakeShareable(new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/SoundCue_SpeakerIcon.png", FVector2D(144, 144)));
-
     ChildSlot
     .HAlign(HAlign_Right)
     .VAlign(VAlign_Top)
@@ -52,14 +48,14 @@ void SShooterCoinsWidget::Construct(const FArguments& InArgs)
                     .HAlign(HAlign_Center)
                     .VAlign(VAlign_Center)
                     [
-                        SNew(SBox) // box kiri, buat gambar profile		
+                        SNew(SBox)
                         .HAlign(HAlign_Fill)
                         .VAlign(VAlign_Fill)
                         .WidthOverride(56.0f)
                         .HeightOverride(56.0f)
                         [
-                            SNew(SImage) // gambar avatar, klo bisa dari URL	
-                            .Image(CoinsIcon.Get())
+                            SNew(SImage) // Coins Icon	
+                            .Image(FShooterStyle::Get().GetBrush("ShooterGame.Coins"))
                         ]
                     ]
                 ]
@@ -70,7 +66,7 @@ void SShooterCoinsWidget::Construct(const FArguments& InArgs)
             .VAlign(VAlign_Center)
             [
                 SNew(STextBlock)
-                .Margin(FMargin(-10.0f, 0, 0, 0))
+                .Margin(FMargin(-8.0f, 0, 0, 0))
                 .TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")
                 .Text(FText::FromString("9000"))
             ]

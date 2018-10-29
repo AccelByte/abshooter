@@ -4,13 +4,13 @@
 #include "ShooterStyle.h"
 #include "ShooterUIHelpers.h"
 #include "SShooterInventoryItem.h"
-#include "UserWidget.h"
 
 void SShooterInventory::Construct(const FArguments& InArgs)
 {
     PlayerOwner = InArgs._PlayerOwner;
     OwnerWidget = InArgs._OwnerWidget;
-    const int32 TileSize = 240;
+    const int32 TileWidth = 288;
+    const int32 TileHeight = 200;
     const int32 TileColumn = 2;
     const int32 TileRow = 2;
 
@@ -22,15 +22,17 @@ void SShooterInventory::Construct(const FArguments& InArgs)
         .VAlign(VAlign_Fill)
         .HAlign(HAlign_Fill)
         .Padding(0)
-        .WidthOverride(TileSize * TileColumn + 16)
-        .HeightOverride(TileSize * TileRow + 4 )
+        .WidthOverride(TileWidth * TileColumn)
+        .HeightOverride(TileHeight * TileRow + 4 )
         [
             SAssignNew(InventoryListWidget, STileView< TSharedPtr<FInventoryEntry> >)
-            .ItemWidth(TileSize)
-            .ItemHeight(TileSize)
+            .ItemWidth(TileWidth)
+            .ItemHeight(TileHeight)
             .ListItemsSource(&InventoryList)
+            .ScrollbarVisibility(EVisibility::Collapsed)
             .OnSelectionChanged(this, &SShooterInventory::EntrySelectionChanged)
             .OnGenerateTile(this, &SShooterInventory::OnGenerateWidgetForTileView)
+            .OnMouseButtonClick(this, &SShooterInventory::OnInventoryMouseClick)
             .SelectionMode(ESelectionMode::Single)
         ]
     ];
@@ -40,8 +42,6 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 void SShooterInventory::BuildInventoryItem()
 {
     InventoryList.Empty();
-
-    FString imageURL = "https://s3-us-west-2.amazonaws.com/justice-platform-service/integration/avatar/442dd73025c74282b14fe8ed3aa5fb7a.jpg";
 
     //Dummy data
     InventoryList.Add(MakeShareable(new FInventoryEntry{ "WPUNTORCH", "https://png.icons8.com/color/96/000000/submachine-gun.png", 2000, false, true, EItemType::WEAPON }));
@@ -59,4 +59,15 @@ TSharedRef<ITableRow> SShooterInventory::OnGenerateWidgetForTileView(TSharedPtr<
 
 void SShooterInventory::EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem, ESelectInfo::Type SelectInfo)
 {
+    SelectedItem = InItem;
+}
+
+void SShooterInventory::OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem)
+{
+    // Only able to buy when item already selected
+    if (SelectedItem == InItem && InItem->Consumable)
+    {
+        FMessageDialog::Open(EAppMsgType::Ok,
+            FText::FromString(FString("Buying ") + InItem->Name));
+    }
 }
