@@ -1,5 +1,5 @@
 #include "ShooterGame.h"
-#include "SLobbyFriendList.h"
+#include "SLobby.h"
 #include "SHeaderRow.h"
 #include "ShooterStyle.h"
 #include "ShooterGameLoadingScreen.h"
@@ -10,7 +10,7 @@
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
-void SLobbyFriendList::Construct(const FArguments& InArgs)
+void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
 
@@ -25,31 +25,14 @@ void SLobbyFriendList::Construct(const FArguments& InArgs)
 #else
 	MinTimeBetweenSearches = 0.0;
 #endif
-
-	FriendScrollBar =
-		SNew(SScrollBar)
-		.IsEnabled(true)
-		.AlwaysShowScrollbar(true)
-		.Thickness(FVector2D(12.0f, 12.0f))
-		.Orientation(EOrientation::Orient_Vertical)
-		.Visibility(EVisibility::Visible)
-		.Style(&LobbyStyle->ScrollBarStyle)
-	;
-
+	
 	ChildSlot
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()	//PartyMember
-			.AutoWidth()
-			.Padding(30.0f, 0.0f)
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(TEXT("YOUR PARTY")))
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")
-			]
-			+SHorizontalBox::Slot()		//FriendBar
+
+			+SHorizontalBox::Slot()		//FriendSearchBar
 			.HAlign(HAlign_Fill)
 			[
 				SNew(SVerticalBox)
@@ -57,6 +40,7 @@ void SLobbyFriendList::Construct(const FArguments& InArgs)
 				.HAlign(HAlign_Fill)
 				[
 					SNew(SHorizontalBox)
+
 					+ SHorizontalBox::Slot()	//2.1 INPUT FIELD
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Center)
@@ -68,15 +52,17 @@ void SLobbyFriendList::Construct(const FArguments& InArgs)
 							.HintText(FText::FromString(TEXT("Search your friend")))
 							.MinDesiredWidth(300.0f)
 							.SelectAllTextWhenFocused(true)
-							.OnTextChanged(this, &SLobbyFriendList::OnTextSearchChanged)
+							.OnTextChanged(this, &SLobby::OnTextSearchChanged)
 							.Style(&LobbyStyle->SearchBarStyle)
 						]
 					]
+
 				]
-				+ SVerticalBox::Slot()	//Friend list
+				+ SVerticalBox::Slot()	//FriendListView
 				.AutoHeight()
 				[
 					SNew(SHorizontalBox)	//NonScrollBar
+
 					+ SHorizontalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
@@ -87,11 +73,12 @@ void SLobbyFriendList::Construct(const FArguments& InArgs)
 							SAssignNew(FriendListWidget, SListView<TSharedPtr<FFriendEntry>>)
 							.ListItemsSource(&FriendList)
 							.SelectionMode(ESelectionMode::Single)
-							.OnGenerateRow(this, &SLobbyFriendList::MakeListViewWidget)
-							.OnSelectionChanged(this, &SLobbyFriendList::EntrySelectionChanged)
+							.OnGenerateRow(this, &SLobby::MakeListViewWidget)
+							.OnSelectionChanged(this, &SLobby::EntrySelectionChanged)
 							.ExternalScrollbar(
 								FriendScrollBar
 							)
+							.ScrollbarVisibility(EVisibility::Visible)
 							.HeaderRow(
 								SNew(SHeaderRow)
 								.Style(&LobbyStyle->HeaderRowStyle)
@@ -105,29 +92,125 @@ void SLobbyFriendList::Construct(const FArguments& InArgs)
 							)
 						]
 					]
-					+ SHorizontalBox::Slot()
+
+					+ SHorizontalBox::Slot()	//Scroll player list
 					.AutoWidth()
 					[
 						SNew(SBox)
 						.HAlign(HAlign_Right)
 						[
 							SAssignNew(FriendScrollBar, SScrollBar)
+							.IsEnabled(true)
+							.AlwaysShowScrollbar(true)
+							.Thickness(FVector2D(12.0f, 12.0f))
+							.Orientation(EOrientation::Orient_Vertical)
+							.Visibility(EVisibility::Visible)
+							.Style(&LobbyStyle->ScrollBarStyle)
+						]
+					]
+
+				]
+			]
+
+			+ SHorizontalBox::Slot()	//PARTY Member & CHAT Area
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Fill)
+			.Padding(30.0f, 0.0f)
+			[
+				SNew(SVerticalBox)
+				
+				+ SVerticalBox::Slot()		//PARTY Members those invited
+				.VAlign(VAlign_Top)
+				.AutoHeight()
+				[
+					SNew(SBox)
+					.HeightOverride(500)
+					.HAlign(HAlign_Fill)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString(TEXT("YOUR PARTY")))
+						.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")
+					]
+				]
+				
+				+ SVerticalBox::Slot()		//CHAT Area
+				.VAlign(VAlign_Fill)
+				.FillHeight(1.0f)
+				[
+					SNew(SBox)
+					.HeightOverride(300.0f)
+					.WidthOverride(600.0f)
+					.VAlign(VAlign_Fill)
+					.HAlign(HAlign_Fill)
+					[
+						SNew(SVerticalBox)
+
+						+ SVerticalBox::Slot()	//CHAT TABs Area
+						.AutoHeight()
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SHorizontalBox)	
+							+ SHorizontalBox::Slot()	//CHAT TAB Button Scroll LEFT
+							.AutoWidth()
+							[
+								SAssignNew(ButtonChatTabScrollLeft, SButton)
+								.VAlign(VAlign_Fill)
+								.OnClicked(this, &SLobby::OnChatTabScrollLeftClicked)
+								[
+									SNew(SImage)
+									.Image(&LobbyStyle->ChatTabLeftButtonStyle)
+								]
+							]
+
+							+ SHorizontalBox::Slot()	//CHAT TAB ScrollBar<Button>
+							.FillWidth(1.0f)
+							.HAlign(HAlign_Fill)
+							[
+								SAssignNew(ScrollBoxChatTabs, SScrollBox)
+								.IsEnabled(true)
+								.AllowOverscroll(EAllowOverscroll::No)
+								.ConsumeMouseWheel(EConsumeMouseWheel::Always)
+								.ScrollBarAlwaysVisible(false)
+								.ScrollBarVisibility(EVisibility::Collapsed)
+								.Orientation(EOrientation::Orient_Horizontal)
+							]
+
+							+ SHorizontalBox::Slot()	//CHAT TAB Button Scroll RIGHT
+							.AutoWidth()
+							[
+								SAssignNew(ButtonChatTabScrollRight, SButton)
+								.VAlign(VAlign_Fill)
+								.OnClicked(this, &SLobby::OnChatTabScrollRightClicked)
+								[
+									SNew(SImage)
+									.Image(&LobbyStyle->ChatTabRightButtonStyle)
+								]
+							]
+						]
+						
+						+ SVerticalBox::Slot()	//CHAT CONV Area
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Fill)
+						.FillHeight(1.0f)
+						[
+							SAssignNew(ChatPageSwitcher, SWidgetSwitcher)
 						]
 					]
 				]
+
 			]
 
 		]
 	;
 }
 
-void SLobbyFriendList::InputReceived()
+void SLobby::InputReceived()
 {
 	GEngine->AddOnScreenDebugMessage(1, 15, FColor::White, TEXT("Input received"));
 }
 
 /** Updates current search status */
-void SLobbyFriendList::UpdateSearchStatus()
+void SLobby::UpdateSearchStatus()
 {
 	bool bFinishSearch = false;
 
@@ -143,7 +226,7 @@ void SLobbyFriendList::UpdateSearchStatus()
 	}
 }
 
-FText SLobbyFriendList::GetBottomText() const
+FText SLobby::GetBottomText() const
 {
 	return StatusText;
 }
@@ -154,7 +237,7 @@ FText SLobbyFriendList::GetBottomText() const
  * @param  InCurrentTime  Current absolute real time
  * @param  InDeltaTime  Real time passed since last tick
  */
-void SLobbyFriendList::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+void SLobby::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	if (bSearchingForFriends)
 	{
@@ -163,7 +246,7 @@ void SLobbyFriendList::Tick(const FGeometry& AllottedGeometry, const double InCu
 }
 
 /** Starts searching for servers */
-void SLobbyFriendList::BeginFriendSearch()
+void SLobby::BeginFriendSearch()
 {
 	bSearchingForFriends = true;
 
@@ -245,17 +328,33 @@ void SLobbyFriendList::BeginFriendSearch()
 		bSearchingForFriends = false;
 
 	OnFriendSearchFinished();
+
+	LobbyChatTabButtons.Reset();
+	// ^^^^^^ Get online user
+
+	// If user want to chat with the user, do this
+	AddChatTab(true, TEXT("PartyA"), TEXT("UserA"));
+	AddChatTab(true, TEXT("PartyA"), TEXT("UserB"));
+	AddChatTab(true, TEXT("PartyA"), TEXT("UserC"));
+
+	// If user want to send message to another user, do this
+	SendChat(TEXT("UserA"), TEXT("Hello, I am Okay."));
+	SendChat(TEXT("UserB"), TEXT("Hello okay, are you okay?"));
+	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?"));
+	SendChat(TEXT("UserB"), TEXT("Hello, I am Okay."));
+	SendChat(TEXT("UserA"), TEXT("Hello okay, are you okay?"));
+	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?\t\tsdfsadfsadfsadfsdaf"));
 }
 
 /** Called when server search is finished */
-void SLobbyFriendList::OnFriendSearchFinished()
+void SLobby::OnFriendSearchFinished()
 {
 	bSearchingForFriends = false;
 
 	UpdateFriendList();
 }
 
-void SLobbyFriendList::UpdateFriendList()
+void SLobby::UpdateFriendList()
 {
 	int32 SelectedItemIndex = FriendList.IndexOfByKey(SelectedItem);
 
@@ -268,7 +367,7 @@ void SLobbyFriendList::UpdateFriendList()
 
 }
 
-void SLobbyFriendList::OnFocusLost(const FFocusEvent& InFocusEvent)
+void SLobby::OnFocusLost(const FFocusEvent& InFocusEvent)
 {
 	if (InFocusEvent.GetCause() != EFocusCause::SetDirectly)
 	{
@@ -276,17 +375,17 @@ void SLobbyFriendList::OnFocusLost(const FFocusEvent& InFocusEvent)
 	}
 }
 
-FReply SLobbyFriendList::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
+FReply SLobby::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent)
 {
 	return FReply::Handled().SetUserFocus(FriendListWidget.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
-void SLobbyFriendList::EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo)
+void SLobby::EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo)
 {
 	SelectedItem = InItem;
 }
 
-void SLobbyFriendList::MoveSelection(int32 MoveBy)
+void SLobby::MoveSelection(int32 MoveBy)
 {
 	int32 SelectedItemIndex = FriendList.IndexOfByKey(SelectedItem);
 
@@ -296,7 +395,7 @@ void SLobbyFriendList::MoveSelection(int32 MoveBy)
 	}
 }
 
-FReply SLobbyFriendList::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+FReply SLobby::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
 {
 	if (bSearchingForFriends) // lock input
 	{
@@ -331,7 +430,7 @@ FReply SLobbyFriendList::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent&
 	return Result;
 }
 
-void SLobbyFriendList::OnTextSearchChanged(const FText& Text)
+void SLobby::OnTextSearchChanged(const FText& Text)
 {
 	FriendList.Reset();
 	if (Text.ToString()==TEXT(""))
@@ -352,7 +451,7 @@ void SLobbyFriendList::OnTextSearchChanged(const FText& Text)
 	GEngine->AddOnScreenDebugMessage(1, .4f, FColor::White, Text.ToString());
 }
 
-TSharedRef<ITableRow> SLobbyFriendList::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntry> >
 	{
@@ -552,5 +651,128 @@ TSharedRef<ITableRow> SLobbyFriendList::MakeListViewWidget(TSharedPtr<FFriendEnt
 	};
 	return SNew(SFriendEntryWidget, OwnerTable, Item);
 }
+
+#pragma region CHAT
+
+void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
+{
+	//Create Conversation Widget
+	LobbyChatPages.Add
+	(
+		SNew(SChatPage)
+		.ChatStat(TEXT("127.0.0.1"))////////////////////////
+		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
+		.ChatPageIndex(LobbyChatPages.Num())
+		.UserId(UserId)
+		.OnTextComitted(this, &SLobby::SendChat)
+		.OnSendButtonPressed(this, &SLobby::SendChat)
+	);
+
+	//Create Tab Button
+	LobbyChatTabButtons.Add
+	(
+		SNew(SChatTabButton)
+		.TabIndex(LobbyChatTabButtons.Num())
+		.OnClicked(this, &SLobby::SelectTab)
+		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
+		.UserId(UserId)
+	);
+	
+	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
+	ScrollBoxChatTabs->AddSlot().AttachWidget(LobbyChatTabButtons[LobbyChatTabButtons.Num() - 1].ToSharedRef());
+	SelectTab(LobbyChatTabButtons.Num() - 1);
+}
+
+TSharedPtr<SWidget> SLobby::GetActiveChatTabWidget()
+{
+	return ScrollBoxChatTabs->GetChildren()->GetChildAt(ActiveTabIndex);
+}
+
+FReply SLobby::OnChatTabScrollLeftClicked()
+{
+	if (ActiveTabIndex > 0)
+	{
+		SelectTab(ActiveTabIndex - 1);
+		ScrollBoxChatTabs->ScrollDescendantIntoView(LobbyChatTabButtons[ActiveTabIndex], true);
+	}
+	return FReply::Handled();
+}
+
+FReply SLobby::OnChatTabScrollRightClicked()
+{
+	if (ActiveTabIndex < LobbyChatTabButtons.Num() - 1)
+	{
+		SelectTab(ActiveTabIndex + 1);
+		ScrollBoxChatTabs->ScrollDescendantIntoView(LobbyChatTabButtons[ActiveTabIndex], true);
+	}
+	return FReply::Handled();
+}
+
+void SLobby::SelectTab(int32 TabIndex)
+{
+	ActiveTabIndex = TabIndex;
+
+	for (auto a: LobbyChatTabButtons)
+	{
+		if (a->TabIndex == TabIndex)
+		{
+			a->Selected();
+		}
+		else
+		{
+			a->NotSelected();
+		}
+	}
+
+	ChatPageSwitcher->SetActiveWidgetIndex(TabIndex);
+
+	if (TabIndex == 0)
+	{
+		ButtonChatTabScrollLeft->SetEnabled(false);
+	}
+	else
+	{
+		ButtonChatTabScrollLeft->SetEnabled(true);
+	}
+	if (TabIndex == LobbyChatTabButtons.Num() - 1)
+	{
+		ButtonChatTabScrollRight->SetEnabled(false);
+	}
+	else
+	{
+		ButtonChatTabScrollRight->SetEnabled(true);
+	}
+	if (LobbyChatTabButtons.Num() == 1)
+	{
+		ButtonChatTabScrollLeft->SetEnabled(false);
+		ButtonChatTabScrollRight->SetEnabled(false);
+	}
+
+	GEngine->AddOnScreenDebugMessage(1, 1, FColor::White, TEXT("SelectedTabIndex") + FString::FromInt(TabIndex));
+	UE_LOG(LogTemp, Log, TEXT("Selected Tab: %d"), TabIndex);
+}
+
+void SLobby::SendChat(FString UserId, FString Message)
+{
+
+	// handle lobby chat here
+	UE_LOG(LogTemp, Log, TEXT("SLobby::SendChat"));
+	for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+	{
+		if (LobbyChatPages[i]->UserId.Equals(UserId))
+		{
+			//Get user's name and append it with this function
+			LobbyChatPages[i]->AppendConversation(TEXT("MyDisplayName"), Message);
+			break;
+		}
+	}
+}
+
+void SLobby::ReceiveChat(FString UserId, FString Message)
+{
+
+}
+
+#pragma endregion CHAT
 
 #undef LOCTEXT_NAMESPACE

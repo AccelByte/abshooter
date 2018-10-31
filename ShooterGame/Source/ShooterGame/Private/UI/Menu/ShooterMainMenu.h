@@ -10,7 +10,7 @@
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
 #include "Widgets/SShooterLeaderboard.h"
-#include "Widgets/SLobbyFriendList.h"
+#include "Widgets/SLobby.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
 #include "ShooterOptions.h"
 
@@ -99,7 +99,7 @@ protected:
 	TSharedPtr<class SShooterServerList> ServerListWidget;
 
 	/** lobby friend list widget */
-	TSharedPtr<class SLobbyFriendList> FriendListWidget;
+	TSharedPtr<class SLobby> FriendListWidget;
 	/** yet another custom menu */
 	TSharedPtr<class FShooterMenuItem> FriendItem;
 

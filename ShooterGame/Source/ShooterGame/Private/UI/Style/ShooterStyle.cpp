@@ -31,7 +31,7 @@ FName FShooterStyle::GetStyleSetName()
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".ttf"), __VA_ARGS__ )
+#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(""), __VA_ARGS__ )
 #define OTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".otf"), __VA_ARGS__ )
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -86,13 +86,13 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 		);
 
 	Style.Set("ShooterGame.UsernameTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/ChakraPetch-Medium.ttf", 15))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Medium", 15))
 		.SetColorAndOpacity(FLinearColor(FColor(142, 246, 255)))
 		//.SetShadowOffset(FIntPoint(-1, 1))
 	);
 
 	Style.Set("ShooterGame.UserIDTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular.ttf", 11))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 11))
 		.SetColorAndOpacity(FLinearColor(FColor(24, 105, 112) ))
 		//.SetShadowOffset(FIntPoint(-1, 1))
 	);

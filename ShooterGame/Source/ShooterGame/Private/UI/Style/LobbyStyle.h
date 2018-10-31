@@ -3,6 +3,7 @@
 #include "SlateWidgetStyleContainerBase.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
+#include "RichTextLayoutMarshaller.h"
 #include "LobbyStyle.generated.h"
 
 USTRUCT()
@@ -43,6 +44,33 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	FButtonStyle InviteButtonStyle;
 	UPROPERTY(EditAnywhere, Category = FriendEntry)
 	FTableRowStyle FriendRowStyle;
+
+	UPROPERTY(EditAnywhere, Category = Chat)
+	FSlateBrush ChatTabLeftButtonStyle;
+	UPROPERTY(EditAnywhere, Category = Chat)
+	FSlateBrush ChatTabRightButtonStyle;
+	UPROPERTY(EditAnywhere, Category = Chat)
+	FButtonStyle ChatTabButtonStyle;
+	UPROPERTY(EditAnywhere, Category = Chat)
+	FTextBlockStyle ChatTabTextStyle;
+	UPROPERTY(EditAnywhere, Category = Chat)
+	FTextBlockStyle ChatTabTextDisabledStyle;
+	
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FTextBlockStyle ChatStatStyle;
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FScrollBoxStyle ConversationScrollBoxStyle;
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FScrollBarStyle ConversationScrollBarStyle;
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FTextBlockStyle ConversationTextStyle;
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FSlateBrush ConversationInputBackgroundBrush;
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FEditableTextBoxStyle ConversationInputTextStyle;
+	UPROPERTY(EditAnywhere, Category = Conversation)
+	FButtonStyle ConversationInputSendButtonStyle;
+	
 };
 
 
