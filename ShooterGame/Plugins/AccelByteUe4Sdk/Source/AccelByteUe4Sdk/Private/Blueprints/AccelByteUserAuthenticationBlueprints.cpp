@@ -8,49 +8,61 @@
 using AccelByte::Api::UserAuthentication;
 using AccelByte::FErrorHandler;
 
-void UAccelByteBlueprintsUserAuthentication::LoginWithClientCredentialsEasy(const FLoginWithClientCredentialsSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
+void UAccelByteBlueprintsUserAuthentication::LoginWithClientCredentials(const FLoginWithClientCredentialsSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
-	UserAuthentication::LoginWithClientCredentialsEasy(UserAuthentication::FLoginWithClientCredentialsSuccess::CreateLambda([OnSuccess]()
+	UserAuthentication::LoginWithClientCredentials(UserAuthentication::FLoginWithClientCredentialsSuccess::CreateLambda([OnSuccess]()
 	{
 		OnSuccess.ExecuteIfBound();
 	}),
-		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, FString ErrorMessage)
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
 	{
 		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));
 }
 
-void UAccelByteBlueprintsUserAuthentication::LoginWithUsernameAndPasswordEasy(const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
+void UAccelByteBlueprintsUserAuthentication::LoginWithUsernameAndPassword(const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
-	UserAuthentication::LoginWithUsernameAndPasswordEasy(Username, Password, UserAuthentication::FLoginWithUsernameAndPasswordSuccess::CreateLambda([OnSuccess]()
+	UserAuthentication::LoginWithUsernameAndPassword(Username, Password, UserAuthentication::FLoginWithUsernameAndPasswordSuccess::CreateLambda([OnSuccess]()
 	{
 		OnSuccess.ExecuteIfBound();
 	}),
-		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, FString ErrorMessage)
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
 	{
 		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));
 }
 
-void UAccelByteBlueprintsUserAuthentication::LoginWithOtherPlatformAccountEasy(EAccelBytePlatformType PlatformId, const FString& Token, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
+void UAccelByteBlueprintsUserAuthentication::LoginWithOtherPlatformAccount(EAccelBytePlatformType PlatformId, const FString& Token, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
-	UserAuthentication::LoginWithOtherPlatformAccountEasy(PlatformId, Token, UserAuthentication::FLoginWithOtherPlatformAccountSuccess::CreateLambda([OnSuccess]()
+	UserAuthentication::LoginWithOtherPlatformAccount(PlatformId, Token, UserAuthentication::FLoginWithOtherPlatformAccountSuccess::CreateLambda([OnSuccess]()
 	{
 		OnSuccess.ExecuteIfBound();
 	}),
-		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, FString ErrorMessage)
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
 	{
 		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));
 }
 
-void UAccelByteBlueprintsUserAuthentication::LoginWithDeviceIdEasy(const FLoginWithDeviceIdSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
+void UAccelByteBlueprintsUserAuthentication::LoginWithDeviceId(const FLoginWithDeviceIdSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
-	UserAuthentication::LoginWithDeviceIdEasy(UserAuthentication::FLoginWithDeviceIdSuccess::CreateLambda([OnSuccess]()
+	UserAuthentication::LoginWithDeviceId(UserAuthentication::FLoginWithDeviceIdSuccess::CreateLambda([OnSuccess]()
 	{
 		OnSuccess.ExecuteIfBound();
 	}),
-		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, FString ErrorMessage)
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
+	{
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+	}));
+}
+
+void UAccelByteBlueprintsUserAuthentication::RefreshToken(const FRefreshTokenSuccess & OnSuccess, const FBlueprintErrorHandler & OnError)
+{
+	UserAuthentication::RefreshToken(UserAuthentication::FRefreshTokenSuccess::CreateLambda([OnSuccess]()
+	{
+		OnSuccess.ExecuteIfBound();
+	}),
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
 	{
 		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));

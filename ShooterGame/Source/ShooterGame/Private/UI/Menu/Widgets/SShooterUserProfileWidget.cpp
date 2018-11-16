@@ -28,7 +28,6 @@
 #define PROFILE_SWAPPING	0
 #endif
 
-FSlateBrush* StarIconBrush;
 TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
 
 void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
@@ -49,7 +48,6 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 	MenuHeaderHeight = 62.0f;
 	MenuHeaderWidth = 287.0f;
 
-	StarIconBrush = new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/SoundCue_SpeakerIcon.png", FVector2D(144, 144));
 
 	ChildSlot
 	[	
@@ -151,7 +149,7 @@ const FSlateBrush* SShooterUserProfileWidget::GetProfileAvatar() const
 	if(ThumbnailBrush.IsValid())
 		return ThumbnailBrush.Get();
 
-	return StarIconBrush;
+	return FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
 }
 
 FText SShooterUserProfileWidget::GetProfileName() const
@@ -282,44 +280,93 @@ void SShooterUserProfileWidget::OnThumbImageReceived(FHttpRequestPtr Request, FH
 	if (bWasSuccessful && Response.IsValid())
 	{
 		TArray<uint8> ImageData = Response->GetContent();
-		ThumbnailBrush = CreateBrush(FName(*Request->GetURL()), ImageData);
+		ThumbnailBrush = CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData);
 		bProfileUpdated = true;
 	}
 }
 
-TSharedPtr<FSlateDynamicImageBrush> SShooterUserProfileWidget::CreateBrush(FName ResourceName, TArray<uint8> ImageData)
+TSharedPtr<FSlateDynamicImageBrush> SShooterUserProfileWidget::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
 {
-	TSharedPtr<FSlateDynamicImageBrush> Brush;
+    UE_LOG(LogTemp, Log, TEXT("SShooterUserProfileWidget::CreateBrush : %s, Content Type: %s"), *ResourceName.ToString(), *ContentType);
+	//TSharedPtr<FSlateDynamicImageBrush> Brush;
 
-	uint32 BytesPerPixel = 4;
-	int32 Width = 0;
-	int32 Height = 0;
+	//uint32 BytesPerPixel = 4;
+	//int32 Width = 0;
+	//int32 Height = 0;
 
-	bool bSucceeded = false;
-	TArray<uint8> DecodedImage;
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
+	//bool bSucceeded = false;
+	//TArray<uint8> DecodedImage;
+	//IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	//TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
 
-	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-	{
-		Width = ImageWrapper->GetWidth();
-		Height = ImageWrapper->GetHeight();
+	//if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	//{
+	//	Width = ImageWrapper->GetWidth();
+	//	Height = ImageWrapper->GetHeight();
 
-		const TArray<uint8>* RawData = NULL;
+	//	const TArray<uint8>* RawData = NULL;
 
-		if (ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
-		{
-			DecodedImage = *RawData;
-			bSucceeded = true;
-		}
-	}
+	//	if (ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
+	//	{
+	//		DecodedImage = *RawData;
+	//		bSucceeded = true;
+	//	}
+	//}
 
-	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-	}
+	//if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	//{
+	//	Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	//}
 
-	return Brush;
+	//return Brush;
+    TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+    uint32 BytesPerPixel = 4;
+    int32 Width = 0;
+    int32 Height = 0;
+
+    bool bSucceeded = false;
+    TArray<uint8> DecodedImage;
+    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+    int BitDepth = 8;
+    //jpg
+    EImageFormat ImageFormat = EImageFormat::JPEG;
+    ERGBFormat RgbFormat = ERGBFormat::BGRA;
+    //png
+    if (ContentType.Contains(TEXT("png")))
+    {
+        ImageFormat = EImageFormat::PNG;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+    //bmp
+    else if (ContentType.Contains(TEXT("bmp")))
+    {
+        ImageFormat = EImageFormat::BMP;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+    if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+    {
+        Width = ImageWrapper->GetWidth();
+        Height = ImageWrapper->GetHeight();
+
+        const TArray<uint8>* RawData = NULL;
+
+        if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+        {
+            DecodedImage = *RawData;
+            bSucceeded = true;
+        }
+    }
+
+    if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+    {
+        Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+    }
+
+    return Brush;
 }
 
 void SShooterUserProfileWidget::HideMenu()

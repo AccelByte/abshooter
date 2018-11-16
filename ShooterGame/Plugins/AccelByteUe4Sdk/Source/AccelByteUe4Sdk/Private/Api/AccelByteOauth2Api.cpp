@@ -6,24 +6,18 @@
 #include "JsonUtilities.h"
 #include "AccelByteSettings.h"
 #include "Base64.h"
-#include "ModuleManager.h"
-#include "AccelByteCredentials.h"
 
 namespace AccelByte
 {
 namespace Api
 {
-// WARNING: THIS DOESN'T ACTUALLY WORK!!!
 void Oauth2::GetAccessTokenWithAuthorizationCodeGrant(const FString& ClientId, const FString& ClientSecret, const FString& AuthorizationCode, const FString& RedirectUri, const FGetAccessTokenWithAuthorizationCodeGrantSuccess& OnSuccess, const FErrorHandler& OnError)
 {
-	FModuleManager::LoadModuleChecked< IModuleInterface >("AccelByteUe4Sdk");
-
 	FString Authorization = TEXT("Basic " + FBase64::Encode(ClientId + ":" + ClientSecret));
 	FString Url = FString::Printf(TEXT("%s/oauth/token"), *Settings::IamServerUrl);
 	FString Verb = TEXT("POST");
 	FString ContentType = TEXT("application/x-www-form-urlencoded");
 	FString Accept = TEXT("application/json");
-	// Missing state parameter. Do not use this!!! You (user) will be susceptible to Cross-Site Request Forgery attack!!!
 	FString Content = FString::Printf(TEXT("grant_type=authorization_code&code=%s&redirect_uri=%s"), *AuthorizationCode, *RedirectUri);
 
 	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
@@ -155,7 +149,6 @@ void Oauth2::GetAccessTokenWithAuthorizationCodeGrantResponse(FHttpRequestPtr Re
 	{
 		FAccelByteModelsOauth2Token Result;
 		FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
-		AccelByte::Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
 		OnSuccess.ExecuteIfBound(Result);
 		return;
 	}

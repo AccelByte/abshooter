@@ -7,6 +7,7 @@ public class ShooterGame : ModuleRules
 	public ShooterGame(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PrivatePCHHeaderFile = "Public/ShooterGame.h";
+		//Definitions.Add("UE_ENGINE_DIRECTORY=F:/UE4/UE_4.21/Engine/");
 
 		PrivateIncludePaths.AddRange(
 			new string[] { 
@@ -44,6 +45,8 @@ public class ShooterGame : ModuleRules
 				"ApplicationCore",
 				"ReplicationGraph",
 				"AccelByteUe4Sdk",
+				"Networking",
+				"Sockets",
 			}
 		);
 

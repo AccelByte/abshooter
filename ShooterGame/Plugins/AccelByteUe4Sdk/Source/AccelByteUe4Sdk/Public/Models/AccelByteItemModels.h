@@ -7,18 +7,18 @@
 #include "CoreMinimal.h"
 #include "AccelByteItemModels.generated.h"
 
-UENUM()
+UENUM(BlueprintType)
 enum class EAccelByteItemType : uint8
 {
 	NONE = 0,
-	APP,
-	COINS,
-	INGAMEITEM,
-	BUNDLE,
+	APP, 
+	COINS, 
+	INGAMEITEM, 
+	BUNDLE, 
 	PRODUCT
 };
 
-UENUM()
+UENUM(BlueprintType)
 enum class EAccelByteItemStatus : uint8 {
 	NONE = 0,
 	ACTIVE,

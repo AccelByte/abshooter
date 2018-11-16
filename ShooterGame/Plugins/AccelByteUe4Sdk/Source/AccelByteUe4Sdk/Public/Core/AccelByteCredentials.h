@@ -6,7 +6,10 @@
 
 #include "CoreMinimal.h"
 #include "AccelByteOauth2Models.h"
+#include "AccelByteUserAuthenticationApi.h"
+#include "Runtime/Core/Public/Containers/Ticker.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Engine.h"
 #include "AccelByteCredentials.generated.h"
 
 namespace AccelByte
@@ -22,30 +25,46 @@ public:
 	void ForgetAll();
 	void SetUserToken(const FString& AccessToken, const FString& RefreshToken, const FDateTime& ExpirationUtc, const FString& Id, const FString& DisplayName, const FString& Namespace);
 	void SetClientToken(const FString& AccessToken, const FDateTime& ExpirationUtc, const FString& Namespace);
+	/**
+	 * @brief Get stored access token.
+	 */
 	FString GetUserAccessToken() const;
+	/**
+	 * @brief Get stored refresh token; this is not set if you logged in with client credentials and you simply have to login with client credentials again to get new access token.
+	 */
 	FString GetUserRefreshToken() const;
+	/**
+	 * @brief Get access token expiration in UTC.
+	 */
+	FString GetClientAccessToken() const;
+	FString GetClientNamespace() const;
 	FDateTime GetUserAccessTokenExpirationUtc() const;
 	FString GetUserId() const;
 	FString GetUserDisplayName() const;
 	FString GetUserNamespace() const;
-	FString GetClientAccessToken() const;
-	FDateTime GetClientAccessTokenExpirationUtc() const;
-	FString GetClientNamespace() const;
+	float GetRefreshTokenDuration() const;
+	FTickerDelegate& GetRefreshTokenTickerDelegate();
+
 private:
 	Credentials(Credentials const&) = delete; // Copy constructor
 	Credentials(Credentials&&) = delete; // Move constructor
 	Credentials& operator=(Credentials const&) = delete; // Copy assignment operator
 	Credentials& operator=(Credentials &&) = delete; // Move assignment operator
 
+	FString ClientAccessToken;
+	FString ClientNamespace;
 	FString UserAccessToken;
 	FString UserRefreshToken;
 	FDateTime UserAccessTokenExpirationUtc;
 	FString UserNamespace;
 	FString UserId;
 	FString UserDisplayName;
-	FString ClientAccessToken;
-	FDateTime ClientAccessTokenExpirationUtc;
-	FString ClientNamespace;
+	int32 RefreshAttempt = 0;
+	bool RefreshTokenTick(float NextTickInSecond);
+	FTickerDelegate RefreshTokenTickerDelegate;
+	AccelByte::Api::UserAuthentication::FRefreshTokenSuccess OnRefreshSuccess;
+	AccelByte::Api::UserAuthentication::FRefreshTokenSuccess GetOnRefreshSuccess() const;
+
 protected:
 	Credentials();
 	~Credentials();

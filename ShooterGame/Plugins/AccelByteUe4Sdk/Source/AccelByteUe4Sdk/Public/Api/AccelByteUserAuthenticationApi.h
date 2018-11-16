@@ -42,55 +42,64 @@ public:
 	 * @brief This is to get access token from `client_credentials` grant, then store the access token in memory.
 	 * You shouldn't use this if your application is a client. It is intended for machine-to-machine (server).
 	 * It is "required" for user management (create new user, reset password, etc).
-	 * @todo IAM, PLEASE remove this requirement.
 	 * 
-	 * @param ClientId Client credentials.
-	 * @param ClientSecret Client credentials.
 	 * @param OnSuccess This will be called when the operation succeeded.
 	 * @param OnError This will be called when the operation failed.
 	 */
-    static void LoginWithClientCredentials(const FString& ClientId, const FString& ClientSecret, const FLoginWithClientCredentialsSuccess& OnSuccess, const FErrorHandler& OnError);
-    static void LoginWithClientCredentialsEasy(const FLoginWithClientCredentialsSuccess& OnSuccess, const FErrorHandler& OnError);
+    static void LoginWithClientCredentials(const FLoginWithClientCredentialsSuccess& OnSuccess, const FErrorHandler& OnError);
 	
 	DECLARE_DELEGATE(FLoginWithUsernameAndPasswordSuccess);
 	/**
-	 * @brief Log in with email account.
+	 * @brief Log in with email/phone number account.
 	 * 
-	 * @param ClientId Client credentials.
-	 * @param ClientSecret Client credentials.
 	 * @param Username User email address.
 	 * @param Password Password.
 	 * @param OnSuccess This will be called when the operation succeeded.
 	 * @param OnError This will be called when the operation failed.
 	 */
-	static void LoginWithUsernameAndPassword(const FString& ClientId, const FString& ClientSecret, const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FErrorHandler& OnError);
-	static void LoginWithUsernameAndPasswordEasy(const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FErrorHandler& OnError);
+	static void LoginWithUsernameAndPassword(const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FErrorHandler& OnError);
 
 	DECLARE_DELEGATE(FLoginWithOtherPlatformAccountSuccess);
 	/**
 	 * @brief Log in with another platform account e.g. Steam, Google, Facebook, Twitch, etc.
 	 * 
-	 * @param ClientId Client credentials.
-	 * @param ClientSecret Client credentials.
 	 * @param PlatformId Specify platform type that chosen by user to log in.
 	 * @param PlatformToken Authentication code that provided by another platform.
 	 * @param OnSuccess This will be called when the operation succeeded.
 	 * @param OnError This will be called when the operation failed.
 	 */
-    static void LoginWithOtherPlatformAccount(const FString& ClientId, const FString& ClientSecret, EAccelBytePlatformType PlatformId, const FString& PlatformToken, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FErrorHandler& OnError);
-    static void LoginWithOtherPlatformAccountEasy(EAccelBytePlatformType PlatformId, const FString& PlatformToken, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FErrorHandler& OnError);
+    static void LoginWithOtherPlatformAccount(EAccelBytePlatformType PlatformId, const FString& PlatformToken, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FErrorHandler& OnError);
 
 	DECLARE_DELEGATE(FLoginWithDeviceIdSuccess);
 	/**
 	 * @brief Log in with device ID (anonymous log in).
 	 *
-	 * @param ClientId Client credentials.
-	 * @param ClientSecret Client credentials.
 	 * @param OnSuccess This will be called when the operation succeeded.
 	 * @param OnError This will be called when the operation failed.
 	 */
-	static void LoginWithDeviceId(const FString& ClientId, const FString& ClientSecret, const FLoginWithDeviceIdSuccess& OnSuccess, const FErrorHandler& OnError);
-	static void LoginWithDeviceIdEasy(const FLoginWithDeviceIdSuccess& OnSuccess, const FErrorHandler& OnError);
+	static void LoginWithDeviceId(const FLoginWithDeviceIdSuccess& OnSuccess, const FErrorHandler& OnError);
+	
+    DECLARE_DELEGATE_OneParam(FGetAccessTokenWithAuthorizationCodeGrantSuccess, const FAccelByteModelsOauth2Token&);
+    /**
+     * @brief login from Accelbyte Launcher
+     *
+     * @param AuthorizationCode This should be filled with "JUSTICE_AUTHORIZATION_CODE" environment variable.
+     * @param OnSuccess This will be called when the operation succeeded. The result is FAccelByteModelsOauth2Token.
+     * @param OnError This will be called when the operation failed.
+     */
+    static void LoginFromLauncher(const FString& AuthorizationCode, const FGetAccessTokenWithAuthorizationCodeGrantSuccess& OnSuccess, const FErrorHandler& OnError);
+
+
+	DECLARE_DELEGATE(FRefreshTokenSuccess);
+	/**
+	 * @brief The access token expires after some time; you need to get new access token with refresh token.
+	 * 
+	 * @ref AccelByte::Credentials::GetUserAccessTokenExpirationUtc()
+	 * @param RefreshToken The refresh token.
+	 * @param OnSuccess This will be called when the operation succeeded.
+	 * @param OnError This will be called when the operation failed.
+	 */
+	static void RefreshToken(const FRefreshTokenSuccess& OnSuccess, const FErrorHandler& OnError);
 
 	/**
 	 * @brief Remove access tokens, user ID, and other credentials from memory.

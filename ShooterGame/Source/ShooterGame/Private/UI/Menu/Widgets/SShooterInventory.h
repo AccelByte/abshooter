@@ -115,7 +115,7 @@ protected:
 	FReply OnBuyCancel();
 
 	void OnGetItemsByCriteria(const struct FAccelByteModelsItemPagingSlicedResult& Result);
-	void OnGetItemsByCriteriaError(int32 Code, FString Message);
+	void OnGetItemsByCriteriaError(int32 Code, const FString& Message);
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 

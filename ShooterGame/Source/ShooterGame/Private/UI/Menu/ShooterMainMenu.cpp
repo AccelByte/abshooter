@@ -17,14 +17,17 @@
 #include "ShooterGameViewportClient.h"
 #include "ShooterPersistentUser.h"
 #include "Player/ShooterLocalPlayer.h"
-
+// accelbyte
+#include "Api/AccelByteOauth2Api.h"
+#include "Api/AccelByteLobbyApi.h"
+#include "Core/AccelByteCredentials.h"
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
 #define MAX_BOT_COUNT 8
 
-static const FString MapNames[] = { /*TEXT("Sanctuary"),*/ TEXT("Highrise") };
-static const FString JoinMapNames[] = { TEXT("Any"), /*TEXT("Sanctuary"),*/ TEXT("Highrise") };
-static const FName PackageNames[] = { /*TEXT("Sanctuary.umap"),*/ TEXT("Highrise.umap") };
+static const FString MapNames[] = { TEXT("Highrise") };
+static const FString JoinMapNames[] = { TEXT("Any"), TEXT("Highrise") };
+static const FName PackageNames[] = { TEXT("Highrise.umap") };
 static const int DefaultTDMMap = 1;
 static const int DefaultFFAMap = 0; 
 static const float QuickmatchUIAnimationTimeDuration = 30.f;
@@ -69,7 +72,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 	OnCancelMatchmakingCompleteDelegate = FOnCancelMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnCancelMatchmakingComplete);
 	OnMatchmakingCompleteDelegate = FOnMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnMatchmakingComplete);
-	
+    OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateSP(this, &FShooterMainMenu::OnFriendOnlineResponse);
+    AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+
 	// read user settings
 #if SHOOTER_CONSOLE_UI
 	bIsLanMatch = FParse::Param(FCommandLine::Get(), TEXT("forcelan"));
@@ -173,6 +178,42 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			.OnConfirmClicked(FOnClicked::CreateRaw(this, &FShooterMainMenu::OnQuickMatchSearchingUICancel))
 			.OnCancelClicked(FOnClicked::CreateRaw(this, &FShooterMainMenu::OnQuickMatchSearchingUICancel));
 
+
+		// message box test message
+		Msg = LOCTEXT("Hello message box", "Hello message box");
+		OKButtonString = NSLOCTEXT("DialogButtons", "YAY", "YAY");
+		FText CancelButtonString = NSLOCTEXT("DialogButtons", "NOOO", "NOOO");
+		TestMessageWidget = SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+			.MessageText(Msg)
+			.ConfirmText(OKButtonString)
+			.CancelText(CancelButtonString)
+			.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {
+			UE_LOG(LogTemp, Log, TEXT("OK"));
+
+			if (GEngine && GEngine->GameViewport)
+			{
+				GEngine->GameViewport->RemoveViewportWidgetContent(TestMessageWidgetContainer.ToSharedRef());
+			}
+			AddMenuToGameViewport();
+			FSlateApplication::Get().SetKeyboardFocus(MenuWidget);
+
+			return FReply::Handled();
+		}))
+			.OnCancelClicked(FOnClicked::CreateLambda([&]() -> FReply {
+			UE_LOG(LogTemp, Log, TEXT("Cancel"));
+
+			if (GEngine && GEngine->GameViewport)
+			{
+				GEngine->GameViewport->RemoveViewportWidgetContent(TestMessageWidgetContainer.ToSharedRef());
+			}
+			AddMenuToGameViewport();
+			FSlateApplication::Get().SetKeyboardFocus(MenuWidget);
+
+
+			return FReply::Handled();
+		}));
+
+
 		SAssignNew(SplitScreenLobbyWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(SplitScreenLobbyWidget);		
 
@@ -181,6 +222,11 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		SAssignNew(QuickMatchSearchingWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(QuickMatchSearchingWidget);
+
+		SAssignNew(TestMessageWidgetContainer, SWeakWidget)
+			.PossiblyNullContent(TestMessageWidget);
+
+
 
 		FText StoppingOKButtonString = LOCTEXT("Stopping", "STOPPING...");
 		QuickMatchStoppingWidget = SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)			
@@ -347,12 +393,6 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 #if !SHOOTER_CONSOLE_UI
 
-		// Demos
-		{
-			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Demos", "DEMOS"), this, &FShooterMainMenu::OnShowDemoBrowser);
-			MenuHelper::AddCustomMenuItem(DemoBrowserItem,SAssignNew(DemoListWidget,SShooterDemoList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
-		}
-
 		// Inventory
 		{
 			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Inventory", "INVENTORY"), this, &FShooterMainMenu::OnShowInventory);
@@ -403,6 +443,9 @@ void FShooterMainMenu::AddMenuToGameViewport()
 		GVC->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
 	}
 }
+
+
+
 
 void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FString AvatarURL)
 {
@@ -933,6 +976,15 @@ void FShooterMainMenu::DisplayQuickmatchSearchingUI()
 	bAnimateQuickmatchSearchingUI = true;
 }
 
+void FShooterMainMenu::DisplayTestMessage()
+{
+	UGameViewportClient* const GVC = GEngine->GameViewport;
+	RemoveMenuFromGameViewport();
+	GVC->AddViewportWidgetContent(TestMessageWidgetContainer.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(TestMessageWidget);
+	bAnimateQuickmatchSearchingUI = true;
+}
+
 void FShooterMainMenu::OnMatchmakingComplete(FName SessionName, bool bWasSuccessful)
 {
 	auto SessionInterface = Online::GetSessionInterface();
@@ -1370,18 +1422,27 @@ void FShooterMainMenu::OnShowLeaderboard()
 
 void FShooterMainMenu::OnShowLobby()
 {
-	MenuWidget->NextMenu = FriendItem->SubMenu;
-	FriendListWidget->BeginFriendSearch();
-	FriendListWidget->UpdateSearchStatus();
-	MenuWidget->EnterSubMenu();
+	AccelByte::Api::Lobby::Get().SendGetOnlineUsersRequest();
 }
 
-void FShooterMainMenu::OnShowDemoBrowser()
+void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
 {
-	MenuWidget->NextMenu = DemoBrowserItem->SubMenu;
-	DemoListWidget->BuildDemoList();
-	MenuWidget->EnterSubMenu();
+    UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu::OnFriendOnlineResponse] Found Online friends: HERE"));
+    MenuWidget->NextMenu = FriendItem->SubMenu;
+    FriendListWidget->InitializeFriends();
+    for (int i = 0; i < Response.onlineFriendsId.Num(); i++)
+    {
+	    //UE_LOG(LogTemp, Log, TEXT("Found Online User ID: %s"), *Response.UserIdList[i]);
+        FString UserID = Response.onlineFriendsId[i];
+        FriendListWidget->AddFriend(UserID, UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
+    }
+    FriendListWidget->RefreshFriendList();
+    FriendListWidget->UpdateSearchStatus();
+    MenuWidget->EnterSubMenu();
+
+
 }
+
 
 void FShooterMainMenu::OnShowInventory()
 {
