@@ -43,6 +43,8 @@ struct FInventoryEntry
 class SShooterInventory : public SCompoundWidget
 {
 public:
+	SShooterInventory();
+
 	SLATE_BEGIN_ARGS(SShooterInventory)
 	{}
 
@@ -83,6 +85,17 @@ protected:
 
 	/** pointer to our parent widget */
 	TSharedPtr<class SWidget> OwnerWidget;
+
+	FSlateColorBrush ConfirmationBackgroundBrush;
+
+	TSharedPtr<SWidget> DialogWidget;
+
+	void ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem);
+	void CloseConfirmationDialog();
+
+	FReply OnBuyConfirm();
+	FReply OnBuyCancel();
+
 };
 
 

@@ -4,6 +4,14 @@
 #include "ShooterStyle.h"
 #include "ShooterUIHelpers.h"
 #include "SShooterInventoryItem.h"
+#include "ShooterGameViewportClient.h"
+#include "ShooterGameInstance.h"
+#include "SShooterConfirmationDialog.h"
+
+SShooterInventory::SShooterInventory()
+	: ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+{
+}
 
 void SShooterInventory::Construct(const FArguments& InArgs)
 {
@@ -67,7 +75,49 @@ void SShooterInventory::OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem
 	// Only able to buy when item already selected
 	if (SelectedItem == InItem && InItem->Consumable)
 	{
-		FMessageDialog::Open(EAppMsgType::Ok,
-			FText::FromString(FString("Buying ") + InItem->Name));
+		ShowBuyConfirmationDialog(InItem);
 	}
+}
+
+void SShooterInventory::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem)
+{
+	SAssignNew(DialogWidget, SOverlay)
+	+ SOverlay::Slot()
+	[
+		SNew(SImage)
+		.Image(&ConfirmationBackgroundBrush)
+	]
+	+ SOverlay::Slot()
+	[
+		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		.MessageText(FText::FromString(FString::Printf(TEXT("Buy %s \nusing %d Coins ?"), *InItem->Name, InItem->Price)))
+		.ConfirmText(FText::FromString("Yes"))
+		.CancelText(FText::FromString("No"))
+		.OnConfirmClicked(FOnClicked::CreateRaw(this, &SShooterInventory::OnBuyConfirm))
+		.OnCancelClicked(FOnClicked::CreateRaw(this, &SShooterInventory::OnBuyCancel))
+	];
+
+	GEngine->GameViewport->AddViewportWidgetContent(DialogWidget.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(DialogWidget);
+}
+
+void SShooterInventory::CloseConfirmationDialog()
+{
+	if (DialogWidget.IsValid())
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(DialogWidget.ToSharedRef());
+		DialogWidget.Reset();
+	}
+}
+
+FReply SShooterInventory::OnBuyConfirm()
+{
+	CloseConfirmationDialog();
+	return FReply::Handled();
+}
+
+FReply SShooterInventory::OnBuyCancel()
+{
+	CloseConfirmationDialog();
+	return FReply::Handled();
 }
