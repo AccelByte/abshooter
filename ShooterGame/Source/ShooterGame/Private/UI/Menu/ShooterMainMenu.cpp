@@ -342,7 +342,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 #endif
 		// Lobby
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Lobby", "LOBBY"), this, &FShooterMainMenu::OnShowLobby);
-		MenuHelper::AddCustomMenuItem(FriendItem, SAssignNew(FriendListWidget, SLobbyFriendList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+		MenuHelper::AddCustomMenuItem(FriendItem, SAssignNew(FriendListWidget, SLobby).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 
 		// Leaderboards
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Leaderboards", "LEADERBOARDS"), this, &FShooterMainMenu::OnShowLeaderboard);
