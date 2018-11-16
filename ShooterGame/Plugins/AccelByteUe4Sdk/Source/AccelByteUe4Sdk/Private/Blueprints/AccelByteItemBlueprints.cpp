@@ -29,7 +29,7 @@ void UAccelByteBlueprintsItem::GetItemByIdEasy(const FString& ItemId, const FStr
 }
 
 
-void UAccelByteBlueprintsItem::GetItemsByCriteria(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FString& Language, const FString& Region, const FString& CategoryPath, const FString& ItemType, const FString& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
+void UAccelByteBlueprintsItem::GetItemsByCriteria(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FString& Language, const FString& Region, const FString& CategoryPath, const EItemType& ItemType, const EItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
 	Item::GetItemsByCriteria(AccessToken, Namespace, Language, Region, CategoryPath, ItemType, Status, Page, Size, Item::FGetItemsByCriteriaSuccess::CreateLambda([OnSuccess](const FAccelByteModelsItemPagingSlicedResult& Result)
 	{
@@ -40,7 +40,7 @@ void UAccelByteBlueprintsItem::GetItemsByCriteria(const FString& AccessToken, co
 	}));
 }
 
-void UAccelByteBlueprintsItem::GetItemsByCriteriaEasy(const FString& Language, const FString& Region, const FString& CategoryPath, const FString& ItemType, const FString& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
+void UAccelByteBlueprintsItem::GetItemsByCriteriaEasy(const FString& Language, const FString& Region, const FString& CategoryPath, const EItemType& ItemType, const EItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
 	GetItemsByCriteria(Credentials::Get().GetUserAccessToken(), Credentials::Get().GetUserNamespace(), Credentials::Get().GetUserId(), Language, Region, CategoryPath, ItemType, Status, Page, Size, OnSuccess, OnError);
 }

@@ -8,8 +8,8 @@
 #define LOCTEXT_NAMESPACE "SShooterInventoryItem"
 
 /** item type conversion*/
-FText GetItemTypeAsText(EItemType EnumValue) {
-	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EItemType"), true);
+FText GetItemTypeAsText(EInventoryItemType EnumValue) {
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EInventoryItemType"), true);
 	if (!EnumPtr) return FText::FromString("Invalid");
 
 	return FText::FromString(EnumPtr->GetNameStringByValue((int64)EnumValue));
@@ -118,7 +118,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 				[
 					SNew(STextBlock)
 					.TextStyle(&InventoryStyle->AmountTextStyle)
-					.Text(FText::AsNumber(item->Amount))
+					.Text(FText::AsNumber(item->Quantity))
 					.Visibility(item->Consumable ? EVisibility::Visible : EVisibility::Collapsed)
 				]
 			]

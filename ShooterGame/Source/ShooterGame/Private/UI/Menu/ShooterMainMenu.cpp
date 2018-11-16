@@ -1389,7 +1389,7 @@ void FShooterMainMenu::OnShowDemoBrowser()
 void FShooterMainMenu::OnShowInventory()
 {
 	MenuWidget->NextMenu = InventoryItem->SubMenu;
-	DemoListWidget->BuildDemoList();
+	InventoryWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
 }

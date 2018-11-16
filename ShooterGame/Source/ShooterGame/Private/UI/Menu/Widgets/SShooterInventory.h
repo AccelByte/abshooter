@@ -8,7 +8,7 @@
 
 /** item type*/
 UENUM()
-enum class EItemType : uint8
+enum class EInventoryItemType : uint8
 {
 	WEAPON UMETA(DisplayName = "Weapon"),
 	AMMO UMETA(DisplayName = "Ammo")
@@ -17,14 +17,23 @@ enum class EItemType : uint8
 /** inventory display information */
 struct FInventoryEntry
 {
+	/** item id*/
+	FString ItemId;
+
 	/** item name*/
 	FString Name;
 
 	/** item image URL*/
 	FString ImageURL;
 
+	/** currency code*/
+	FString CurrencyCode;
+
 	/** item price*/
 	int32 Price;
+
+	/** item price*/
+	int32 DiscountedPrice;
 
 	/** item consumable flag*/
 	bool Consumable;
@@ -33,10 +42,10 @@ struct FInventoryEntry
 	bool Owned;
 
 	/** item type*/
-	EItemType Type;
+	EInventoryItemType Type;
 
-	/** item amount*/
-	int32 Amount = 1;
+	/** item quantity*/
+	int32 Quantity = 1;
 };
 
 //class declare
@@ -90,12 +99,32 @@ protected:
 
 	TSharedPtr<SWidget> DialogWidget;
 
+	TSharedPtr<SWidget> LoadingDialogWidget;
+	TSharedPtr<STextBlock> LoadingDialogText;
+
+	TSharedPtr<SWidget> MessageDialogWidget;
+
+	FThreadSafeCounter GetItemRequestCount = FThreadSafeCounter(0);
+
 	void ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem);
 	void CloseConfirmationDialog();
 
 	FReply OnBuyConfirm();
 	FReply OnBuyCancel();
 
+	void OnGetItemsByCriteria(const struct FAccelByteModelsItemPagingSlicedResult& Result);
+	void OnGetItemsByCriteriaError(int32 Code, FString Message);
+
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+
+	void ShowLoadingDialog();
+	void CloseLoadingDialog();
+
+	void ShowMessageDialog(FString Message);
+	void CloseMessageDialog();
+
+	void OnFocusLost(const FFocusEvent& InFocusEvent);
+	FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent);
 };
 
 

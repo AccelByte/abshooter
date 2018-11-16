@@ -7,6 +7,24 @@
 #include "CoreMinimal.h"
 #include "AccelByteItemModels.generated.h"
 
+UENUM()
+enum class EItemType : uint8
+{
+	NONE,
+	APP,
+	COINS,
+	INGAMEITEM,
+	BUNDLE,
+	PRODUCT
+};
+
+UENUM()
+enum class EItemStatus : uint8 {
+	NONE,
+	ACTIVE,
+	INACTIVE
+};
+
 USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsItemInfoRegionData
 {
