@@ -1,4 +1,4 @@
 [submodule "Engine"]
 	path = Engine
 	url = https://hendra_accelbyte@bitbucket.org/accelbyte/ue4-microprofile.git
-	branch = feature-microprofile
+	branch = 4.21.0-release

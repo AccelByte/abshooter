@@ -193,9 +193,6 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		SAssignNew(QuickMatchStoppingWidgetContainer, SWeakWidget)
 			.PossiblyNullContent(QuickMatchStoppingWidget);
 
-
-
-
 #if PLATFORM_XBOXONE
 		TSharedPtr<FShooterMenuItem> MenuItem;
 
@@ -403,7 +400,7 @@ void FShooterMainMenu::AddMenuToGameViewport()
 		GVC->AddViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
 		GVC->AddViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
 		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
-		
+		GVC->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
 	}
 }
 
@@ -1204,12 +1201,12 @@ void FShooterMainMenu::HostGame(const FString& GameType)
 
 void FShooterMainMenu::HostFreeForAll()
 {
-	HostGame(LOCTEXT("FFA", "FFA").ToString());
+	HostGame(TEXT("FFA"));
 }
 
 void FShooterMainMenu::HostTeamDeathMatch()
-{	
-	HostGame(LOCTEXT("TDM", "TDM").ToString());
+{
+	HostGame(TEXT("TDM"));
 }
 
 FReply FShooterMainMenu::OnConfirm()
