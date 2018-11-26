@@ -9,6 +9,7 @@
 #include "SShooterConfirmationDialog.h"
 #include "AccelByteOrderApi.h"
 #include "AccelByteItemApi.h"
+#include "AccelByteEntitlementApi.h"
 #include "AccelByteError.h"
 
 using namespace AccelByte::Api;
@@ -73,12 +74,12 @@ void SShooterInventory::BuildInventoryItem()
 	GetItemRequestCount.Set(2);
 
 	Item::GetItemsByCriteriaEasy(GI->UserProfileInfo.Language, Locale, 
-		"/all/ammo", EItemType::INGAMEITEM, EItemStatus::ACTIVE, 0, 100, 
+		"/all/ammo", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 100, 
 		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 
 	Item::GetItemsByCriteriaEasy(GI->UserProfileInfo.Language, Locale,
-		"/all/weapon", EItemType::INGAMEITEM, EItemStatus::ACTIVE, 0, 100,
+		"/all/weapon", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 100,
 		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 }
@@ -172,7 +173,7 @@ void SShooterInventory::OnGetItemsByCriteria(const FAccelByteModelsItemPagingSli
 		TSharedRef< FInventoryEntry > Inventory = MakeShareable(new FInventoryEntry());
 		Inventory->ItemId = ItemInfo.ItemId;
 		Inventory->Name = ItemInfo.Title;
-		Inventory->Quantity = ItemInfo.UseCount;
+		Inventory->Quantity = 0;
 		Inventory->ImageURL = ItemInfo.ThumbnailImage.ImageUrl;
 
 		for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
@@ -203,23 +204,54 @@ void SShooterInventory::OnGetItemsByCriteria(const FAccelByteModelsItemPagingSli
 
 		InventoryList.Add(Inventory);
 	}
-	InventoryListWidget->RequestListRefresh();
 	GetItemRequestCount.Decrement();
+
+	if (GetItemRequestCount.GetValue() == 0)
+	{
+		GetUserEntitlements();
+	}
 }
 
 void SShooterInventory::OnGetItemsByCriteriaError(int32 Code, FString Message)
 {
+	GetItemRequestCount.Decrement();
 	UE_LOG(LogTemp, Display, TEXT("GetItem Error: code: %d, message: %s"), Code, *Message)
 }
 
+void SShooterInventory::GetUserEntitlements() 
+{
+	Entitlement::QueryUserEntitlement("", "", 0, 100, Entitlement::FQueryUserEntitlementSuccess::CreateLambda([&](FAccelByteModelsEntitlementPagingSlicedResult Result)
+	{
+		TMap<FString, int> Quantities;
+		for (int i = 0; i < Result.data.Num(); i++)
+		{
+			Quantities[Result.data[i].itemId] = Quantities.FindOrAdd(Result.data[i].itemId) + Result.data[i].useCount;
+		}
+
+		for (TSharedPtr<FInventoryEntry> entry : InventoryList)
+		{
+			int * Quantity = Quantities.Find(entry->ItemId);
+			if ( Quantity != nullptr && *Quantity > 0)
+			{
+				entry->Quantity = *Quantity;
+			}
+			else if (entry->Consumable)
+			{
+				entry->Owned = false;
+			}
+		}
+		InventoryListWidget->RequestListRefresh();
+	}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+	{
+		UE_LOG(LogTemp, Display, TEXT("Query entitlement failed: code: %d, message: %s"), Code, *Message)
+	}), EAccelByteEntitlementClass::ENTITLEMENT, EAccelByteAppType::NONE);
+}
 
 void SShooterInventory::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
 	SCompoundWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
 	if (LoadingDialogWidget.IsValid())
 	{
-		
-
 		int DotCount = fmod(InCurrentTime, 5) * 2;
 		FString Text = "..";
 		for (int i = 0; i < DotCount; i++)

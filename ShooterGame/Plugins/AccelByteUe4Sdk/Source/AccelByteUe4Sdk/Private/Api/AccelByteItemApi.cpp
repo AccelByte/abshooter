@@ -14,15 +14,15 @@ namespace AccelByte
 namespace Api
 {
 
-FString EItemTypeToString(const EItemType& EnumValue) {
-	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EItemType"), true);
+FString EItemTypeToString(const EAccelByteItemType& EnumValue) {
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAccelByteItemType"), true);
 	if (!EnumPtr) return "Invalid";
 
 	return EnumPtr->GetNameStringByValue((int64)EnumValue);
 }
 
-FString EItemStatusToString(const EItemStatus& EnumValue) {
-	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EItemStatus"), true);
+FString EItemStatusToString(const EAccelByteItemStatus& EnumValue) {
+	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAccelByteItemStatus"), true);
 	if (!EnumPtr) return "Invalid";
 
 	return EnumPtr->GetNameStringByValue((int64)EnumValue);
@@ -70,15 +70,15 @@ void Item::GetItemByIdEasy(const FString& ItemId, const FString& Language, const
 	GetItemById(Credentials::Get().GetUserAccessToken(), Credentials::Get().GetUserNamespace(), ItemId, Language, Region, OnSuccess, OnError);
 }
 
-void Item::GetItemsByCriteria(const FString& AccessToken, const FString& Namespace, const FString& Language, const FString& Region, const FString& CategoryPath, const EItemType& ItemType, const EItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
+void Item::GetItemsByCriteria(const FString& AccessToken, const FString& Namespace, const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *AccessToken);
 	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/byCriteria?categoryPath=%s&language=%s&region=%s"), *Settings::PlatformServerUrl, *Namespace, *FGenericPlatformHttp::UrlEncode(CategoryPath), *Language, *Region);
-	if (ItemType != EItemType::NONE)
+	if (ItemType != EAccelByteItemType::NONE)
 	{
 		Url.Append(FString::Printf(TEXT("&itemType=%s"), *EItemTypeToString(ItemType)));
 	}
-	if (Status != EItemStatus::NONE)
+	if (Status != EAccelByteItemStatus::NONE)
 	{
 		Url.Append(FString::Printf(TEXT("&status=%"), *EItemStatusToString(Status)));
 	}
@@ -103,7 +103,7 @@ void Item::GetItemsByCriteria(const FString& AccessToken, const FString& Namespa
 	Request->ProcessRequest();
 }
 
-void Item::GetItemsByCriteriaEasy(const FString& Language, const FString& Region, const FString& CategoryPath, const EItemType& ItemType, const EItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
+void Item::GetItemsByCriteriaEasy(const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	GetItemsByCriteria(Credentials::Get().GetUserAccessToken(), Credentials::Get().GetUserNamespace(), Language, Region, CategoryPath, ItemType, Status, Page, Size, OnSuccess, OnError);
 }

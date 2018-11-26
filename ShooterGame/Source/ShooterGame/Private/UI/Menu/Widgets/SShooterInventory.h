@@ -106,6 +106,8 @@ protected:
 
 	FThreadSafeCounter GetItemRequestCount = FThreadSafeCounter(0);
 
+	void GetUserEntitlements();
+
 	void ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem);
 	void CloseConfirmationDialog();
 

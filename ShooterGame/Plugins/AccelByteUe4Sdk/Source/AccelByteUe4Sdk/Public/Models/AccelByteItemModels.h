@@ -8,9 +8,9 @@
 #include "AccelByteItemModels.generated.h"
 
 UENUM()
-enum class EItemType : uint8
+enum class EAccelByteItemType : uint8
 {
-	NONE,
+	NONE = 0,
 	APP,
 	COINS,
 	INGAMEITEM,
@@ -19,8 +19,8 @@ enum class EItemType : uint8
 };
 
 UENUM()
-enum class EItemStatus : uint8 {
-	NONE,
+enum class EAccelByteItemStatus : uint8 {
+	NONE = 0,
 	ACTIVE,
 	INACTIVE
 };
