@@ -71,6 +71,13 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category = Conversation)
 	FButtonStyle ConversationInputSendButtonStyle;
 	
+	UPROPERTY(EditAnywhere, Category = Party)
+	FSlateBrush PartyLeaderIcon; //Leader badge
+	UPROPERTY(EditAnywhere, Category = Party)
+	FSlateBrush UnoccupiedPartySlot;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FSlateBrush PartyInvitationBackground;
+
 };
 
 
