@@ -14,7 +14,7 @@ namespace AccelByte
 namespace Api
 {
 
-void Entitlement::QueryUserEntitlement(const FString & EntitlementName, const FString & ItemId, int32 Page, int32 Size, const FQueryUserEntitlementSuccess& OnSuccess, const FErrorHandler& OnError, const EAccelByteEntitlementClass & EntitlementClass = EAccelByteEntitlementClass::NONE, const EAccelByteAppType & AppType = EAccelByteAppType::NONE )
+void Entitlement::QueryUserEntitlement(const FString & EntitlementName, const FString & ItemId, int32 Page, int32 Size, const FQueryUserEntitlementSuccess& OnSuccess, const FErrorHandler& OnError, EAccelByteEntitlementClass EntitlementClass = EAccelByteEntitlementClass::NONE, EAccelByteAppType AppType = EAccelByteAppType::NONE )
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
 	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/entitlements"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());

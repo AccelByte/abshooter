@@ -7,6 +7,7 @@
 #include "AccelByteOauth2Models.h"
 #include "AccelByteCredentials.h"
 #include "AccelByteSettings.h"
+#include "Runtime/Core/Public/Containers/Ticker.h"
 
 namespace AccelByte
 {
@@ -25,73 +26,80 @@ static FString PlatformStrings[] = {
 	TEXT("twitter"),
 };
 
-void UserAuthentication::LoginWithClientCredentials(const FString& ClientId, const FString& ClientSecret, const FLoginWithClientCredentialsSuccess& OnSuccess, const FErrorHandler& OnError)
+void UserAuthentication::LoginWithClientCredentials(const FLoginWithClientCredentialsSuccess& OnSuccess, const FErrorHandler& OnError)
 {
-	Oauth2::GetAccessTokenWithClientCredentialsGrant(ClientId, ClientSecret, Oauth2::FGetAccessTokenWithPlatformGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
+	Oauth2::GetAccessTokenWithClientCredentialsGrant(Settings::ClientId, Settings::ClientSecret, Oauth2::FGetAccessTokenWithPlatformGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
 	{
 		Credentials::Get().SetClientToken(Result.Access_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.Namespace);
 		OnSuccess.ExecuteIfBound();
-	}), FErrorHandler::CreateLambda([OnError](int32 Code, FString Message)
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
 	{
-		OnError.ExecuteIfBound(Code, Message);
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));
 }
 
-void UserAuthentication::LoginWithClientCredentialsEasy(const FLoginWithClientCredentialsSuccess& OnSuccess, const FErrorHandler& OnError)
+void UserAuthentication::LoginWithOtherPlatformAccount(EAccelBytePlatformType PlatformId, const FString& PlatformToken, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FErrorHandler& OnError)
 {
-	LoginWithClientCredentials(Settings::ClientId, Settings::ClientSecret, OnSuccess, OnError);
+	Oauth2::GetAccessTokenWithPlatformGrant(Settings::ClientId, Settings::ClientSecret, PlatformStrings[static_cast<std::underlying_type<EAccelBytePlatformType>::type>(PlatformId)], PlatformToken, Oauth2::FGetAccessTokenWithPlatformGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
+	{
+		Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
+		FTicker::GetCoreTicker().RemoveTicker(FTicker::GetCoreTicker().AddTicker(Credentials::Get().GetRefreshTokenTickerDelegate()));
+		FTicker::GetCoreTicker().AddTicker(Credentials::Get().GetRefreshTokenTickerDelegate(), Credentials::Get().GetRefreshTokenDuration());
+		OnSuccess.ExecuteIfBound();
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
+	{
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+	}));
 }
 
-void UserAuthentication::LoginWithOtherPlatformAccount(const FString& ClientId, const FString& ClientSecret, EAccelBytePlatformType PlatformId, const FString& PlatformToken, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FErrorHandler& OnError)
+void UserAuthentication::LoginWithUsernameAndPassword(const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FErrorHandler& OnError)
 {
-	Oauth2::GetAccessTokenWithPlatformGrant(ClientId, ClientSecret, PlatformStrings[static_cast<std::underlying_type<EAccelBytePlatformType>::type>(PlatformId)], PlatformToken, Oauth2::FGetAccessTokenWithPlatformGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
+	Oauth2::GetAccessTokenWithPasswordGrant(Settings::ClientId, Settings::ClientSecret, Username, Password, Oauth2::FGetAccessTokenWithPasswordGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
+	{
+		Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
+		FTicker::GetCoreTicker().RemoveTicker(FTicker::GetCoreTicker().AddTicker(Credentials::Get().GetRefreshTokenTickerDelegate()));
+		FTicker::GetCoreTicker().AddTicker(Credentials::Get().GetRefreshTokenTickerDelegate(), Credentials::Get().GetRefreshTokenDuration());
+		OnSuccess.ExecuteIfBound();
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
+	{
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+	}));
+}
+
+void UserAuthentication::LoginWithDeviceId(const FLoginWithDeviceIdSuccess& OnSuccess, const FErrorHandler& OnError)
+{
+	Oauth2::GetAccessTokenWithDeviceGrant(Settings::ClientId, Settings::ClientSecret, Oauth2::FGetAccessTokenWithDeviceGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
+	{
+		Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
+		FTicker::GetCoreTicker().RemoveTicker(FTicker::GetCoreTicker().AddTicker(Credentials::Get().GetRefreshTokenTickerDelegate()));
+		FTicker::GetCoreTicker().AddTicker(Credentials::Get().GetRefreshTokenTickerDelegate(), Credentials::Get().GetRefreshTokenDuration());
+		OnSuccess.ExecuteIfBound();
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
+	{
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+	}));
+}
+
+void UserAuthentication::LoginFromLauncher(const FString & AuthorizationCode, const FGetAccessTokenWithAuthorizationCodeGrantSuccess & OnSuccess, const FErrorHandler & OnError)
+{
+    Oauth2::GetAccessTokenWithAuthorizationCodeGrant(Settings::ClientId, Settings::ClientSecret, AuthorizationCode, Settings::RedirectURI, Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Token) {
+        Credentials::Get().SetUserToken(Token.Access_token, Token.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Token.Expires_in), Token.User_id, Token.Display_name, Token.Namespace);
+        OnSuccess.ExecuteIfBound(Token);
+    }), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) {
+        OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+    }));
+}
+
+void UserAuthentication::RefreshToken(const FRefreshTokenSuccess& OnSuccess, const FErrorHandler& OnError)
+{
+	Oauth2::GetAccessTokenWithRefreshTokenGrant(Settings::ClientId, Settings::ClientSecret, Credentials::Get().GetUserRefreshToken(), Oauth2::FGetAccessTokenWithRefreshTokenGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
 	{
 		Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
 		OnSuccess.ExecuteIfBound();
-	}), FErrorHandler::CreateLambda([OnError](int32 Code, FString Message)
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
 	{
-		OnError.ExecuteIfBound(Code, Message);
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));
-}
-
-void UserAuthentication::LoginWithOtherPlatformAccountEasy(EAccelBytePlatformType PlatformId, const FString& PlatformToken, const FLoginWithOtherPlatformAccountSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	LoginWithOtherPlatformAccount(Settings::ClientId, Settings::ClientSecret, PlatformId, PlatformToken, OnSuccess, OnError);
-}
-
-void UserAuthentication::LoginWithUsernameAndPassword(const FString& ClientId, const FString& ClientSecret, const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	Oauth2::GetAccessTokenWithPasswordGrant(ClientId, ClientSecret, Username, Password, Oauth2::FGetAccessTokenWithPasswordGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
-	{
-		Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
-		OnSuccess.ExecuteIfBound();
-	}), FErrorHandler::CreateLambda([OnError](int32 Code, FString Message)
-	{
-		OnError.ExecuteIfBound(Code, Message);
-	}));
-}
-
-void UserAuthentication::LoginWithUsernameAndPasswordEasy(const FString& Username, const FString& Password, const FLoginWithUsernameAndPasswordSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	LoginWithUsernameAndPassword(Settings::ClientId, Settings::ClientSecret, Username, Password, OnSuccess, OnError);
-}
-
-
-void UserAuthentication::LoginWithDeviceId(const FString& ClientId, const FString& ClientSecret, const FLoginWithDeviceIdSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	Oauth2::GetAccessTokenWithDeviceGrant(ClientId, ClientSecret, Oauth2::FGetAccessTokenWithDeviceGrantSuccess::CreateLambda([OnSuccess](const FAccelByteModelsOauth2Token& Result)
-	{
-		Credentials::Get().SetUserToken(Result.Access_token, Result.Refresh_token, FDateTime::UtcNow() + FTimespan::FromSeconds(Result.Expires_in), Result.User_id, Result.Display_name, Result.Namespace);
-		OnSuccess.ExecuteIfBound();
-	}), FErrorHandler::CreateLambda([OnError](int32 Code, FString Message)
-	{
-		OnError.ExecuteIfBound(Code, Message);
-	}));
-}
-
-void UserAuthentication::LoginWithDeviceIdEasy(const FLoginWithDeviceIdSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	LoginWithDeviceId(Settings::ClientId, Settings::ClientSecret, OnSuccess, OnError);
 }
 
 void UserAuthentication::ForgetAllCredentials()

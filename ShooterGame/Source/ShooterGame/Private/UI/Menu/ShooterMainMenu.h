@@ -242,9 +242,6 @@ protected:
 	/** Show leaderboard */
 	void OnShowLeaderboard();
 
-	/** Show demo browser */
-	void OnShowDemoBrowser();
-
 	/** Show inventory */
 	void OnShowInventory();
 
@@ -274,6 +271,11 @@ protected:
 
 	/** Displays the UI for when a quickmatch is being searched for */
 	void DisplayQuickmatchSearchingUI();
+
+	/** Display the loading screen. */
+	void DisplayTestMessage();
+
+
 
 	/** Get the persistence user associated with PCOwner*/
 	UShooterPersistentUser* GetPersistentUser() const;
@@ -314,6 +316,9 @@ protected:
 	/** Delegate executed when matchmaking completes */
 	FOnMatchmakingCompleteDelegate OnMatchmakingCompleteDelegate;
 
+    AccelByte::Api::Lobby::FGetAllUserPresenceResponse OnGetOnlineUsersResponse;
+    void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
+
 	/** number of bots in game */
 	int32 BotsCountOpt;
 
@@ -349,6 +354,12 @@ protected:
 	/** used for displaying the quickmatch confirmation dialog when a quickmatch to join is not found */
 	TSharedPtr<class SShooterConfirmationDialog> QuickMatchFailureWidget;
 
+
+	/** used for displaying the quickmatch confirmation dialog when a quickmatch to join is not found */
+	// buat message box
+	TSharedPtr<class SShooterConfirmationDialog> TestMessageWidget;
+
+
 	/** used for managing the QuickMatchFailureWidget */
 	TSharedPtr<class SWeakWidget> QuickMatchFailureWidgetContainer;
 
@@ -363,6 +374,9 @@ protected:
 
 	/* used for displaying a message while we wait for quick match to stop searching */
 	TSharedPtr<SWeakWidget> QuickMatchStoppingWidgetContainer;
+
+	// buat message box
+	TSharedPtr<SWeakWidget> TestMessageWidgetContainer;
 
 	/** Handler for cancel confirmation confirmations on the quickmatch widgets */
 	FReply OnQuickMatchFailureUICancel();

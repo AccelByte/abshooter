@@ -3,7 +3,7 @@
 #include "ShooterGame.h"
 #include "Online/ShooterPlayerState.h"
 #include "GameDelegates.h"
-
+#include "WebServer.h"
 #include "UObject/PackageReload.h"
 
 //#include "Runtime/RHI/Public/RHICommandlist.h"
@@ -31,10 +31,11 @@ FAutoConsoleCommand CmdPlayGoNext(
 #endif
 #include "ShooterGameState.h"
 
+TSharedPtr<FWebServer> ServerInstance;
 
 // respond to requests from a companion app
 static void WebServerDelegate(int32 UserIndex, const FString& Action, const FString& URL, const TMap<FString, FString>& Params, TMap<FString, FString>& Response)
-{
+{    
 	if (URL == TEXT("/index.html?scoreboard"))
 	{
 		FString ScoreboardStr = TEXT("{ \"scoreboard\" : [ ");
@@ -71,11 +72,16 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 
 				ScoreboardStr += TEXT(" ] }");
 
-				Response.Add(TEXT("Content-Type"), TEXT("text/html; charset=utf-8"));
+				Response.Add(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
 				Response.Add(TEXT("Body"), ScoreboardStr);
 			}
 		}
+        return;
 	}
+    Response.Add(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+    Response.Add(TEXT("Body"), TEXT("{}"));
+
+
 }
 
 static void AssignLayerChunkDelegate(const FAssignLayerChunkMap* ChunkManifest, const FString& Platform, const int32 ChunkIndex, int32& OutChunkLayer)
@@ -208,6 +214,9 @@ void InitializeShooterGameDelegates()
 	FGameDelegates::Get().GetWebServerActionDelegate() = FWebServerActionDelegate::CreateStatic(WebServerDelegate);
 	FGameDelegates::Get().GetAssignLayerChunkDelegate() = FAssignLayerChunkDelegate::CreateStatic(AssignLayerChunkDelegate);
 	FGameDelegates::Get().GetExtendedSaveGameInfoDelegate() = FExtendedSaveGameInfoDelegate::CreateStatic(ExtendedSaveGameInfoDelegate);
-
 	FCoreUObjectDelegates::NetworkFileRequestPackageReload.BindStatic(&ReloadPackagesCallback);
+
+#if UE_SERVER
+    ServerInstance = MakeShared<FWebServer>();    
+#endif
 }

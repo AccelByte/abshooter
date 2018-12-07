@@ -33,7 +33,6 @@
 #define  ACH_SHOOT_ROCKETS	TEXT("ACH_SHOOT_ROCKETS")
 #define  ACH_GOOD_SCORE		TEXT("ACH_GOOD_SCORE")
 #define  ACH_GREAT_SCORE	TEXT("ACH_GREAT_SCORE")
-#define  ACH_PLAY_SANCTUARY	TEXT("ACH_PLAY_SANCTUARY")
 #define  ACH_PLAY_HIGHRISE	TEXT("ACH_PLAY_HIGHRISE")
 
 static const int32 SomeKillsCount = 10;
@@ -1232,10 +1231,6 @@ void AShooterPlayerController::UpdateAchievementsOnGameEnd()
 					if (MapName.Find(TEXT("Highrise")) != -1)
 					{
 						UpdateAchievementProgress(ACH_PLAY_HIGHRISE, 100.0f);
-					}
-					else if (MapName.Find(TEXT("Sanctuary")) != -1)
-					{
-						UpdateAchievementProgress(ACH_PLAY_SANCTUARY, 100.0f);
 					}
 				}
 				///////////////////////////////////////			

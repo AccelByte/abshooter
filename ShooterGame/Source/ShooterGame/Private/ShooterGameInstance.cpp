@@ -20,10 +20,10 @@
 #include "Online/ShooterOnlineSessionClient.h"
 // accelbyte
 #include "Api/AccelByteOauth2Api.h"
+#include "Api/AccelByteLobbyApi.h"
 #include "Core/AccelByteCredentials.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
-//AccelByte::Credentials CredentialStore;
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -98,7 +98,6 @@ UShooterGameInstance::UShooterGameInstance(const FObjectInitializer& ObjectIniti
 void UShooterGameInstance::Init() 
 {
 	Super::Init();
-
 	IgnorePairingChangeForControllerId = -1;
 	CurrentConnectionStatus = EOnlineServerConnectionStatus::Connected;
 
@@ -146,11 +145,9 @@ void UShooterGameInstance::Init()
 	
 	OnEndSessionCompleteDelegate = FOnEndSessionCompleteDelegate::CreateUObject(this, &UShooterGameInstance::OnEndSessionComplete);
 
-	// Register delegate for ticker callback
 	TickDelegate = FTickerDelegate::CreateUObject(this, &UShooterGameInstance::Tick);
 	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
 
-	// Initialize the debug key with a set value for AES256. This is not secure and for example purposes only.
 	DebugTestEncryptionKey.SetNum(32);
 
 	for (int32 i = 0; i < DebugTestEncryptionKey.Num(); ++i)
@@ -158,55 +155,73 @@ void UShooterGameInstance::Init()
 		DebugTestEncryptionKey[i] = uint8(i);
 	}
 	
-
-	JusticeDebugText.Enqueue("[Accelbyte SDK] Accelbyte SDK Login Started...");
-
-
-	// debug
-	//FWindowsPlatformMisc::SetEnvironmentVar(TEXT("JUSTICE_AUTHORIZATION_CODE"), TEXT("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiI5ZTFjYjQ3ZjI2NmM0OTE5YjM3NjUwODQ1YTMzN2RjMiIsImV4cCI6MTUzOTY1NTgzMiwicmVkaXIiOiJodHRwOi8vMTI3LjAuMC4xIiwiaWF0IjoxNTM5NjU1MjMyLCJuYW1lc3BhY2UiOiJzaG9vdGVyZ2FtZSIsInN1YiI6ImRiMzNiMTExMjM5ZjQ4Nzc4ZTk5MmFhYmMzNWM3NzYzIn0.smXTnRi25zHKDAK_A9wVBF9sjxj0raWeRiQTqQ32Ynk"));
-
+	
 	TCHAR AuthorizationCode[512];
 #ifdef _WIN32
  	FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 512);
 #elif __linux__ || __clang__
 	FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode.Get(), 512);
 #endif
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("JUSTICE_AUTHORIZATION_CODE"));
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString(AuthorizationCode));
-	}
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), AuthorizationCode);
+	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
+    AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
-	JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), AuthorizationCode));
-
-
-	// Justice Login
-	JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Login From Launcher")));
-	bool bHasDone = false;
-	AccelByte::Api::Oauth2::GetAccessTokenWithAuthorizationCodeGrant("9e1cb47f266c4919b37650845a337dc2", "9fcb47d683be47babed6e354dc9b9fcb", FString(AuthorizationCode), "http://127.0.0.1",
-		AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([&](const FAccelByteModelsOauth2Token& token) {
-		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Success, Access Token: %s"), *token.Access_token));
-		bHasDone = true;
+    AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
+        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(AccelByte::Api::Lobby::Presence::Online, TEXT("Shooter Game"));
+    });
 
 
+    AccelByte::FErrorHandler OnLobbyErrorConnect =  AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+    });
+    AccelByte::FErrorHandler OnLobbyParsingError = AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Parsing Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+    });
 
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Login With Launcher Success"));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, token.Access_token);
-		}
 
-	    }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-		
-		bHasDone = true;
-		JusticeDebugText.Enqueue(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Login From Launcher Error: %s"), *Message));
+    AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
 
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Login With Launcher ERROR"));
-			GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Message);
-		}
-	}));
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%s"), StatusCode, *Reason, WasClean);
+    });
+
+    AccelByte::Api::Lobby::Get().BindEvent(
+        OnLobbyConnected, 
+        OnLobbyErrorConnect, 
+        OnLobbyConnectionClosed, 
+        nullptr, 
+        nullptr,
+        nullptr, 
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr, 
+        OnLobbyParsingError);
+
+#if !UE_SERVER   
+    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
+    bool bHasDone = false;
+    AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess OnLoginSuccess = AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([&](const FAccelByteModelsOauth2Token& token) {
+        UserToken = token;
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Success, UserID: %s"), *token.User_id);
+        bHasDone = true;
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
+        AccelByte::Api::Lobby::Get().Connect();        
+    });
+
+    AccelByte::FErrorHandler OnLoginError =  AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+        bHasDone = true;
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Error: %s"), *Message);
+    });
+    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
+    AccelByte::Api::UserAuthentication::LoginFromLauncher(FString(AuthorizationCode), OnLoginSuccess, OnLoginError);
+#endif
+
+
+
+
 
 	// Blocking here
 	double LastTime = FPlatformTime::Seconds();
@@ -217,16 +232,11 @@ void UShooterGameInstance::Init()
 		LastTime = AppTime;
 		FPlatformProcess::Sleep(0.5f);
 	}
-
-
-
 }
 
 void UShooterGameInstance::Shutdown()
 {
 	Super::Shutdown();
-
-	// Unregister ticker delegate
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
 
@@ -794,31 +804,18 @@ void UShooterGameInstance::BeginMainMenuState()
 	}
 #endif
 
-	// output log
-	APlayerController* MyPC = (APlayerController*)this->GetPrimaryPlayerController();
-	if (MyPC != nullptr)
-	{
 
-		while (!JusticeDebugText.IsEmpty())
-		{
-			FString currentText;
-			JusticeDebugText.Dequeue(currentText);
-			MyPC->ClientMessage(currentText);
-		}		
-	}
-
-
-	MyPC->ClientMessage(TEXT("Get User Profile"));
-	AccelByte::Api::UserProfile::GetUserProfileEasy(AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&, MyPC](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
-		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.DisplayName));
-		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId));
-		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.AvatarSmallUrl));
-		MainMenuUI->UpdateUserProfile(UserProfileInfo.DisplayName, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Started"));
+    
+	AccelByte::Api::UserProfile::GetUserProfile(AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.FirstName);
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId);
+		MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
 		this->UserProfileInfo = UserProfileInfo; // save our own
 
 	}),
-		AccelByte::FErrorHandler::CreateLambda([&, MyPC](int32 Code, FString Message) {
-		MyPC->ClientMessage(FString::Printf(TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile Error: %s"), *Message));
+		AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK] Get User Profile Error: %s"), *Message);
 	}));
 
 
@@ -1423,6 +1420,15 @@ bool UShooterGameInstance::Tick(float DeltaSeconds)
 	}
 
 	return true;
+}
+
+void UShooterGameInstance::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse & Response)
+{
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance::OnFriendOnlineResponse] Found Online friends: "));
+	//for (int i = 0; i < Response.UserIdList.Num(); i++)
+	//{
+	//	UE_LOG(LogTemp, Log, TEXT("Found Online User ID: %s"), *Response.UserIdList[i]);
+	//}
 }
 
 bool UShooterGameInstance::HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)

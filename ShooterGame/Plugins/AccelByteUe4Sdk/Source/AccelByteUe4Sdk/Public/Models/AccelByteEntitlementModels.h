@@ -55,39 +55,39 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsEntitlementItemSnapshot
 {
 	GENERATED_BODY()
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString itemId;
+		FString ItemId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString appId;
+		FString AppId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		EAccelByteAppType appType;
+		EAccelByteAppType AppType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
 		FString Sku;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
 		FString Namespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString name;
+		FString Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		int32 useCount;
+		int32 UseCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		EAccelByteItemType itemType;
+		EAccelByteItemType ItemType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString targetCurrencyCode;
+		FString TargetCurrencyCode;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString targetNamespace;
+		FString TargetNamespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString title;
+		FString Title;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FAccelByteModelsItemInfoImage thumbnailImage;
+		FAccelByteModelsItemInfoImage ThumbnailImage;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FAccelByteModelsItemInfoRegionData regionDataItem;
+		FAccelByteModelsItemInfoRegionData RegionDataItem;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		TArray<FString> itemIds;
+		TArray<FString> ItemIds;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		int32 maxCountPerUser;
+		int32 MaxCountPerUser;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString region;
+		FString Region;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo | ItemSnapshot ")
-		FString language;
+		FString Language;
 };
 
 USTRUCT(BlueprintType)
@@ -95,51 +95,51 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsEntitlementInfo
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString id;
+		FString Id;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
 		FString Namespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		EAccelByteEntitlementClass clazz;
+		EAccelByteEntitlementClass Clazz;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		EAccelByteEntitlementType type;
+		EAccelByteEntitlementType Type;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		EAccelByteEntitlementStatus status;
+		EAccelByteEntitlementStatus Status;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString appId;
+		FString AppId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		EAccelByteAppType appType;
+		EAccelByteAppType AppType;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString sku;
+		FString Sku;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString userId;
+		FString UserId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString itemId;
+		FString ItemId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString bundleItemId;
+		FString BundleItemId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString itemNamespace;
+		FString ItemNamespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString name;
+		FString Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		int32 useCount;
+		int32 UseCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		int32 quantity;
+		int32 Quantity;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		int32 distributedQuantity;
+		int32 DistributedQuantity;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString targetNamespace;
+		FString TargetNamespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FAccelByteModelsEntitlementItemSnapshot itemSnapshot;
+		FAccelByteModelsEntitlementItemSnapshot ItemSnapshot;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString startDate;
+		FString StartDate;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString endDate;
+		FString EndDate;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString grantedAt;
+		FString GrantedAt;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString createdAt;
+		FString CreatedAt;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | EntitlementInfo ")
-		FString updatedAt;
+		FString UpdatedAt;
 };
 
 USTRUCT(BlueprintType)
@@ -147,9 +147,9 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsEntitlementPaging
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | Paging")
-		FString previous;
+		FString Previous;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | Paging")
-		FString next;
+		FString Next;
 };
 
 USTRUCT(BlueprintType)
@@ -157,7 +157,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsEntitlementPagingSlicedResult
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult ")
-		TArray<FAccelByteModelsEntitlementInfo> data;
+		TArray<FAccelByteModelsEntitlementInfo> Data;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult ")
-		FAccelByteModelsEntitlementPaging paging;
+		FAccelByteModelsEntitlementPaging Paging;
 };

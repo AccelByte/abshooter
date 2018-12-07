@@ -150,7 +150,7 @@ private:
 	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 
-	TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FName ResourceName, TArray<uint8> ImageData);
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
 
 	/** sets hit test invisibility when console is up */
 	EVisibility GetSlateVisibility() const;

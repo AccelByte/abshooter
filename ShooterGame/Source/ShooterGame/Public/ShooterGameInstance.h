@@ -8,6 +8,9 @@
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
 #include "Api/AccelByteUserProfileApi.h"
+#include "Api/AccelByteLobbyApi.h"
+#include "Models/AccelByteLobbyModels.h"
+#include "Models/AccelByteOauth2Models.h"
 #include "ShooterGameInstance.generated.h"
 
 class FVariantData;
@@ -211,6 +214,8 @@ public:
 	void ResetPlayTogetherInfo() { PlayTogetherInfo = FShooterPlayTogetherInfo(); }
 
 	FAccelByteModelsUserProfileInfo UserProfileInfo;
+    FAccelByteModelsOauth2Token UserToken;
+
 private:
 
 	UPROPERTY(config)
@@ -224,8 +229,8 @@ private:
 	FName PendingState;
 
 	FShooterPendingMessage PendingMessage;
-
 	FShooterPendingInvite PendingInvite;
+
 
 	/** URL to travel to after pending network operations */
 	FString TravelURL;
@@ -279,7 +284,6 @@ private:
 	/** A hard-coded encryption key used to try out the encryption code. This is NOT SECURE, do not use this technique in production! */
 	TArray<uint8> DebugTestEncryptionKey;
 
-	TQueue<FString> JusticeDebugText;
 
 	void HandleNetworkConnectionStatusChanged(const FString& ServiceName, EOnlineServerConnectionStatus::Type LastConnectionStatus, EOnlineServerConnectionStatus::Type ConnectionStatus );
 
@@ -401,6 +405,9 @@ private:
 
 	// Handle confirming the controller disconnected dialog.
 	FReply OnControllerReconnectConfirm();	
+
+	AccelByte::Api::Lobby::FGetAllUserPresenceResponse OnGetOnlineUsersResponse;
+	void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);

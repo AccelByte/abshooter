@@ -5,12 +5,10 @@
 #include "ShooterGame.h"
 #include "SShooterMenuWidget.h"
 #include "Runtime/Online/HTTP/Public/Http.h"
-#include "RichTextBlock.h"
 #include "Framework/Text/RichTextLayoutMarshaller.h"
 #include "Framework/Text/RichTextMarkupProcessing.h"
 #include "Framework/Text/IRichTextMarkupParser.h"
 #include "Framework/Text/IRichTextMarkupWriter.h"
-#include "Components/RichTextBlockDecorator.h"
 #include "LobbyStyle.h"
 
 struct FFriendEntry
@@ -223,7 +221,7 @@ public:
 };
 
 //class declare
-class SLobby : public SCompoundWidget
+class SLobby : public SCompoundWidget/*, public TSharedFromThis<SLobby>*/
 {
 public:
 	SLATE_BEGIN_ARGS(SLobby)
@@ -249,10 +247,16 @@ public:
 	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 	void EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo);
+    void OnListItemDoubleClicked();
 
 	void InputReceived();
 
 	void UpdateSearchStatus();
+
+    void InitializeFriends();
+    void AddFriend(FString UserID, FString DisplayName, FString Avatar);
+    void RefreshFriendList();
+
 
 	void BeginFriendSearch();
 	void OnFriendSearchFinished();
@@ -262,6 +266,12 @@ public:
 
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
+    void AddChatTab(bool IsParty, FString PartyId, FString UserId);
+
+    //static TSharedRef<SLobby> CreateRoot()
+    //{
+    //    return MakeShareable(new SLobby());
+    //}
 protected:
 
 	bool bSearchingForFriends;
@@ -303,7 +313,6 @@ protected:
 	TArray<TSharedPtr<SChatPage>> LobbyChatPages;
 	TArray<TSharedPtr<SChatTabButton>> LobbyChatTabButtons;
 
-	void AddChatTab(bool IsParty, FString PartyId, FString UserId);
 	TSharedPtr<SWidget> GetActiveChatTabWidget();
 	FReply OnChatTabScrollRightClicked();
 	FReply OnChatTabScrollLeftClicked();

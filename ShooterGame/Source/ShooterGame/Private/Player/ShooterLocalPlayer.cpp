@@ -80,5 +80,5 @@ void UShooterLocalPlayer::SetControllerId(int32 NewControllerId)
 FString UShooterLocalPlayer::GetNickname() const
 {
 	UShooterGameInstance* GameInstance = GetWorld() != NULL ? Cast<UShooterGameInstance>(GetWorld()->GetGameInstance()) : NULL;
-	return GameInstance->UserProfileInfo.DisplayName;
+	return GameInstance->UserToken.Display_name;
 }

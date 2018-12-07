@@ -7,31 +7,30 @@
 #include "JsonUtilities.h"
 #include "AccelByteCredentials.h"
 #include "AccelByteSettings.h"
-#include "EngineMinimal.h"
 
 namespace AccelByte
 {
 namespace Api
 {
 
-FString EItemTypeToString(const EAccelByteItemType& EnumValue) {
+FString EAccelByteItemTypeToString(const EAccelByteItemType& EnumValue) {
 	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAccelByteItemType"), true);
 	if (!EnumPtr) return "Invalid";
 
 	return EnumPtr->GetNameStringByValue((int64)EnumValue);
 }
 
-FString EItemStatusToString(const EAccelByteItemStatus& EnumValue) {
+FString EAccelByteItemStatusToString(const EAccelByteItemStatus& EnumValue) {
 	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAccelByteItemStatus"), true);
 	if (!EnumPtr) return "Invalid";
 
 	return EnumPtr->GetNameStringByValue((int64)EnumValue);
 }
 
-void Item::GetItemById(const FString& AccessToken, const FString& Namespace, const FString& ItemId, const FString& Language, const FString& Region, const FGetItemByIdSuccess& OnSuccess, const FErrorHandler& OnError)
+void Item::GetItemById(const FString& ItemId, const FString& Language, const FString& Region, const FGetItemByIdSuccess& OnSuccess, const FErrorHandler& OnError)
 {
-	FString Authorization = FString::Printf(TEXT("Bearer %s"), *AccessToken);
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/%s/locale"), *Settings::PlatformServerUrl, *Namespace, *ItemId);
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/%s/locale"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *ItemId);
 	if (!Region.IsEmpty() || !Language.IsEmpty())
 	{
 		Url.Append(FString::Printf(TEXT("?")));
@@ -52,7 +51,7 @@ void Item::GetItemById(const FString& AccessToken, const FString& Namespace, con
 	FString Verb = TEXT("GET");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
-	FString Content = TEXT("");
+	FString Content;
 
 	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
@@ -65,22 +64,17 @@ void Item::GetItemById(const FString& AccessToken, const FString& Namespace, con
 	Request->ProcessRequest();
 }
 
-void Item::GetItemByIdEasy(const FString& ItemId, const FString& Language, const FString& Region, const FGetItemByIdSuccess& OnSuccess, const FErrorHandler& OnError)
+void Item::GetItemsByCriteria(const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
 {
-	GetItemById(Credentials::Get().GetUserAccessToken(), Credentials::Get().GetUserNamespace(), ItemId, Language, Region, OnSuccess, OnError);
-}
-
-void Item::GetItemsByCriteria(const FString& AccessToken, const FString& Namespace, const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	FString Authorization = FString::Printf(TEXT("Bearer %s"), *AccessToken);
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/byCriteria?categoryPath=%s&language=%s&region=%s"), *Settings::PlatformServerUrl, *Namespace, *FGenericPlatformHttp::UrlEncode(CategoryPath), *Language, *Region);
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/byCriteria?categoryPath=%s&language=%s&region=%s"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *FGenericPlatformHttp::UrlEncode(CategoryPath), *Language, *Region);
 	if (ItemType != EAccelByteItemType::NONE)
 	{
-		Url.Append(FString::Printf(TEXT("&itemType=%s"), *EItemTypeToString(ItemType)));
+		Url.Append(FString::Printf(TEXT("&itemType=%s"), *EAccelByteItemTypeToString(ItemType)));
 	}
 	if (Status != EAccelByteItemStatus::NONE)
 	{
-		Url.Append(FString::Printf(TEXT("&status=%"), *EItemStatusToString(Status)));
+		Url.Append(FString::Printf(TEXT("&status=%"), *EAccelByteItemStatusToString(Status)));
 	}
 	Url.Append(FString::Printf(TEXT("&status=%d"), Page));
 	if (Size > 0)
@@ -101,11 +95,6 @@ void Item::GetItemsByCriteria(const FString& AccessToken, const FString& Namespa
 	Request->SetContentAsString(Content);
 	Request->OnProcessRequestComplete().BindStatic(GetItemsByCriteriaResponse, OnSuccess, OnError);
 	Request->ProcessRequest();
-}
-
-void Item::GetItemsByCriteriaEasy(const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
-{
-	GetItemsByCriteria(Credentials::Get().GetUserAccessToken(), Credentials::Get().GetUserNamespace(), Language, Region, CategoryPath, ItemType, Status, Page, Size, OnSuccess, OnError);
 }
 
 // =============================================================================================================================
@@ -149,4 +138,4 @@ void Item::GetItemsByCriteriaResponse(FHttpRequestPtr Request, FHttpResponsePtr 
 }
 
 } // Namespace Api
-} // GameId AccelByte
+} // Namespace AccelByte

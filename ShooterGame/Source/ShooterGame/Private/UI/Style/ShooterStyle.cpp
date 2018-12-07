@@ -31,7 +31,7 @@ FName FShooterStyle::GetStyleSetName()
 #define IMAGE_BRUSH( RelativePath, ... ) FSlateImageBrush( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
 #define BOX_BRUSH( RelativePath, ... ) FSlateBoxBrush( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
 #define BORDER_BRUSH( RelativePath, ... ) FSlateBorderBrush( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".png"), __VA_ARGS__ )
-#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(""), __VA_ARGS__ )
+#define TTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".ttf"), __VA_ARGS__ )
 #define OTF_FONT( RelativePath, ... ) FSlateFontInfo( FPaths::ProjectContentDir() / "Slate"/ RelativePath + TEXT(".otf"), __VA_ARGS__ )
 
 PRAGMA_DISABLE_OPTIMIZATION
@@ -54,6 +54,8 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	Style.Set("ShooterGame.Bullet", new IMAGE_BRUSH("Images/Bullet", FVector2D(96, 96)));
 	Style.Set("ShooterGame.Phaser", new IMAGE_BRUSH("Images/Phaser", FVector2D(96, 96)));
 	Style.Set("ShooterGame.SubmachineGun", new IMAGE_BRUSH("Images/SubmachineGun", FVector2D(96, 96)));
+    //Style.Set("ShooterGame.SubmachineGun", new IMAGE_BRUSH("Images/SubmachineGun", FVector2D(96, 96)));
+
 
 	// The border image used to draw the replay timeline bar
 	Style.Set("ShooterGame.ReplayTimelineBorder", new BOX_BRUSH("Images/ReplayTimeline", FMargin(3.0f / 8.0f)));

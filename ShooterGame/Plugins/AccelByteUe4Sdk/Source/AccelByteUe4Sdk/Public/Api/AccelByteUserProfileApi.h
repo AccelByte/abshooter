@@ -17,27 +17,23 @@ namespace Api
 {
 
 /**
- * @brief API to get user's profile.
- * User should log in before using this. See AccelByteServicesUser to see how to log user in.
+ * @brief API to create, update, and get user's profile.
  */
 class ACCELBYTEUE4SDK_API UserProfile
 {
 public:
 	DECLARE_DELEGATE_OneParam(FGetUserProfileSuccess, const FAccelByteModelsUserProfileInfo&);
 	/**
-	 * @brief Get user's profile information, if it exists.
+	 * @brief Get user's profile information. If it doesn't exist, that will be an error.
 	 * 
-	 * @param AccessToken Access token.
-	 * @param Namespace Target.
-	 * @param UserId User ID.
 	 * @param OnSuccess This will be called when the operation succeeded. The result is FAccelByteModelsUserProfileInfo.
+	 * @param OnError This will be called when the operation failed.
 	 */
-	static void GetUserProfile(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FGetUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
-	static void GetUserProfileEasy(const FGetUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
+	static void GetUserProfile(const FGetUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
 
 	DECLARE_DELEGATE(FUpdateUserProfileSuccess);
 	/**
-	 * @brief Update user's current profile information, if it exists.
+	 * @brief Update user's current profile information. If it doesn't exist, that will be an error.
 	 * 
 	 * @param AccessToken Access token.
 	 * @param Namespace Target.
@@ -45,14 +41,12 @@ public:
 	 * @param ProfileUpdateRequest Request object.
 	 * @param OnSuccess This will be called when the operation succeeded.
 	 * @param OnError This will be called when the operation failed.
-	 * @param OnError 
 	 */
-    static void UpdateUserProfile(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FUpdateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
-	static void UpdateUserProfileEasy(const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FUpdateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
+    static void UpdateUserProfile(const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FUpdateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
 
 	DECLARE_DELEGATE_OneParam(FCreateUserProfileSuccess, const FAccelByteModelsUserProfileInfo&);
 	/**
-	 * @brief Create complete player profile.
+	 * @brief Create complete player profile. If it already exist, that will be an error.
 	 *
 	 * @param AccessToken Access token.
 	 * @param Namespace Target.
@@ -61,8 +55,7 @@ public:
 	 * @param OnSuccess This will be called when the operation succeeded. The result is FAccelByteModelsUserCreateResponse.
 	 * @param OnError This will be called when the operation failed.
 	 */
-	static void CreateUserProfile(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
-	static void CreateUserProfileEasy(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
+	static void CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
 private:
 	UserProfile() = delete; // static class can't have instance
 	UserProfile(UserProfile const&) = delete;
@@ -74,5 +67,5 @@ private:
 	
 };
 
-} // GameId Service
+} // Namespace Service
 } // Namespace AccelByte

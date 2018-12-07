@@ -14,17 +14,13 @@ class UAccelByteBlueprintsItem : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 public:
-	DECLARE_DYNAMIC_DELEGATE_TwoParams(FBlueprintErrorHandler, int32, ErrorCode, FString, ErrorMessage);
+	DECLARE_DYNAMIC_DELEGATE_TwoParams(FBlueprintErrorHandler, int32, ErrorCode, const FString&, ErrorMessage);
 	
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FGetItemByIdSuccess, const FAccelByteModelsItemInfo&, Result);
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Item | Api ")
-	static void GetItemById(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FString& ItemId, const FString& Region, const FString& Language, const FGetItemByIdSuccess& OnSuccess, const FBlueprintErrorHandler& OnError);
-	UFUNCTION(BlueprintCallable, Category = "AccelByte | Item | Api ")
-	static void GetItemByIdEasy(const FString& ItemId, const FString& Region, const FString& Language, const FGetItemByIdSuccess& OnSuccess, const FBlueprintErrorHandler& OnError);
+	static void GetItemById(const FString& ItemId, const FString& Region, const FString& Language, const FGetItemByIdSuccess& OnSuccess, const FBlueprintErrorHandler& OnError);
 
 	DECLARE_DYNAMIC_DELEGATE_OneParam(FGetItemsByCriteriaSuccess, const FAccelByteModelsItemPagingSlicedResult&, Result);
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Item | Api ")
-	static void GetItemsByCriteria(const FString& AccessToken, const FString& Namespace, const FString& UserId, const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError);
-	UFUNCTION(BlueprintCallable, Category = "AccelByte | Item | Api ")
-	static void GetItemsByCriteriaEasy(const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError);
+	static void GetItemsByCriteria(const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FBlueprintErrorHandler& OnError);
 };

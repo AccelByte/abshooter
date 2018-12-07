@@ -73,12 +73,12 @@ void SShooterInventory::BuildInventoryItem()
 
 	GetItemRequestCount.Set(2);
 
-	Item::GetItemsByCriteriaEasy(GI->UserProfileInfo.Language, Locale, 
+	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
 		"/all/ammo", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 100, 
 		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 
-	Item::GetItemsByCriteriaEasy(GI->UserProfileInfo.Language, Locale,
+	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
 		"/all/weapon", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 100,
 		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
@@ -147,7 +147,7 @@ FReply SShooterInventory::OnBuyConfirm()
 	CloseConfirmationDialog();
 	ShowLoadingDialog();
 
-	AccelByte::Api::Order::CreateNewOrderEasy(OrderCreate, Order::FCreateNewOrderSuccess::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
+	AccelByte::Api::Order::CreateNewOrder(OrderCreate, Order::FCreateNewOrderSuccess::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
 		CloseLoadingDialog();
 		ShowMessageDialog(TEXT("Order Success"));
 	}), AccelByte::FErrorHandler::CreateLambda([&](int ErrorCode, FString Message) {
@@ -212,7 +212,7 @@ void SShooterInventory::OnGetItemsByCriteria(const FAccelByteModelsItemPagingSli
 	}
 }
 
-void SShooterInventory::OnGetItemsByCriteriaError(int32 Code, FString Message)
+void SShooterInventory::OnGetItemsByCriteriaError(int32 Code, const FString& Message)
 {
 	GetItemRequestCount.Decrement();
 	UE_LOG(LogTemp, Display, TEXT("GetItem Error: code: %d, message: %s"), Code, *Message)
@@ -223,9 +223,9 @@ void SShooterInventory::GetUserEntitlements()
 	Entitlement::QueryUserEntitlement("", "", 0, 100, Entitlement::FQueryUserEntitlementSuccess::CreateLambda([&](FAccelByteModelsEntitlementPagingSlicedResult Result)
 	{
 		TMap<FString, int> Quantities;
-		for (int i = 0; i < Result.data.Num(); i++)
+		for (int i = 0; i < Result.Data.Num(); i++)
 		{
-			Quantities[Result.data[i].itemId] = Quantities.FindOrAdd(Result.data[i].itemId) + Result.data[i].useCount;
+			Quantities[Result.Data[i].ItemId] = Quantities.FindOrAdd(Result.Data[i].ItemId) + Result.Data[i].UseCount;
 		}
 
 		for (TSharedPtr<FInventoryEntry> entry : InventoryList)

@@ -226,6 +226,32 @@ void SLobby::UpdateSearchStatus()
 	}
 }
 
+void SLobby::InitializeFriends()
+{
+    bSearchingForFriends = true;
+    CompleteFriendList.Reset();
+    //LobbyChatTabButtons.Reset();
+
+}
+
+void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
+{
+    TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
+    FriendEntry1->UserId = UserID;
+    FriendEntry1->Name = DisplayName;
+    FriendEntry1->AvatarSmallUrl = Avatar;
+    FriendEntry1->Presence = "Online";
+    CompleteFriendList.Add(FriendEntry1);
+
+}
+
+void SLobby::RefreshFriendList()
+{
+    FriendList = CompleteFriendList;
+    bSearchingForFriends = false;
+    OnFriendSearchFinished();
+}
+
 FText SLobby::GetBottomText() const
 {
 	return StatusText;
@@ -249,101 +275,22 @@ void SLobby::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime,
 void SLobby::BeginFriendSearch()
 {
 	bSearchingForFriends = true;
-
 	CompleteFriendList.Reset();
-	// SOCIAL SERVICE API
-	TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
-	FriendEntry1->UserId = "001";
-	FriendEntry1->Name = "Jonathan Eka Sulistya Putra a.k.a. Alloynathan 01234567890123456789";
-	FriendEntry1->Presence = "Online";
-	FriendEntry1->AvatarSmallUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-	TSharedPtr<FFriendEntry> FriendEntry2 = MakeShareable(new FFriendEntry());
-	FriendEntry2->UserId = "002";
-	FriendEntry2->Name = "Windio a.k.a. Winfroz";
-	FriendEntry2->Presence = "Offline";
-	FriendEntry2->AvatarSmallUrl = "https://emoji.slack-edge.com/T3WDKH0L8/p0/27ea357ecaf8ff9f.png";
-	TSharedPtr<FFriendEntry> FriendEntry3 = MakeShareable(new FFriendEntry());
-	FriendEntry3->UserId = "003";
-	FriendEntry3->Name = "Luthfan Nur Ubai a.k.a. DHashSlingingSlicer";
-	FriendEntry3->Presence = "In-game";
-	FriendEntry3->AvatarSmallUrl = "https://vignette.wikia.nocookie.net/spongebob/images/4/47/Hash.png";
-	TSharedPtr<FFriendEntry> FriendEntry4 = MakeShareable(new FFriendEntry());
-	FriendEntry4->UserId = "004";
-	FriendEntry4->Name = "Alan a.k.a. Kelerchian";
-	FriendEntry4->Presence = "Online";
-	FriendEntry4->AvatarSmallUrl = "https://www.w3.org/People/mimasa/test/imgformat/img/w3c_home.bmp";
-	TSharedPtr<FFriendEntry> FriendEntry5 = MakeShareable(new FFriendEntry());
-	FriendEntry5->UserId = "005";
-	FriendEntry5->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry5->Presence = "Idle";
-	FriendEntry5->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry6 = MakeShareable(new FFriendEntry());
-	FriendEntry6->UserId = "005";
-	FriendEntry6->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry6->Presence = "Idle";
-	FriendEntry6->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry7 = MakeShareable(new FFriendEntry());
-	FriendEntry7->UserId = "005";
-	FriendEntry7->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry7->Presence = "Idle";
-	FriendEntry7->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry8 = MakeShareable(new FFriendEntry());
-	FriendEntry8->UserId = "005";
-	FriendEntry8->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry8->Presence = "Idle";
-	FriendEntry8->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry9 = MakeShareable(new FFriendEntry());
-	FriendEntry9->UserId = "005";
-	FriendEntry9->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry9->Presence = "Idle";
-	FriendEntry9->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry10 = MakeShareable(new FFriendEntry());
-	FriendEntry10->UserId = "005";
-	FriendEntry10->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry10->Presence = "Idle";
-	FriendEntry10->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry11 = MakeShareable(new FFriendEntry());
-	FriendEntry11->UserId = "005";
-	FriendEntry11->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry11->Presence = "Idle";
-	FriendEntry11->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	TSharedPtr<FFriendEntry> FriendEntry12 = MakeShareable(new FFriendEntry());
-	FriendEntry12->UserId = "005";
-	FriendEntry12->Name = "Hendra a.k.a. Sapidol2002";
-	FriendEntry12->Presence = "Idle";
-	FriendEntry12->AvatarSmallUrl = "https://rimworldwiki.com/images/8/84/Cow.png";
-	CompleteFriendList.Add(FriendEntry1);
-	CompleteFriendList.Add(FriendEntry2);
-	CompleteFriendList.Add(FriendEntry3);
-	CompleteFriendList.Add(FriendEntry4);
-	CompleteFriendList.Add(FriendEntry5);
-	CompleteFriendList.Add(FriendEntry6);
-	CompleteFriendList.Add(FriendEntry7);
-	CompleteFriendList.Add(FriendEntry8);
-	CompleteFriendList.Add(FriendEntry9);
-	CompleteFriendList.Add(FriendEntry10);
-	CompleteFriendList.Add(FriendEntry11);
-	CompleteFriendList.Add(FriendEntry12);
-	FriendList = CompleteFriendList;
-		bSearchingForFriends = false;
-
-	OnFriendSearchFinished();
-
 	LobbyChatTabButtons.Reset();
 	// ^^^^^^ Get online user
 
-	// If user want to chat with the user, do this
-	AddChatTab(true, TEXT("PartyA"), TEXT("UserA"));
-	AddChatTab(true, TEXT("PartyA"), TEXT("UserB"));
-	AddChatTab(true, TEXT("PartyA"), TEXT("UserC"));
-
-	// If user want to send message to another user, do this
-	SendChat(TEXT("UserA"), TEXT("Hello, I am Okay."));
-	SendChat(TEXT("UserB"), TEXT("Hello okay, are you okay?"));
-	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?"));
-	SendChat(TEXT("UserB"), TEXT("Hello, I am Okay."));
-	SendChat(TEXT("UserA"), TEXT("Hello okay, are you okay?"));
-	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?\t\tsdfsadfsadfsadfsdaf"));
+//	// If user want to chat with the user, do this
+//	AddChatTab(true, TEXT("PartyA"), TEXT("UserA"));
+//	AddChatTab(true, TEXT("PartyA"), TEXT("UserB"));
+//	AddChatTab(true, TEXT("PartyA"), TEXT("UserC"));
+//
+//	// If user want to send message to another user, do this
+//	SendChat(TEXT("UserA"), TEXT("Hello, I am Okay."));
+//	SendChat(TEXT("UserB"), TEXT("Hello okay, are you okay?"));
+//	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?"));
+//	SendChat(TEXT("UserB"), TEXT("Hello, I am Okay."));
+//	SendChat(TEXT("UserA"), TEXT("Hello okay, are you okay?"));
+//	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?\t\tsdfsadfsadfsadfsdaf"));
 }
 
 /** Called when server search is finished */
@@ -382,7 +329,15 @@ FReply SLobby::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& I
 
 void SLobby::EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo)
 {
-	SelectedItem = InItem;
+    if (InItem.IsValid())
+    {
+        SelectedItem = InItem;
+    }
+}
+
+void SLobby::OnListItemDoubleClicked()
+{    
+    //AddChatTab(true, SelectedItem->UserId, SelectedItem->UserId);
 }
 
 void SLobby::MoveSelection(int32 MoveBy)
@@ -463,17 +418,20 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		SLATE_END_ARGS()
 
 		TSharedPtr<FFriendEntry> Item;
+        TWeakPtr<SLobby, ESPMode::NotThreadSafe> ParentClass;
+        
 
-		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntry> InItem)
+		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntry> InItem, SLobby* Parent)
 		{
 			Item = InItem;
+            ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
 
 			// start download avatar
-			TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-			ThumbRequest->SetVerb("GET");
-			ThumbRequest->SetURL(Item->AvatarSmallUrl);
-			ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SFriendEntryWidget::OnThumbImageReceived);
-			ThumbRequest->ProcessRequest();
+			//TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+			//ThumbRequest->SetVerb("GET");
+			//ThumbRequest->SetURL(Item->AvatarSmallUrl);
+			//ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SFriendEntryWidget::OnThumbImageReceived);
+			//ThumbRequest->ProcessRequest();
 			SMultiColumnTableRow< TSharedPtr<FFriendEntry> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
 		}
 
@@ -548,7 +506,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString(TEXT("INVITE")))
+						.Text(FText::FromString(TEXT("PRIVATE CHAT")))
 						.TextStyle(&LobbyStyle->InviteButtonTextStyle)
 					]
 				]
@@ -556,18 +514,22 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		}
 
 		FReply OnInviteClicked()
-		{
-			GEngine->AddOnScreenDebugMessage(1, .4f, FColor::White, TEXT("Invited!"));
-			return FReply::Handled();
+		{   
+            if (ParentClass.IsValid())
+            {
+                ParentClass.Pin()->AddChatTab(true, Item->UserId, Item->UserId);
+            }
+            
+            return FReply::Handled();
 		}
 
 		void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 		{
-			if (bWasSuccessful && Response.IsValid())
-			{
-				TArray<uint8> ImageData = Response->GetContent();
-				ThumbnailBrush = CreateBrush(Response->GetContentType() ,FName(*Request->GetURL()), ImageData);
-			}
+			//if (bWasSuccessful && Response.IsValid())
+			//{
+			//	TArray<uint8> ImageData = Response->GetContent();
+			//	//ThumbnailBrush = CreateBrush(Response->GetContentType() ,FName(*Request->GetURL()), ImageData);
+			//}
 		}
 
 		TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
@@ -625,12 +587,11 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		const FSlateBrush* GetProfileAvatar() const {
 			if (ThumbnailBrush.IsValid())
 			{
-				return ThumbnailBrush.Get();
-				GEngine->AddOnScreenDebugMessage(1, 15, FColor::White, TEXT("Thumbnail: valid"));
+				return ThumbnailBrush.Get();				
 			}
 			else
 			{
-				return new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/SoundCue_SpeakerIcon.png", FVector2D(144, 144));
+                return FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
 			}
 		}
 
@@ -649,7 +610,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			}
 		}
 	};
-	return SNew(SFriendEntryWidget, OwnerTable, Item);
+	return SNew(SFriendEntryWidget, OwnerTable, Item, this);
 }
 
 #pragma region CHAT
@@ -660,7 +621,7 @@ void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
 	LobbyChatPages.Add
 	(
 		SNew(SChatPage)
-		.ChatStat(TEXT("127.0.0.1"))////////////////////////
+		.ChatStat(TEXT("127.0.0.1"))
 		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
 		.ChatPageIndex(LobbyChatPages.Num())
 		.UserId(UserId)
