@@ -360,7 +360,15 @@ public:
      *
      * @param OnPrivateMessageResponse set delegate .
      */
+    void SetPrivateMessageNotifDelegate(FPersonalChatNotif OnPersonalChatNotif) { PersonalChatNotif = OnPersonalChatNotif; };
+
+    /**
+     * @brief set private message receive delegate
+     *
+     * @param OnPrivateMessageResponse set delegate .
+     */
     void SetPrivateMessageResponseDelegate(FPersonalChatResponse OnPrivateMessageResponse) { PersonalChatResponse = OnPrivateMessageResponse; };
+
 
     /**
      * @brief set party message response

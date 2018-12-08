@@ -35,6 +35,38 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsUserProfileInfo
 	FString DateOfBirth;
 };
 
+
+
+
+//{
+//    "userId": "string",
+//        "namespace" : "string",
+//        "timeZone" : "string",
+//        "avatarSmallUrl" : "string",
+//        "avatarUrl" : "string",
+//        "avatarLargeUrl" : "string"
+//}
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsPublicUserProfileInfo
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserProfile | Models | UserProfileInfo")
+        FString UserId;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserProfile | Models | UserProfileInfo")
+        FString Namespace;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserProfile | Models | UserProfileInfo")
+        FString AvatarSmallUrl;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserProfile | Models | UserProfileInfo")
+        FString AvatarUrl;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserProfile | Models | UserProfileInfo")
+        FString AvatarLargeUrl;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserProfile | Models | UserProfileInfo")
+        FString Timezone;
+};
+
+
+
 USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsUserProfileUpdateRequest
 {

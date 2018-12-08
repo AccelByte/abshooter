@@ -7,12 +7,19 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 
+// AccelByte
+#include "Api/AccelByteLobbyApi.h"
+#include "Api/AccelByteOauth2Api.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
 void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+
+    //FriendListCache = MakeShared<FriendCache>();
+    AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
+    DiplayNameListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
 
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
@@ -25,7 +32,10 @@ void SLobby::Construct(const FArguments& InArgs)
 #else
 	MinTimeBetweenSearches = 0.0;
 #endif
-	
+
+    AccelByte::Api::Lobby::Get().SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::ReceivePrivateChat));
+
+
 	ChildSlot
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
@@ -236,12 +246,50 @@ void SLobby::InitializeFriends()
 
 void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
 {
+
+
     TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
     FriendEntry1->UserId = UserID;
     FriendEntry1->Name = DisplayName;
     FriendEntry1->AvatarSmallUrl = Avatar;
     FriendEntry1->Presence = "Online";
     CompleteFriendList.Add(FriendEntry1);
+
+
+    if (!AvatarListCache->Contains(UserID))
+    {
+        //get avatar from platform service (User profile)
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
+        AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([this](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+            AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+
+            // start download avatar
+            TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+            ThumbRequest->SetVerb("GET");
+            ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
+            ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
+            ThumbRequest->ProcessRequest();
+
+        }),
+            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
+        }));
+    }
+
+    if (!DiplayNameListCache->Contains(UserID))
+    {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
+        AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([this](const FAccelByteModelsOauth2UserInfo& UserInfo) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
+            DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
+        }),
+            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
+        }));
+    }
+
+
 
 }
 
@@ -406,12 +454,71 @@ void SLobby::OnTextSearchChanged(const FText& Text)
 	GEngine->AddOnScreenDebugMessage(1, .4f, FColor::White, Text.ToString());
 }
 
+void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID)
+{
+    if (bWasSuccessful && Response.IsValid())
+    {
+        TArray<uint8> ImageData = Response->GetContent();
+        ThumbnailBrushCache.Add(UserID, CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData));        
+    }
+}
+
+TSharedPtr<FSlateDynamicImageBrush> SLobby::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
+{
+    TSharedPtr<FSlateDynamicImageBrush> Brush;
+    uint32 BytesPerPixel = 4;
+    int32 Width = 0;
+    int32 Height = 0;
+    bool bSucceeded = false;
+    TArray<uint8> DecodedImage;
+    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+    int BitDepth = 8;
+    //jpg
+    EImageFormat ImageFormat = EImageFormat::JPEG;
+    ERGBFormat RgbFormat = ERGBFormat::RGBA;
+    //png
+    if (ContentType.Contains(TEXT("png")))
+    {
+        ImageFormat = EImageFormat::PNG;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+    //bmp
+    else if (ContentType.Contains(TEXT("bmp")))
+    {
+        ImageFormat = EImageFormat::BMP;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+    if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+    {
+        Width = ImageWrapper->GetWidth();
+        Height = ImageWrapper->GetHeight();
+
+        const TArray<uint8>* RawData = NULL;
+
+        if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+        {
+            DecodedImage = *RawData;
+            bSucceeded = true;
+        }
+    }
+
+    if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+    {
+        Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+    }
+    return Brush;
+}
+
+
 TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntry> >
 	{
 	public:
-		TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
+		
 		const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
 
 		SLATE_BEGIN_ARGS(SFriendEntryWidget) {}
@@ -426,12 +533,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			Item = InItem;
             ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
 
-			// start download avatar
-			//TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-			//ThumbRequest->SetVerb("GET");
-			//ThumbRequest->SetURL(Item->AvatarSmallUrl);
-			//ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SFriendEntryWidget::OnThumbImageReceived);
-			//ThumbRequest->ProcessRequest();
+
 			SMultiColumnTableRow< TSharedPtr<FFriendEntry> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
 		}
 
@@ -523,71 +625,14 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
             return FReply::Handled();
 		}
 
-		void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-		{
-			//if (bWasSuccessful && Response.IsValid())
-			//{
-			//	TArray<uint8> ImageData = Response->GetContent();
-			//	//ThumbnailBrush = CreateBrush(Response->GetContentType() ,FName(*Request->GetURL()), ImageData);
-			//}
-		}
+		
 
-		TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
-		{
-			TSharedPtr<FSlateDynamicImageBrush> Brush;
-
-			uint32 BytesPerPixel = 4;
-			int32 Width = 0;
-			int32 Height = 0;
-
-			bool bSucceeded = false;
-			TArray<uint8> DecodedImage;
-			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-
-			int BitDepth = 8;
-			//jpg
-			EImageFormat ImageFormat = EImageFormat::JPEG;
-			ERGBFormat RgbFormat = ERGBFormat::RGBA;
-			//png
-			if (ContentType.Contains(TEXT("png")))
-			{
-				ImageFormat = EImageFormat::PNG;
-				RgbFormat = ERGBFormat::BGRA;
-			}
-			//bmp
-			else if (ContentType.Contains(TEXT("bmp")))
-			{
-				ImageFormat = EImageFormat::BMP;
-				RgbFormat = ERGBFormat::BGRA;
-			}
-
-			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
-			if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-			{
-				Width = ImageWrapper->GetWidth();
-				Height = ImageWrapper->GetHeight();
-
-				const TArray<uint8>* RawData = NULL;
-
-				if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
-				{
-					DecodedImage = *RawData;
-					bSucceeded = true;
-				}
-			}
-
-			if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-			{
-				Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-			}
-
-			return Brush;
-		}
+		
 
 		const FSlateBrush* GetProfileAvatar() const {
-			if (ThumbnailBrush.IsValid())
+			if (ParentClass.Pin()->CheckAvatar(Item->Name))
 			{
-				return ThumbnailBrush.Get();				
+				return ParentClass.Pin()->GetAvatar(Item->Name).Get();
 			}
 			else
 			{
@@ -595,7 +640,14 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			}
 		}
 
-		FText GetName() const { return FText::FromString(Item->Name); }
+		FText GetName() const 
+        {
+            if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+            {
+                return FText::FromString(ParentClass.Pin()->GetDisplayName(Item->Name));
+            }
+            return FText::FromString(Item->Name); 
+        }
 		FText GetPresence() const { return FText::FromString(Item->Presence); }
 
 		EVisibility InviteButtonVisible() const
@@ -621,7 +673,7 @@ void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
 	LobbyChatPages.Add
 	(
 		SNew(SChatPage)
-		.ChatStat(TEXT("127.0.0.1"))
+		//.ChatStat(TEXT("127.0.0.1"))
 		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
 		.ChatPageIndex(LobbyChatPages.Num())
 		.UserId(UserId)
@@ -716,22 +768,35 @@ void SLobby::SelectTab(int32 TabIndex)
 void SLobby::SendChat(FString UserId, FString Message)
 {
 
-	// handle lobby chat here
-	UE_LOG(LogTemp, Log, TEXT("SLobby::SendChat"));
+	// send from this user to target user ( UserId)
+    AccelByte::Api::Lobby::Get().SendPrivateMessage(UserId, Message);
+
+
+    // append to chat box UI
 	for (int32 i = 0; i < LobbyChatPages.Num(); i++)
 	{
 		if (LobbyChatPages[i]->UserId.Equals(UserId))
 		{
 			//Get user's name and append it with this function
-			LobbyChatPages[i]->AppendConversation(TEXT("MyDisplayName"), Message);
+			LobbyChatPages[i]->AppendConversation(TEXT("My User"), Message);
 			break;
 		}
 	}
 }
 
-void SLobby::ReceiveChat(FString UserId, FString Message)
+void SLobby::ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
 {
-
+    // append to chat box UI
+    //
+    for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->UserId.Equals(Response.From))
+        {
+            //Get user's name and append it with this function
+            LobbyChatPages[i]->AppendConversation(TEXT("Their"), Response.Payload);
+            break;
+        }
+    }
 }
 
 #pragma endregion CHAT

@@ -181,9 +181,12 @@ void UShooterGameInstance::Init()
 
 
     AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
-
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%s"), StatusCode, *Reason, WasClean);
     });
+
+
+
+
 
     AccelByte::Api::Lobby::Get().BindEvent(
         OnLobbyConnected, 
@@ -218,10 +221,6 @@ void UShooterGameInstance::Init()
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
     AccelByte::Api::UserAuthentication::LoginFromLauncher(FString(AuthorizationCode), OnLoginSuccess, OnLoginError);
 #endif
-
-
-
-
 
 	// Blocking here
 	double LastTime = FPlatformTime::Seconds();

@@ -11,6 +11,8 @@
 #include "Framework/Text/IRichTextMarkupWriter.h"
 #include "LobbyStyle.h"
 
+#include "Models/AccelByteLobbyModels.h"
+
 struct FFriendEntry
 {
 	FString UserId;
@@ -95,13 +97,13 @@ public:
 	SLATE_BEGIN_ARGS(SChatPage)
 	{}
 	SLATE_DEFAULT_SLOT(FArguments, Content)
-		SLATE_ARGUMENT(FString, ChatStat)
+		//SLATE_ARGUMENT(FString, ChatStat)
 		SLATE_ARGUMENT(FString, UserId)
 		SLATE_ARGUMENT(int32, ChatPageIndex)
 		SLATE_EVENT(FOnTextCommited, OnTextComitted)
 		SLATE_EVENT(FOnSendButtonPressed, OnSendButtonPressed)
 		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-		SLATE_END_ARGS()
+	SLATE_END_ARGS()
 
 	TSharedPtr<SScrollBox> ConversationScrollBox;
 	FTextBlockStyle ConversationTextStyle;
@@ -122,13 +124,13 @@ public:
 		SVerticalBox::Construct(
 			SVerticalBox::FArguments()
 			
-			+ SVerticalBox::Slot()	//ChatStat
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(InArgs._ChatStat))
-				.TextStyle(&(InArgs._LobbyStyle)->ChatStatStyle)
-			]
+			//+ SVerticalBox::Slot()	//ChatStat
+			//.AutoHeight()
+			//[
+			//	SNew(STextBlock)
+			//	.Text(FText::FromString(InArgs._ChatStat))
+			//	.TextStyle(&(InArgs._LobbyStyle)->ChatStatStyle)
+			//]
 			
 			+ SVerticalBox::Slot()	//ChatScrollBox conversation
 			.FillHeight(1.0f)
@@ -272,33 +274,58 @@ public:
     //{
     //    return MakeShareable(new SLobby());
     //}
+    typedef TMap<FString, FString> ProfileCache;
+
+    TSharedPtr < ProfileCache, ESPMode::ThreadSafe > AvatarListCache;
+    TSharedPtr < ProfileCache, ESPMode::ThreadSafe > DiplayNameListCache;
+    TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  ThumbnailBrushCache;
+
+
+
+    bool CheckDisplayName(FString UserID) 
+    {
+        return DiplayNameListCache->Contains(UserID);
+    }
+    FString GetDisplayName(FString UserID)
+    {
+        return (*DiplayNameListCache)[UserID];
+    }
+
+    bool CheckAvatar(FString UserID)
+    {
+        return ThumbnailBrushCache.Contains(UserID);
+    }
+
+    TSharedPtr<FSlateDynamicImageBrush> GetAvatar(FString UserID)
+    {
+        return ThumbnailBrushCache[UserID];
+    }
+
+    void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID);
+    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
+
+
 protected:
 
 	bool bSearchingForFriends;
-
 	double LastSearchTime;
-
 	double MinTimeBetweenSearches;
+
+           
+
+
+
 
 	TArray< TSharedPtr<FFriendEntry> > FriendList;
 	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
-
 	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > FriendListWidget;
-
 	TSharedPtr<FFriendEntry> SelectedItem;
-
 	FText GetBottomText() const;
-
 	FText StatusText;
-
 	FString MapFilterName;
-
 	int32 BoxWidth;
-
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
-
 	TSharedPtr<class SWidget> OwnerWidget;
-
 	TSharedPtr<SScrollBar> FriendScrollBar;
 
 #pragma region CHAT
@@ -319,7 +346,7 @@ protected:
 	void SelectTab(int32 TabIndex);
 	
 	void SendChat(FString UserId, FString Message);
-	void ReceiveChat(FString UserId, FString Message);
+	void ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response);
 
 #pragma endregion CHAT
 };

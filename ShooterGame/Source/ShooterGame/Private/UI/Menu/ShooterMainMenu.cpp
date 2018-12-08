@@ -1427,14 +1427,16 @@ void FShooterMainMenu::OnShowLobby()
 
 void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
 {
-    UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu::OnFriendOnlineResponse] Found Online friends: HERE"));
+    UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu::OnFriendOnlineResponse] Found Online friends"));
     MenuWidget->NextMenu = FriendItem->SubMenu;
     FriendListWidget->InitializeFriends();
     for (int i = 0; i < Response.onlineFriendsId.Num(); i++)
     {
-	    //UE_LOG(LogTemp, Log, TEXT("Found Online User ID: %s"), *Response.UserIdList[i]);
-        FString UserID = Response.onlineFriendsId[i];
-        FriendListWidget->AddFriend(UserID, UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
+        if (Response.payload[i] == "21-Shooter Game")
+        {
+            FString UserID = Response.onlineFriendsId[i];
+            FriendListWidget->AddFriend(UserID, UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
+        }
     }
     FriendListWidget->RefreshFriendList();
     FriendListWidget->UpdateSearchStatus();

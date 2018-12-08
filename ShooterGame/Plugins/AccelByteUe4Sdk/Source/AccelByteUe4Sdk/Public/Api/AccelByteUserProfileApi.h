@@ -31,6 +31,18 @@ public:
 	 */
 	static void GetUserProfile(const FGetUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
 
+
+    DECLARE_DELEGATE_OneParam(FGetPublicUserProfileInfoSuccess, const FAccelByteModelsPublicUserProfileInfo&);
+    /**
+     * @brief Get user's profile information. If it doesn't exist, that will be an error.
+     *
+     * @param OnSuccess This will be called when the operation succeeded. The result is FAccelByteModelsUserProfileInfo.
+     * @param OnError This will be called when the operation failed.
+     */
+    static void GetPublicUserProfileInfo(FString UserID, const FGetPublicUserProfileInfoSuccess& OnSuccess, const FErrorHandler& OnError);
+
+
+
 	DECLARE_DELEGATE(FUpdateUserProfileSuccess);
 	/**
 	 * @brief Update user's current profile information. If it doesn't exist, that will be an error.
@@ -62,6 +74,7 @@ private:
 	UserProfile(UserProfile&&) = delete;
 
 	static void GetUserProfileResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetUserProfileSuccess OnSuccess, FErrorHandler OnError);
+    static void GetPublicUserProfileInfoResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetPublicUserProfileInfoSuccess OnSuccess, FErrorHandler OnError);
 	static void UpdateUserProfileResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FUpdateUserProfileSuccess OnSuccess, FErrorHandler OnError);
 	static void CreateUserProfileResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FCreateUserProfileSuccess OnSuccess, FErrorHandler OnError);
 	
