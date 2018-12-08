@@ -326,19 +326,6 @@ void SLobby::BeginFriendSearch()
 	CompleteFriendList.Reset();
 	LobbyChatTabButtons.Reset();
 	// ^^^^^^ Get online user
-
-//	// If user want to chat with the user, do this
-//	AddChatTab(true, TEXT("PartyA"), TEXT("UserA"));
-//	AddChatTab(true, TEXT("PartyA"), TEXT("UserB"));
-//	AddChatTab(true, TEXT("PartyA"), TEXT("UserC"));
-//
-//	// If user want to send message to another user, do this
-//	SendChat(TEXT("UserA"), TEXT("Hello, I am Okay."));
-//	SendChat(TEXT("UserB"), TEXT("Hello okay, are you okay?"));
-//	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?"));
-//	SendChat(TEXT("UserB"), TEXT("Hello, I am Okay."));
-//	SendChat(TEXT("UserA"), TEXT("Hello okay, are you okay?"));
-//	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?\t\tsdfsadfsadfsadfsdaf"));
 }
 
 /** Called when server search is finished */
@@ -385,7 +372,7 @@ void SLobby::EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo:
 
 void SLobby::OnListItemDoubleClicked()
 {    
-    //AddChatTab(true, SelectedItem->UserId, SelectedItem->UserId);
+
 }
 
 void SLobby::MoveSelection(int32 MoveBy)
@@ -619,13 +606,17 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		{   
             if (ParentClass.IsValid())
             {
-                ParentClass.Pin()->AddChatTab(true, Item->UserId, Item->UserId);
+                FString DisplayName = Item->UserId;
+                if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+                {
+                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
+                }
+
+                ParentClass.Pin()->AddChatTab(Item->UserId, DisplayName, TEXT("Party ID"));
             }
             
             return FReply::Handled();
 		}
-
-		
 
 		
 
@@ -667,13 +658,13 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 #pragma region CHAT
 
-void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
+void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 {
 	//Create Conversation Widget
 	LobbyChatPages.Add
 	(
 		SNew(SChatPage)
-		//.ChatStat(TEXT("127.0.0.1"))
+		.DisplayName(DisplayName)
 		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
 		.ChatPageIndex(LobbyChatPages.Num())
 		.UserId(UserId)
@@ -689,6 +680,7 @@ void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
 		.OnClicked(this, &SLobby::SelectTab)
 		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
 		.UserId(UserId)
+        .DisplayName(DisplayName)
 	);
 	
 	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
@@ -777,9 +769,9 @@ void SLobby::SendChat(FString UserId, FString Message)
 	{
 		if (LobbyChatPages[i]->UserId.Equals(UserId))
 		{
-			//Get user's name and append it with this function
-			LobbyChatPages[i]->AppendConversation(TEXT("My User"), Message);
-			break;
+			//My Dislpay Name
+			LobbyChatPages[i]->AppendConversation(CurrentUserDisplayName, Message);
+			return;
 		}
 	}
 }
@@ -793,10 +785,15 @@ void SLobby::ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Res
         if (LobbyChatPages[i]->UserId.Equals(Response.From))
         {
             //Get user's name and append it with this function
-            LobbyChatPages[i]->AppendConversation(TEXT("Their"), Response.Payload);
-            break;
+
+            // partner display name
+            LobbyChatPages[i]->AppendConversation(LobbyChatPages[i]->DisplayName, Response.Payload);
+            return;
         }
     }
+
+    //no chat tab, create new chat
+    //AddChatTab()
 }
 
 #pragma endregion CHAT

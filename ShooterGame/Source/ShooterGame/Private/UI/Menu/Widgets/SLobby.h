@@ -31,6 +31,7 @@ public:
 	SLATE_DEFAULT_SLOT(FArguments, Content)
 		SLATE_ARGUMENT(int32, TabIndex)
 		SLATE_ARGUMENT(FString, UserId)
+        SLATE_ARGUMENT(FString, DisplayName)
 		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
 		SLATE_EVENT(FOnClickedChatTabButton, OnClicked)
 
@@ -38,6 +39,7 @@ public:
 
 	int32 TabIndex = 0;
 	FString UserId = TEXT("");
+    FString DisplayName = TEXT("");
 	FOnClickedChatTabButton OnChatTabClicked;
 	FTextBlockStyle ActiveTextStyle;
 	FTextBlockStyle PassiveTextStyle;
@@ -46,12 +48,13 @@ public:
 
 	void Construct(const FArguments& InArgs)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Construct Chat Button %d %s") , InArgs._TabIndex, *InArgs._UserId);
+		//UE_LOG(LogTemp, Log, TEXT("Construct Chat Button %d %s") , InArgs._TabIndex, *InArgs._UserId);
 		OnChatTabClicked = InArgs._OnClicked;
 		TabIndex = InArgs._TabIndex;
 		ActiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextStyle;
 		PassiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextDisabledStyle;
 		UserId = InArgs._UserId;
+        DisplayName = InArgs._DisplayName;
 
 		SButton::Construct(
 			SButton::FArguments()
@@ -61,7 +64,7 @@ public:
 			[
 				SAssignNew(TextWidget, STextBlock)
 				.TextStyle(&ActiveTextStyle)
-				.Text(FText::FromString(InArgs._UserId))
+				.Text(FText::FromString(DisplayName))
 			]
 		);
 	}
@@ -99,6 +102,7 @@ public:
 	SLATE_DEFAULT_SLOT(FArguments, Content)
 		//SLATE_ARGUMENT(FString, ChatStat)
 		SLATE_ARGUMENT(FString, UserId)
+        SLATE_ARGUMENT(FString, DisplayName)
 		SLATE_ARGUMENT(int32, ChatPageIndex)
 		SLATE_EVENT(FOnTextCommited, OnTextComitted)
 		SLATE_EVENT(FOnSendButtonPressed, OnSendButtonPressed)
@@ -109,6 +113,7 @@ public:
 	FTextBlockStyle ConversationTextStyle;
 	int32 ChatPageIndex;
 	FString UserId;
+    FString DisplayName;
 	FOnTextCommited OnTextCommited;
 	FOnSendButtonPressed OnSendButtonPressed;
 	TSharedPtr<SEditableTextBox> InputTextBox;
@@ -117,6 +122,7 @@ public:
 	{
 		ChatPageIndex = InArgs._ChatPageIndex;
 		UserId = InArgs._UserId;
+        DisplayName = InArgs._DisplayName;
 		ConversationTextStyle = InArgs._LobbyStyle->ConversationTextStyle;
 		OnTextCommited = InArgs._OnTextComitted;
 		OnSendButtonPressed = InArgs._OnSendButtonPressed;
@@ -254,8 +260,8 @@ public:
 	void InputReceived();
 
 	void UpdateSearchStatus();
-
     void InitializeFriends();
+    void SetCurrentUserDisplayName(FString DisplayName) {CurrentUserDisplayName = DisplayName;};
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
 
@@ -268,7 +274,7 @@ public:
 
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
-    void AddChatTab(bool IsParty, FString PartyId, FString UserId);
+    void AddChatTab(FString UserId, FString DisplayName, FString PartyId);
 
     //static TSharedRef<SLobby> CreateRoot()
     //{
@@ -311,7 +317,7 @@ protected:
 	double LastSearchTime;
 	double MinTimeBetweenSearches;
 
-           
+    FString CurrentUserDisplayName;
 
 
 

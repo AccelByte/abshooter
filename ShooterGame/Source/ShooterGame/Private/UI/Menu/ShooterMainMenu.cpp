@@ -1429,6 +1429,8 @@ void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUse
 {
     UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu::OnFriendOnlineResponse] Found Online friends"));
     MenuWidget->NextMenu = FriendItem->SubMenu;
+
+    FriendListWidget->SetCurrentUserDisplayName(GameInstance->UserToken.Display_name);
     FriendListWidget->InitializeFriends();
     for (int i = 0; i < Response.onlineFriendsId.Num(); i++)
     {
