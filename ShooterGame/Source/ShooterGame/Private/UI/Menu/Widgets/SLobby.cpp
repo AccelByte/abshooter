@@ -7,12 +7,19 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 
+// AccelByte
+#include "Api/AccelByteLobbyApi.h"
+#include "Api/AccelByteOauth2Api.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
 void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+
+    //FriendListCache = MakeShared<FriendCache>();
+    AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
+    DiplayNameListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
 
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
@@ -25,7 +32,10 @@ void SLobby::Construct(const FArguments& InArgs)
 #else
 	MinTimeBetweenSearches = 0.0;
 #endif
-	
+
+    AccelByte::Api::Lobby::Get().SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::ReceivePrivateChat));
+
+
 	ChildSlot
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
@@ -231,7 +241,11 @@ void SLobby::InitializeFriends()
     bSearchingForFriends = true;
     CompleteFriendList.Reset();
     //LobbyChatTabButtons.Reset();
+}
 
+void SLobby::OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response)
+{
+    
 }
 
 void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
@@ -242,6 +256,42 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
     FriendEntry1->AvatarSmallUrl = Avatar;
     FriendEntry1->Presence = "Online";
     CompleteFriendList.Add(FriendEntry1);
+
+
+    if (!AvatarListCache->Contains(UserID))
+    {
+        //get avatar from platform service (User profile)
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
+        AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([this](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+            AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+
+            // start download avatar
+            TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+            ThumbRequest->SetVerb("GET");
+            ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
+            ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
+            ThumbRequest->ProcessRequest();
+
+        }),
+            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
+        }));
+    }
+
+    if (!DiplayNameListCache->Contains(UserID))
+    {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
+        AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([this](const FAccelByteModelsOauth2UserInfo& UserInfo) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
+            DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
+        }),
+            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
+        }));
+    }
+
+
 
 }
 
@@ -278,19 +328,6 @@ void SLobby::BeginFriendSearch()
 	CompleteFriendList.Reset();
 	LobbyChatTabButtons.Reset();
 	// ^^^^^^ Get online user
-
-//	// If user want to chat with the user, do this
-//	AddChatTab(true, TEXT("PartyA"), TEXT("UserA"));
-//	AddChatTab(true, TEXT("PartyA"), TEXT("UserB"));
-//	AddChatTab(true, TEXT("PartyA"), TEXT("UserC"));
-//
-//	// If user want to send message to another user, do this
-//	SendChat(TEXT("UserA"), TEXT("Hello, I am Okay."));
-//	SendChat(TEXT("UserB"), TEXT("Hello okay, are you okay?"));
-//	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?"));
-//	SendChat(TEXT("UserB"), TEXT("Hello, I am Okay."));
-//	SendChat(TEXT("UserA"), TEXT("Hello okay, are you okay?"));
-//	SendChat(TEXT("UserC"), TEXT("Is UserA==okay?\t\tsdfsadfsadfsadfsdaf"));
 }
 
 /** Called when server search is finished */
@@ -337,7 +374,7 @@ void SLobby::EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo:
 
 void SLobby::OnListItemDoubleClicked()
 {    
-    //AddChatTab(true, SelectedItem->UserId, SelectedItem->UserId);
+
 }
 
 void SLobby::MoveSelection(int32 MoveBy)
@@ -406,12 +443,75 @@ void SLobby::OnTextSearchChanged(const FText& Text)
 	GEngine->AddOnScreenDebugMessage(1, .4f, FColor::White, Text.ToString());
 }
 
+void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID)
+{
+    if (bWasSuccessful && Response.IsValid())
+    {
+        TArray<uint8> ImageData = Response->GetContent();
+        ThumbnailBrushCache.Add(UserID, CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData));        
+    }
+}
+
+TSharedPtr<FSlateDynamicImageBrush> SLobby::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
+{
+    UE_LOG(LogTemp, Log, TEXT("SShooterUserProfileWidget::CreateBrush : %s, Content Type: %s"), *ResourceName.ToString(), *ContentType);
+    TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+    uint32 BytesPerPixel = 4;
+    int32 Width = 0;
+    int32 Height = 0;
+
+    bool bSucceeded = false;
+    TArray<uint8> DecodedImage;
+    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+    int BitDepth = 8;
+    //jpg
+    EImageFormat ImageFormat = EImageFormat::JPEG;
+    ERGBFormat RgbFormat = ERGBFormat::BGRA;
+    //png
+    if (ContentType.Contains(TEXT("png")))
+    {
+        ImageFormat = EImageFormat::PNG;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+    //bmp
+    else if (ContentType.Contains(TEXT("bmp")))
+    {
+        ImageFormat = EImageFormat::BMP;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+    if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+    {
+        Width = ImageWrapper->GetWidth();
+        Height = ImageWrapper->GetHeight();
+
+        const TArray<uint8>* RawData = NULL;
+
+        if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+        {
+            DecodedImage = *RawData;
+            bSucceeded = true;
+        }
+    }
+
+    if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+    {
+        Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+    }
+
+    return Brush;
+}
+
+
 TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
 	class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntry> >
 	{
 	public:
-		TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
+		
 		const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
 
 		SLATE_BEGIN_ARGS(SFriendEntryWidget) {}
@@ -426,12 +526,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			Item = InItem;
             ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
 
-			// start download avatar
-			//TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-			//ThumbRequest->SetVerb("GET");
-			//ThumbRequest->SetURL(Item->AvatarSmallUrl);
-			//ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SFriendEntryWidget::OnThumbImageReceived);
-			//ThumbRequest->ProcessRequest();
+
 			SMultiColumnTableRow< TSharedPtr<FFriendEntry> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
 		}
 
@@ -494,13 +589,13 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 						.AutoWrapText(true)
 					]
 				]
-				+ SHorizontalBox::Slot()	//3.INVITATION BUTTON
+				+ SHorizontalBox::Slot()	//3.Private Chat
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				.Padding(0, 0, 25, 0)
 				[
 					SNew(SButton)
-					.Visibility(this, &SFriendEntryWidget::InviteButtonVisible)
+					.Visibility(this, &SFriendEntryWidget::PrivateChatButtonVisible)
 					.OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
 					.ButtonStyle(&LobbyStyle->InviteButtonStyle)
 					.Content()
@@ -510,84 +605,54 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 						.TextStyle(&LobbyStyle->InviteButtonTextStyle)
 					]
 				]
+                + SHorizontalBox::Slot()	//3.Invite Party TODO
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    .Padding(0, 0, 25, 0)
+                    [
+                        SNew(SButton)
+                        .Visibility(this, &SFriendEntryWidget::InviteButtonVisible)
+                        .OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
+                        .ButtonStyle(&LobbyStyle->InviteButtonStyle)
+                        .Content()
+                        [
+                            SNew(STextBlock)
+                            .Text(FText::FromString(TEXT("INVITE PARTY")))
+                            .TextStyle(&LobbyStyle->InviteButtonTextStyle)
+                        ]
+                    ]
 			;
 		}
 
-		FReply OnInviteClicked()
+		FReply OnPrivateChatClicked()
 		{   
             if (ParentClass.IsValid())
             {
-                ParentClass.Pin()->AddChatTab(true, Item->UserId, Item->UserId);
+                FString DisplayName = Item->UserId;
+                if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+                {
+                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
+                }
+
+                ParentClass.Pin()->AddChatTab(Item->UserId, DisplayName, TEXT("Party ID"));
             }
             
             return FReply::Handled();
 		}
 
-		void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-		{
-			//if (bWasSuccessful && Response.IsValid())
-			//{
-			//	TArray<uint8> ImageData = Response->GetContent();
-			//	//ThumbnailBrush = CreateBrush(Response->GetContentType() ,FName(*Request->GetURL()), ImageData);
-			//}
-		}
-
-		TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
-		{
-			TSharedPtr<FSlateDynamicImageBrush> Brush;
-
-			uint32 BytesPerPixel = 4;
-			int32 Width = 0;
-			int32 Height = 0;
-
-			bool bSucceeded = false;
-			TArray<uint8> DecodedImage;
-			IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-
-			int BitDepth = 8;
-			//jpg
-			EImageFormat ImageFormat = EImageFormat::JPEG;
-			ERGBFormat RgbFormat = ERGBFormat::RGBA;
-			//png
-			if (ContentType.Contains(TEXT("png")))
-			{
-				ImageFormat = EImageFormat::PNG;
-				RgbFormat = ERGBFormat::BGRA;
-			}
-			//bmp
-			else if (ContentType.Contains(TEXT("bmp")))
-			{
-				ImageFormat = EImageFormat::BMP;
-				RgbFormat = ERGBFormat::BGRA;
-			}
-
-			TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
-			if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-			{
-				Width = ImageWrapper->GetWidth();
-				Height = ImageWrapper->GetHeight();
-
-				const TArray<uint8>* RawData = NULL;
-
-				if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
-				{
-					DecodedImage = *RawData;
-					bSucceeded = true;
-				}
-			}
-
-			if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-			{
-				Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-			}
-
-			return Brush;
-		}
+        FReply OnInviteClicked()
+        {
+            if (ParentClass.IsValid())
+            {
+                ParentClass.Pin()->InviteToParty(Item->UserId);
+            }
+            return FReply::Handled();
+        }
 
 		const FSlateBrush* GetProfileAvatar() const {
-			if (ThumbnailBrush.IsValid())
+			if (ParentClass.Pin()->CheckAvatar(Item->Name))
 			{
-				return ThumbnailBrush.Get();				
+				return ParentClass.Pin()->GetAvatar(Item->Name).Get();
 			}
 			else
 			{
@@ -595,8 +660,28 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			}
 		}
 
-		FText GetName() const { return FText::FromString(Item->Name); }
+		FText GetName() const 
+        {
+            if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+            {
+                return FText::FromString(ParentClass.Pin()->GetDisplayName(Item->Name));
+            }
+            return FText::FromString(Item->Name); 
+        }
 		FText GetPresence() const { return FText::FromString(Item->Presence); }
+
+
+        EVisibility PrivateChatButtonVisible() const
+        {
+            if (Item->Presence == TEXT("Online"))
+            {
+                return EVisibility::Visible;
+            }
+            else
+            {
+                return EVisibility::Hidden;
+            }
+        }
 
 		EVisibility InviteButtonVisible() const
 		{
@@ -615,13 +700,13 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 #pragma region CHAT
 
-void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
+void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 {
 	//Create Conversation Widget
 	LobbyChatPages.Add
 	(
 		SNew(SChatPage)
-		.ChatStat(TEXT("127.0.0.1"))
+		.DisplayName(DisplayName)
 		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
 		.ChatPageIndex(LobbyChatPages.Num())
 		.UserId(UserId)
@@ -637,11 +722,17 @@ void SLobby::AddChatTab(bool IsParty, FString PartyId, FString UserId)
 		.OnClicked(this, &SLobby::SelectTab)
 		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
 		.UserId(UserId)
+        .DisplayName(DisplayName)
 	);
 	
 	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
 	ScrollBoxChatTabs->AddSlot().AttachWidget(LobbyChatTabButtons[LobbyChatTabButtons.Num() - 1].ToSharedRef());
 	SelectTab(LobbyChatTabButtons.Num() - 1);
+}
+
+void SLobby::InviteToParty(FString UserId)
+{
+    
 }
 
 TSharedPtr<SWidget> SLobby::GetActiveChatTabWidget()
@@ -715,23 +806,38 @@ void SLobby::SelectTab(int32 TabIndex)
 
 void SLobby::SendChat(FString UserId, FString Message)
 {
+	// send from this user to target user ( UserId)
+    AccelByte::Api::Lobby::Get().SendPrivateMessage(UserId, Message);
 
-	// handle lobby chat here
-	UE_LOG(LogTemp, Log, TEXT("SLobby::SendChat"));
+    // append to chat box UI
 	for (int32 i = 0; i < LobbyChatPages.Num(); i++)
 	{
 		if (LobbyChatPages[i]->UserId.Equals(UserId))
 		{
-			//Get user's name and append it with this function
-			LobbyChatPages[i]->AppendConversation(TEXT("MyDisplayName"), Message);
-			break;
+			//My Dislpay Name
+			LobbyChatPages[i]->AppendConversation(CurrentUserDisplayName, Message);
+			return;
 		}
 	}
 }
 
-void SLobby::ReceiveChat(FString UserId, FString Message)
+void SLobby::ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
 {
+    // append to chat box UI
+    for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->UserId.Equals(Response.From))
+        {
+            //Get user's name and append it with this function
 
+            // partner display name
+            LobbyChatPages[i]->AppendConversation(LobbyChatPages[i]->DisplayName, Response.Payload);
+            return;
+        }
+    }
+
+    //no chat tab, create new chat
+    //AddChatTab()
 }
 
 #pragma endregion CHAT

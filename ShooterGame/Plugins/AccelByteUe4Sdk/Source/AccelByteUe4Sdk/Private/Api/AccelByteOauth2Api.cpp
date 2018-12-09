@@ -5,6 +5,7 @@
 #include "AccelByteOauth2Api.h"
 #include "JsonUtilities.h"
 #include "AccelByteSettings.h"
+#include "AccelByteCredentials.h"
 #include "Base64.h"
 
 namespace AccelByte
@@ -137,6 +138,25 @@ void Oauth2::GetAccessTokenWithPlatformGrant(const FString& ClientId, const FStr
 	Request->ProcessRequest();
 }
 
+void Oauth2::GetPublicUserInfo(const FString& UserID, const FGetPublicUserInfoDelegate& OnSuccess, const FErrorHandler& OnError)
+{
+    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+    FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/%s"), *Settings::IamServerUrl, *Credentials::Get().GetUserNamespace(), *UserID);
+    FString Verb = TEXT("GET");
+    FString ContentType = TEXT("application/json");
+    FString Accept = TEXT("application/json");
+    
+    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(Url);
+    Request->SetHeader(TEXT("Authorization"), Authorization);
+    Request->SetVerb(Verb);
+    Request->SetHeader(TEXT("Content-Type"), ContentType);
+    Request->SetHeader(TEXT("Accept"), Accept);
+    Request->OnProcessRequestComplete().BindStatic(GetPublicUserInfoResponse, OnSuccess, OnError);
+    Request->ProcessRequest();
+}
+
+
 // =============================================================================================================================
 // ========================================================= Responses =========================================================
 // =============================================================================================================================
@@ -229,6 +249,21 @@ void Oauth2::GetAccessTokenWithClientCredentialsGrantResponse(FHttpRequestPtr Re
 	}
 	HandleHttpError(Request, Response, Code, Message);
 	OnError.ExecuteIfBound(Code, Message);
+}
+
+void Oauth2::GetPublicUserInfoResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetPublicUserInfoDelegate OnSuccess, FErrorHandler OnError)
+{
+    int32 Code;
+    FString Message;
+    if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    {
+        FAccelByteModelsOauth2UserInfo Result;
+        FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
+        OnSuccess.ExecuteIfBound(Result);
+        return;
+    }
+    HandleHttpError(Request, Response, Code, Message);
+    OnError.ExecuteIfBound(Code, Message);
 }
 
 } // Namespace Api

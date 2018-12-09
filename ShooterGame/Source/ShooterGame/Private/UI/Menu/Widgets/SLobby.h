@@ -11,6 +11,8 @@
 #include "Framework/Text/IRichTextMarkupWriter.h"
 #include "LobbyStyle.h"
 
+#include "Models/AccelByteLobbyModels.h"
+
 struct FFriendEntry
 {
 	FString UserId;
@@ -29,6 +31,7 @@ public:
 	SLATE_DEFAULT_SLOT(FArguments, Content)
 		SLATE_ARGUMENT(int32, TabIndex)
 		SLATE_ARGUMENT(FString, UserId)
+        SLATE_ARGUMENT(FString, DisplayName)
 		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
 		SLATE_EVENT(FOnClickedChatTabButton, OnClicked)
 
@@ -36,6 +39,7 @@ public:
 
 	int32 TabIndex = 0;
 	FString UserId = TEXT("");
+    FString DisplayName = TEXT("");
 	FOnClickedChatTabButton OnChatTabClicked;
 	FTextBlockStyle ActiveTextStyle;
 	FTextBlockStyle PassiveTextStyle;
@@ -43,13 +47,13 @@ public:
 	TSharedPtr<STextBlock> TextWidget;
 
 	void Construct(const FArguments& InArgs)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Construct Chat Button %d %s") , InArgs._TabIndex, *InArgs._UserId);
+	{		
 		OnChatTabClicked = InArgs._OnClicked;
 		TabIndex = InArgs._TabIndex;
 		ActiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextStyle;
 		PassiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextDisabledStyle;
 		UserId = InArgs._UserId;
+        DisplayName = InArgs._DisplayName;
 
 		SButton::Construct(
 			SButton::FArguments()
@@ -59,7 +63,7 @@ public:
 			[
 				SAssignNew(TextWidget, STextBlock)
 				.TextStyle(&ActiveTextStyle)
-				.Text(FText::FromString(InArgs._UserId))
+				.Text(FText::FromString(DisplayName))
 			]
 		);
 	}
@@ -95,18 +99,19 @@ public:
 	SLATE_BEGIN_ARGS(SChatPage)
 	{}
 	SLATE_DEFAULT_SLOT(FArguments, Content)
-		SLATE_ARGUMENT(FString, ChatStat)
 		SLATE_ARGUMENT(FString, UserId)
+        SLATE_ARGUMENT(FString, DisplayName)
 		SLATE_ARGUMENT(int32, ChatPageIndex)
 		SLATE_EVENT(FOnTextCommited, OnTextComitted)
 		SLATE_EVENT(FOnSendButtonPressed, OnSendButtonPressed)
 		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-		SLATE_END_ARGS()
+	SLATE_END_ARGS()
 
 	TSharedPtr<SScrollBox> ConversationScrollBox;
 	FTextBlockStyle ConversationTextStyle;
 	int32 ChatPageIndex;
 	FString UserId;
+    FString DisplayName;
 	FOnTextCommited OnTextCommited;
 	FOnSendButtonPressed OnSendButtonPressed;
 	TSharedPtr<SEditableTextBox> InputTextBox;
@@ -115,21 +120,13 @@ public:
 	{
 		ChatPageIndex = InArgs._ChatPageIndex;
 		UserId = InArgs._UserId;
+        DisplayName = InArgs._DisplayName;
 		ConversationTextStyle = InArgs._LobbyStyle->ConversationTextStyle;
 		OnTextCommited = InArgs._OnTextComitted;
 		OnSendButtonPressed = InArgs._OnSendButtonPressed;
 
 		SVerticalBox::Construct(
-			SVerticalBox::FArguments()
-			
-			+ SVerticalBox::Slot()	//ChatStat
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(InArgs._ChatStat))
-				.TextStyle(&(InArgs._LobbyStyle)->ChatStatStyle)
-			]
-			
+			SVerticalBox::FArguments()		
 			+ SVerticalBox::Slot()	//ChatScrollBox conversation
 			.FillHeight(1.0f)
 			.VAlign(VAlign_Fill)
@@ -198,7 +195,7 @@ public:
 
 	void ResetConversation()
 	{
-		//ConversationScrollBox->
+
 	}
 
 	void OnEditableTextBoxCommit(const FText& Text, ETextCommit::Type Type)
@@ -252,11 +249,12 @@ public:
 	void InputReceived();
 
 	void UpdateSearchStatus();
-
     void InitializeFriends();
+    void SetCurrentUserDisplayName(FString DisplayName) {CurrentUserDisplayName = DisplayName;};
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
 
+    void OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response);
 
 	void BeginFriendSearch();
 	void OnFriendSearchFinished();
@@ -266,39 +264,54 @@ public:
 
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
-    void AddChatTab(bool IsParty, FString PartyId, FString UserId);
+    void AddChatTab(FString UserId, FString DisplayName, FString PartyId);
+    void InviteToParty(FString UserId);
+    typedef TMap<FString, FString> ProfileCache;
 
-    //static TSharedRef<SLobby> CreateRoot()
-    //{
-    //    return MakeShareable(new SLobby());
-    //}
+    TSharedPtr < ProfileCache, ESPMode::ThreadSafe > AvatarListCache;
+    TSharedPtr < ProfileCache, ESPMode::ThreadSafe > DiplayNameListCache;
+    TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  ThumbnailBrushCache;
+
+
+
+    bool CheckDisplayName(FString UserID) 
+    {
+        return DiplayNameListCache->Contains(UserID);
+    }
+    FString GetDisplayName(FString UserID)
+    {
+        return (*DiplayNameListCache)[UserID];
+    }
+
+    bool CheckAvatar(FString UserID)
+    {
+        return ThumbnailBrushCache.Contains(UserID);
+    }
+
+    TSharedPtr<FSlateDynamicImageBrush> GetAvatar(FString UserID)
+    {
+        return ThumbnailBrushCache[UserID];
+    }
+
+    void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID);
+    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
+
+
 protected:
-
 	bool bSearchingForFriends;
-
 	double LastSearchTime;
-
 	double MinTimeBetweenSearches;
-
+    FString CurrentUserDisplayName;
 	TArray< TSharedPtr<FFriendEntry> > FriendList;
 	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
-
 	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > FriendListWidget;
-
 	TSharedPtr<FFriendEntry> SelectedItem;
-
 	FText GetBottomText() const;
-
 	FText StatusText;
-
 	FString MapFilterName;
-
 	int32 BoxWidth;
-
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
-
 	TSharedPtr<class SWidget> OwnerWidget;
-
 	TSharedPtr<SScrollBar> FriendScrollBar;
 
 #pragma region CHAT
@@ -309,17 +322,14 @@ protected:
 	TSharedPtr<SButton> ButtonChatTabScrollLeft;
 	TSharedPtr<SScrollBox> ScrollBoxChatTabs;
 	TSharedPtr<SWidgetSwitcher> ChatPageSwitcher;
-
 	TArray<TSharedPtr<SChatPage>> LobbyChatPages;
 	TArray<TSharedPtr<SChatTabButton>> LobbyChatTabButtons;
-
 	TSharedPtr<SWidget> GetActiveChatTabWidget();
 	FReply OnChatTabScrollRightClicked();
 	FReply OnChatTabScrollLeftClicked();
 	void SelectTab(int32 TabIndex);
-	
 	void SendChat(FString UserId, FString Message);
-	void ReceiveChat(FString UserId, FString Message);
+	void ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response);
 
 #pragma endregion CHAT
 };

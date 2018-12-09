@@ -288,37 +288,6 @@ void SShooterUserProfileWidget::OnThumbImageReceived(FHttpRequestPtr Request, FH
 TSharedPtr<FSlateDynamicImageBrush> SShooterUserProfileWidget::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
 {
     UE_LOG(LogTemp, Log, TEXT("SShooterUserProfileWidget::CreateBrush : %s, Content Type: %s"), *ResourceName.ToString(), *ContentType);
-	//TSharedPtr<FSlateDynamicImageBrush> Brush;
-
-	//uint32 BytesPerPixel = 4;
-	//int32 Width = 0;
-	//int32 Height = 0;
-
-	//bool bSucceeded = false;
-	//TArray<uint8> DecodedImage;
-	//IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-	//TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::JPEG);
-
-	//if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-	//{
-	//	Width = ImageWrapper->GetWidth();
-	//	Height = ImageWrapper->GetHeight();
-
-	//	const TArray<uint8>* RawData = NULL;
-
-	//	if (ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, RawData))
-	//	{
-	//		DecodedImage = *RawData;
-	//		bSucceeded = true;
-	//	}
-	//}
-
-	//if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-	//{
-	//	Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-	//}
-
-	//return Brush;
     TSharedPtr<FSlateDynamicImageBrush> Brush;
 
     uint32 BytesPerPixel = 4;

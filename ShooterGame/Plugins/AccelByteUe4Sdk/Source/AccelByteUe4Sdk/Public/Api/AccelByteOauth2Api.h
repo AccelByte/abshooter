@@ -103,6 +103,13 @@ public:
 	*/
 	static void GetAccessTokenWithPlatformGrant(const FString& ClientId, const FString& ClientSecret, const FString& PlatformId, const FString& PlatformToken, const FGetAccessTokenWithPlatformGrantSuccess& OnSuccess, const FErrorHandler& OnError);
 
+
+
+
+    // New for jagex
+    DECLARE_DELEGATE_OneParam(FGetPublicUserInfoDelegate, const FAccelByteModelsOauth2UserInfo&);
+    static void GetPublicUserInfo(const FString& UserID, const FGetPublicUserInfoDelegate& OnSuccess, const FErrorHandler& OnError);
+
 private:
 	Oauth2() = delete; // static class can't have instance
 	Oauth2(Oauth2 const&) = delete;
@@ -114,6 +121,7 @@ private:
 	static void GetAccessTokenWithRefreshTokenGrantResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetAccessTokenWithRefreshTokenGrantSuccess OnSuccess, FErrorHandler OnError);
 	static void GetAccessTokenWithDeviceGrantResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetAccessTokenWithDeviceGrantSuccess OnSuccess, FErrorHandler OnError);
     static void GetAccessTokenWithPlatformGrantResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetAccessTokenWithPlatformGrantSuccess OnSuccess, FErrorHandler OnError);
+    static void GetPublicUserInfoResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetPublicUserInfoDelegate OnSuccess, FErrorHandler OnError);
 };
 
 } // Namespace Api

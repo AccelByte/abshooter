@@ -33,6 +33,27 @@ void UserProfile::GetUserProfile(const FGetUserProfileSuccess& OnSuccess, const 
 	Request->ProcessRequest();
 }
 
+void UserProfile::GetPublicUserProfileInfo(FString UserID, const FGetPublicUserProfileInfoSuccess& OnSuccess, const FErrorHandler& OnError)
+{
+    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles/public"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *UserID);
+    FString Verb = TEXT("GET");
+    FString ContentType = TEXT("application/json");
+    FString Accept = TEXT("application/json");
+    FString Content;
+
+    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(Url);
+    Request->SetHeader(TEXT("Authorization"), Authorization);
+    Request->SetVerb(Verb);
+    Request->SetHeader(TEXT("Content-Type"), ContentType);
+    Request->SetHeader(TEXT("Accept"), Accept);
+    //Request->SetContentAsString(Content);
+    Request->OnProcessRequestComplete().BindStatic(GetPublicUserProfileInfoResponse, OnSuccess, OnError);
+    Request->ProcessRequest();
+}
+
+
 void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FUpdateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
@@ -92,6 +113,21 @@ void UserProfile::GetUserProfileResponse(FHttpRequestPtr Request, FHttpResponseP
 	}
 	HandleHttpError(Request, Response, Code, Message);
 	OnError.ExecuteIfBound(Code, Message);
+}
+
+void UserProfile::GetPublicUserProfileInfoResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetPublicUserProfileInfoSuccess OnSuccess, FErrorHandler OnError)
+{
+    int32 Code;
+    FString Message;
+    if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    {
+        FAccelByteModelsPublicUserProfileInfo Result;
+        FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
+        OnSuccess.ExecuteIfBound(Result);
+        return;
+    }
+    HandleHttpError(Request, Response, Code, Message);
+    OnError.ExecuteIfBound(Code, Message);
 }
 
 void UserProfile::UpdateUserProfileResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FUpdateUserProfileSuccess OnSuccess, FErrorHandler OnError)
