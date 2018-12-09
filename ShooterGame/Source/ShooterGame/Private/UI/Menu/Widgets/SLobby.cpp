@@ -241,13 +241,15 @@ void SLobby::InitializeFriends()
     bSearchingForFriends = true;
     CompleteFriendList.Reset();
     //LobbyChatTabButtons.Reset();
+}
 
+void SLobby::OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response)
+{
+    
 }
 
 void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
 {
-
-
     TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
     FriendEntry1->UserId = UserID;
     FriendEntry1->Name = DisplayName;
@@ -452,10 +454,13 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
 
 TSharedPtr<FSlateDynamicImageBrush> SLobby::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
 {
+    UE_LOG(LogTemp, Log, TEXT("SShooterUserProfileWidget::CreateBrush : %s, Content Type: %s"), *ResourceName.ToString(), *ContentType);
     TSharedPtr<FSlateDynamicImageBrush> Brush;
+
     uint32 BytesPerPixel = 4;
     int32 Width = 0;
     int32 Height = 0;
+
     bool bSucceeded = false;
     TArray<uint8> DecodedImage;
     IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
@@ -463,7 +468,7 @@ TSharedPtr<FSlateDynamicImageBrush> SLobby::CreateBrush(FString ContentType, FNa
     int BitDepth = 8;
     //jpg
     EImageFormat ImageFormat = EImageFormat::JPEG;
-    ERGBFormat RgbFormat = ERGBFormat::RGBA;
+    ERGBFormat RgbFormat = ERGBFormat::BGRA;
     //png
     if (ContentType.Contains(TEXT("png")))
     {
@@ -496,6 +501,7 @@ TSharedPtr<FSlateDynamicImageBrush> SLobby::CreateBrush(FString ContentType, FNa
     {
         Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
     }
+
     return Brush;
 }
 
@@ -583,13 +589,13 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 						.AutoWrapText(true)
 					]
 				]
-				+ SHorizontalBox::Slot()	//3.INVITATION BUTTON
+				+ SHorizontalBox::Slot()	//3.Private Chat
 				.AutoWidth()
 				.VAlign(VAlign_Center)
 				.Padding(0, 0, 25, 0)
 				[
 					SNew(SButton)
-					.Visibility(this, &SFriendEntryWidget::InviteButtonVisible)
+					.Visibility(this, &SFriendEntryWidget::PrivateChatButtonVisible)
 					.OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
 					.ButtonStyle(&LobbyStyle->InviteButtonStyle)
 					.Content()
@@ -599,10 +605,26 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 						.TextStyle(&LobbyStyle->InviteButtonTextStyle)
 					]
 				]
+                + SHorizontalBox::Slot()	//3.Invite Party TODO
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    .Padding(0, 0, 25, 0)
+                    [
+                        SNew(SButton)
+                        .Visibility(this, &SFriendEntryWidget::InviteButtonVisible)
+                        .OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
+                        .ButtonStyle(&LobbyStyle->InviteButtonStyle)
+                        .Content()
+                        [
+                            SNew(STextBlock)
+                            .Text(FText::FromString(TEXT("Invite Party")))
+                            .TextStyle(&LobbyStyle->InviteButtonTextStyle)
+                        ]
+                    ]
 			;
 		}
 
-		FReply OnInviteClicked()
+		FReply OnPrivateChatClicked()
 		{   
             if (ParentClass.IsValid())
             {
@@ -618,7 +640,21 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
             return FReply::Handled();
 		}
 
-		
+        FReply OnInviteClicked()
+        {
+            if (ParentClass.IsValid())
+            {
+                //FString DisplayName = Item->UserId;
+                //if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+                //{
+                //    DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
+                //}
+
+                ParentClass.Pin()->InviteToParty(Item->UserId);
+            }
+
+            return FReply::Handled();
+        }
 
 		const FSlateBrush* GetProfileAvatar() const {
 			if (ParentClass.Pin()->CheckAvatar(Item->Name))
@@ -640,6 +676,19 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
             return FText::FromString(Item->Name); 
         }
 		FText GetPresence() const { return FText::FromString(Item->Presence); }
+
+
+        EVisibility PrivateChatButtonVisible() const
+        {
+            if (Item->Presence == TEXT("Online"))
+            {
+                return EVisibility::Visible;
+            }
+            else
+            {
+                return EVisibility::Hidden;
+            }
+        }
 
 		EVisibility InviteButtonVisible() const
 		{
@@ -686,6 +735,11 @@ void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
 	ScrollBoxChatTabs->AddSlot().AttachWidget(LobbyChatTabButtons[LobbyChatTabButtons.Num() - 1].ToSharedRef());
 	SelectTab(LobbyChatTabButtons.Num() - 1);
+}
+
+void SLobby::InviteToParty(FString UserId)
+{
+    
 }
 
 TSharedPtr<SWidget> SLobby::GetActiveChatTabWidget()

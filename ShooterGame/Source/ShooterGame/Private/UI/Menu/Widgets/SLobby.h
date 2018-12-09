@@ -265,6 +265,7 @@ public:
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
 
+    void OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response);
 
 	void BeginFriendSearch();
 	void OnFriendSearchFinished();
@@ -275,6 +276,7 @@ public:
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
     void AddChatTab(FString UserId, FString DisplayName, FString PartyId);
+    void InviteToParty(FString UserId);
 
     //static TSharedRef<SLobby> CreateRoot()
     //{
