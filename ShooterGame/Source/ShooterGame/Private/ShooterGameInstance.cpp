@@ -179,14 +179,9 @@ void UShooterGameInstance::Init()
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Parsing Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
     });
 
-
     AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%s"), StatusCode, *Reason, WasClean);
     });
-
-
-
-
 
     AccelByte::Api::Lobby::Get().BindEvent(
         OnLobbyConnected, 

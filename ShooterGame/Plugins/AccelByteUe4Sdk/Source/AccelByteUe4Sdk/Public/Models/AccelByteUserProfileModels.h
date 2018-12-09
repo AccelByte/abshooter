@@ -35,18 +35,6 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsUserProfileInfo
 	FString DateOfBirth;
 };
 
-
-
-
-//{
-//    "userId": "string",
-//        "namespace" : "string",
-//        "timeZone" : "string",
-//        "avatarSmallUrl" : "string",
-//        "avatarUrl" : "string",
-//        "avatarLargeUrl" : "string"
-//}
-
 USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsPublicUserProfileInfo
 {

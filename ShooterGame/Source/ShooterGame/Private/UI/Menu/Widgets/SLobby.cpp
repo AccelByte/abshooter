@@ -617,7 +617,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
                         .Content()
                         [
                             SNew(STextBlock)
-                            .Text(FText::FromString(TEXT("Invite Party")))
+                            .Text(FText::FromString(TEXT("INVITE PARTY")))
                             .TextStyle(&LobbyStyle->InviteButtonTextStyle)
                         ]
                     ]
@@ -644,15 +644,8 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
         {
             if (ParentClass.IsValid())
             {
-                //FString DisplayName = Item->UserId;
-                //if (ParentClass.Pin()->CheckDisplayName(Item->Name))
-                //{
-                //    DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
-                //}
-
                 ParentClass.Pin()->InviteToParty(Item->UserId);
             }
-
             return FReply::Handled();
         }
 
@@ -813,10 +806,8 @@ void SLobby::SelectTab(int32 TabIndex)
 
 void SLobby::SendChat(FString UserId, FString Message)
 {
-
 	// send from this user to target user ( UserId)
     AccelByte::Api::Lobby::Get().SendPrivateMessage(UserId, Message);
-
 
     // append to chat box UI
 	for (int32 i = 0; i < LobbyChatPages.Num(); i++)
@@ -833,7 +824,6 @@ void SLobby::SendChat(FString UserId, FString Message)
 void SLobby::ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
 {
     // append to chat box UI
-    //
     for (int32 i = 0; i < LobbyChatPages.Num(); i++)
     {
         if (LobbyChatPages[i]->UserId.Equals(Response.From))
