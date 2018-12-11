@@ -68,6 +68,11 @@ public:
 	 * @param OnError This will be called when the operation failed.
 	 */
 	static void CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
+    static void CreateDefaultUserProfile(FString DisplayName, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError);
+
+    DECLARE_DELEGATE_OneParam(FCreateEntitlementReceiverSuccess, const FString&);
+    static void CreateEntitlementReceiver(FString UserID, FString ExternalUserID, FString Content, const FCreateEntitlementReceiverSuccess& OnSuccess, const FErrorHandler& OnError);
+
 private:
 	UserProfile() = delete; // static class can't have instance
 	UserProfile(UserProfile const&) = delete;
@@ -77,6 +82,8 @@ private:
     static void GetPublicUserProfileInfoResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetPublicUserProfileInfoSuccess OnSuccess, FErrorHandler OnError);
 	static void UpdateUserProfileResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FUpdateUserProfileSuccess OnSuccess, FErrorHandler OnError);
 	static void CreateUserProfileResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FCreateUserProfileSuccess OnSuccess, FErrorHandler OnError);
+
+    static void CreateEntitlementReceiverResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FCreateEntitlementReceiverSuccess OnSuccess, FErrorHandler OnError);
 	
 };
 

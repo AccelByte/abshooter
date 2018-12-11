@@ -6,6 +6,7 @@
 #include "ShooterGameInstance.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
+#include "ShooterGameUserSettings.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -16,6 +17,11 @@
 void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+
+    //grab the user settings
+    UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
+    ScreenRes = UserSettings->GetScreenResolution();
+
 
     //FriendListCache = MakeShared<FriendCache>();
     AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
@@ -33,7 +39,9 @@ void SLobby::Construct(const FArguments& InArgs)
 	MinTimeBetweenSearches = 0.0;
 #endif
 
-    AccelByte::Api::Lobby::Get().SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::ReceivePrivateChat));
+    AccelByte::Api::Lobby::Get().SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::OnReceivePrivateChat));
+    // receive presence change
+    AccelByte::Api::Lobby::Get().SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FUserPresenceNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
 
 
 	ChildSlot
@@ -95,7 +103,7 @@ void SLobby::Construct(const FArguments& InArgs)
 								+ SHeaderRow::Column("Friend")
 								.HAlignCell(HAlign_Fill)
 								.VAlignCell(VAlign_Fill)
-								.FixedWidth(500)
+								.FillWidth(1.0)
 								.DefaultLabel(NSLOCTEXT("FriendList", "FriendColumn", "Friends"))
 								.HAlignHeader(HAlign_Center)
 								.VAlignHeader(VAlign_Center)
@@ -148,7 +156,7 @@ void SLobby::Construct(const FArguments& InArgs)
 				.FillHeight(1.0f)
 				[
 					SNew(SBox)
-					.HeightOverride(300.0f)
+					.HeightOverride(250.0f)
 					.WidthOverride(600.0f)
 					.VAlign(VAlign_Fill)
 					.HAlign(HAlign_Fill)
@@ -214,9 +222,78 @@ void SLobby::Construct(const FArguments& InArgs)
 	;
 }
 
+FOptionalSize SLobby::GetLobbyHeight() const
+{
+    return FOptionalSize(ScreenRes.Y * 0.7);
+}
+int32 SLobby::GetLobbyWidth() const
+{
+    return ScreenRes.X * 0.8;
+}
+
+
 void SLobby::InputReceived()
 {
 	GEngine->AddOnScreenDebugMessage(1, 15, FColor::White, TEXT("Input received"));
+}
+
+void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
+{
+    UE_LOG(LogTemp, Log, TEXT("OnUserPresenceNotification: %s playing game: %s"), *Response.UserID, *Response.GameName);
+
+    // add to friend list, download the avatar
+    if (Response.GameName == "Shooter Game" && Response.StatusID == "21")
+    {
+        // user online
+        // check if exist
+        bool found = false;
+        for (int i = 0; i < CompleteFriendList.Num(); i++)
+        {
+            if (CompleteFriendList[i]->UserId == Response.UserID)
+            {
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found)
+        {
+            AddFriend(Response.UserID, Response.UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
+            RefreshFriendList();
+            UpdateSearchStatus();
+        }
+        else
+        {
+            // update his status
+            for (int i = 0; i < CompleteFriendList.Num(); i++)
+            {
+                if (CompleteFriendList[i]->UserId == Response.UserID)
+                {
+                    CompleteFriendList[i]->Presence = "Online";
+                    break;
+                }
+            }
+            RefreshFriendList();
+            UpdateSearchStatus();
+        }
+    }
+    else if (Response.StatusID == "24")
+    {
+        UE_LOG(LogTemp, Log, TEXT("There is user going offline : %s"), *Response.UserID);
+        // user is offline, update his status
+        // update UI
+        for (int i = 0; i < CompleteFriendList.Num(); i++)
+        {
+            if (CompleteFriendList[i]->UserId == Response.UserID)
+            {
+                UE_LOG(LogTemp, Log, TEXT("Set the user to offline : %s"), *Response.UserID);
+                CompleteFriendList[i]->Presence = "Offline";
+                break;
+            }
+        }
+        RefreshFriendList();
+        UpdateSearchStatus();
+    }
 }
 
 /** Updates current search status */
@@ -327,7 +404,6 @@ void SLobby::BeginFriendSearch()
 	bSearchingForFriends = true;
 	CompleteFriendList.Reset();
 	LobbyChatTabButtons.Reset();
-	// ^^^^^^ Get online user
 }
 
 /** Called when server search is finished */
@@ -596,12 +672,12 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 				[
 					SNew(SButton)
 					.Visibility(this, &SFriendEntryWidget::PrivateChatButtonVisible)
-					.OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
+					.OnClicked(this, &SFriendEntryWidget::OnPrivateChatClicked)
 					.ButtonStyle(&LobbyStyle->InviteButtonStyle)
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString(TEXT("PRIVATE CHAT")))
+						.Text(FText::FromString(TEXT("CHAT")))
 						.TextStyle(&LobbyStyle->InviteButtonTextStyle)
 					]
 				]
@@ -702,6 +778,20 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 {
+    // find existing
+    for (int i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->UserId == UserId)
+        {
+            // chat tab already existed;
+            return;
+        }
+    }
+
+
+
+
+
 	//Create Conversation Widget
 	LobbyChatPages.Add
 	(
@@ -821,7 +911,7 @@ void SLobby::SendChat(FString UserId, FString Message)
 	}
 }
 
-void SLobby::ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
+void SLobby::OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
 {
     // append to chat box UI
     for (int32 i = 0; i < LobbyChatPages.Num(); i++)
@@ -835,9 +925,14 @@ void SLobby::ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Res
             return;
         }
     }
+    int32 iLastNum = LobbyChatPages.Num();
 
     //no chat tab, create new chat
-    //AddChatTab()
+    FString DisplayName = CheckDisplayName(Response.From) ? GetDisplayName(Response.From) : Response.From;
+    AddChatTab(Response.From, DisplayName, TEXT("No Party ID"));
+    LobbyChatPages[iLastNum]->AppendConversation(DisplayName, Response.Payload);
+    
+
 }
 
 #pragma endregion CHAT

@@ -96,6 +96,45 @@ void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateReque
 	Request->ProcessRequest();
 }
 
+void UserProfile::CreateDefaultUserProfile(FString DisplayName, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
+{
+    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
+    FString Verb = TEXT("POST");
+    FString ContentType = TEXT("application/json");
+    FString Accept = TEXT("application/json");
+    FString Content = FString::Printf(TEXT("{\"firstName\":\"%s\",\"avatarSmallUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\",\"avatarUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\",\"avatarLargeUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\"}"), *DisplayName);
+
+    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(Url);
+    Request->SetHeader(TEXT("Authorization"), Authorization);
+    Request->SetVerb(Verb);
+    Request->SetHeader(TEXT("Content-Type"), ContentType);
+    Request->SetHeader(TEXT("Accept"), Accept);
+    Request->SetContentAsString(Content);
+    Request->OnProcessRequestComplete().BindStatic(CreateUserProfileResponse, OnSuccess, OnError);
+    Request->ProcessRequest();
+}
+
+void UserProfile::CreateEntitlementReceiver(FString UserID, FString ExternalUserID, FString Content, const FCreateEntitlementReceiverSuccess & OnSuccess, const FErrorHandler & OnError)
+{
+    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/entitlements/receivers/%s"), *Settings::PlatformServerUrl, *Settings::Namespace, *UserID, *ExternalUserID);
+    FString Verb = TEXT("POST");
+    FString ContentType = TEXT("application/json");
+    FString Accept = TEXT("application/json");        
+
+    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(Url);
+    Request->SetHeader(TEXT("Authorization"), Authorization);
+    Request->SetVerb(Verb);
+    Request->SetHeader(TEXT("Content-Type"), ContentType);
+    Request->SetHeader(TEXT("Accept"), Accept);
+    Request->SetContentAsString(Content);
+    Request->OnProcessRequestComplete().BindStatic(CreateEntitlementReceiverResponse, OnSuccess, OnError);
+    Request->ProcessRequest();
+}
+
 // =============================================================================================================================
 // ========================================================= Responses =========================================================
 // =============================================================================================================================
@@ -156,6 +195,21 @@ void UserProfile::CreateUserProfileResponse(FHttpRequestPtr Request, FHttpRespon
 	}
 	HandleHttpError(Request, Response, Code, Message);
 	OnError.ExecuteIfBound(Code, Message);
+}
+
+void UserProfile::CreateEntitlementReceiverResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FCreateEntitlementReceiverSuccess OnSuccess, FErrorHandler OnError)
+{
+    int32 Code;
+    FString Message;
+    if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    {
+        //FAccelByteModelsUserProfileInfo Result;
+        //FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
+        OnSuccess.ExecuteIfBound(Response->GetContentAsString());
+        return;
+    }
+    HandleHttpError(Request, Response, Code, Message);
+    OnError.ExecuteIfBound(Code, Message);
 }
 
 } // Namespace Api

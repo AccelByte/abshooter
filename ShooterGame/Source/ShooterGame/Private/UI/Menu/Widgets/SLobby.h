@@ -271,6 +271,11 @@ public:
     TSharedPtr < ProfileCache, ESPMode::ThreadSafe > AvatarListCache;
     TSharedPtr < ProfileCache, ESPMode::ThreadSafe > DiplayNameListCache;
     TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  ThumbnailBrushCache;
+    /** screen resolution */
+    FIntPoint ScreenRes;
+
+    FOptionalSize GetLobbyHeight() const;
+    int32 GetLobbyWidth() const;
 
 
 
@@ -329,7 +334,9 @@ protected:
 	FReply OnChatTabScrollLeftClicked();
 	void SelectTab(int32 TabIndex);
 	void SendChat(FString UserId, FString Message);
-	void ReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response);
+
+	void OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response);
+    void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
 
 #pragma endregion CHAT
 };
