@@ -51,6 +51,12 @@ public:
 	/* Tell the HUD to toggle the chat window. */
 	void ToggleChatWindow();
 
+	/* Take a screenshot */
+	void TakeScreenshot();
+
+	/* Toggle screenshot menu */
+	void ToggleScreenshotWindow();
+
 	/** Local function say a string */
 	UFUNCTION(exec)
 	virtual void Say(const FString& Msg);
@@ -251,6 +257,8 @@ protected:
 	FDelegateHandle LeaderboardReadCompleteDelegateHandle;
 	void ClearLeaderboardDelegate();
 
+	TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
+
 public:
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
 	//End AActor interface
@@ -311,9 +319,14 @@ public:
 	// For tracking whether or not to send the end event
 	bool bHasSentStartEvents;
 
+	const TArray<TSharedPtr<FSlateBrush>>& GetScreenshotList();
+
 private:
 
 	/** Handle for efficient management of ClientStartOnlineGame timer */
 	FTimerHandle TimerHandle_ClientStartOnlineGame;
+
+	/** Hold Player Screenshot */
+	TArray<TSharedPtr<FSlateBrush>> ScreenshotList;
 };
 

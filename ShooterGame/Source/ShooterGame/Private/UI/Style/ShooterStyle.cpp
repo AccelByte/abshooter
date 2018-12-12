@@ -48,6 +48,7 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 
 	// Load the image icon to be used for displaying when a image loading
 	Style.Set("ShooterGame.Image", new IMAGE_BRUSH("Images/ImageIcon", FVector2D(32, 32)));
+	Style.Set("ShooterGame.CornerBorder", new BOX_BRUSH("Images/ProfileBorder", FMargin(0.1f)));
 
 	// Load inventory icons
 	Style.Set("ShooterGame.LaserBeam", new IMAGE_BRUSH("Images/LaserBeam", FVector2D(96, 96)));
