@@ -444,26 +444,8 @@ void FShooterMainMenu::AddMenuToGameViewport()
 	}
 }
 
-
-
-
 void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FString AvatarURL)
 {
-	// update the ui, download the image
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("UpdateUserProfile Username"));
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Username);
-
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("UpdateUserProfile UserID"));
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, UserID);
-
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("UpdateUserProfile Avatar"));
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, AvatarURL);
-	}
-
-
 	UserProfileWidget->UserName = FText::FromString(Username);
 	UserProfileWidget->UserID = FText::FromString(UserID);
 	UserProfileWidget->UpdateAvatar(AvatarURL);

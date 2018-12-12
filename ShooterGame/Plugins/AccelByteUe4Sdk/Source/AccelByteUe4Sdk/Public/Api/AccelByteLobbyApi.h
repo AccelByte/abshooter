@@ -386,6 +386,13 @@ public:
      */
     void SetUserPresenceResponseDelegate(FSetUserPresenceResponse OnSetUserPresenceResponse) { SetUserPresenceResponse = OnSetUserPresenceResponse; };
 
+
+
+
+
+    void SetUserPresenceNotifDelegate(FUserPresenceNotif OnUserPresenceNotif) { UserPresenceNotif = OnUserPresenceNotif; };
+
+
     /**
      * @brief set info party response
      *

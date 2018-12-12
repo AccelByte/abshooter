@@ -258,11 +258,6 @@ void SShooterUserProfileWidget::BuildAndShowMenu()
 
 void SShooterUserProfileWidget::UpdateAvatar(FString Url)
 {
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, TEXT("Start Downloading avatar"));
-		GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, Url);
-	}
 	if (!bProfileUpdated)
 	{
 		// start download avatar
