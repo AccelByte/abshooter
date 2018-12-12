@@ -234,7 +234,7 @@ int32 SLobby::GetLobbyWidth() const
 
 void SLobby::InputReceived()
 {
-	GEngine->AddOnScreenDebugMessage(1, 15, FColor::White, TEXT("Input received"));
+
 }
 
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
@@ -515,8 +515,7 @@ void SLobby::OnTextSearchChanged(const FText& Text)
 			}
 		}
 	}
-	FriendListWidget->RequestListRefresh();
-	GEngine->AddOnScreenDebugMessage(1, .4f, FColor::White, Text.ToString());
+	FriendListWidget->RequestListRefresh();	
 }
 
 void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID)
@@ -889,8 +888,6 @@ void SLobby::SelectTab(int32 TabIndex)
 		ButtonChatTabScrollLeft->SetEnabled(false);
 		ButtonChatTabScrollRight->SetEnabled(false);
 	}
-
-	GEngine->AddOnScreenDebugMessage(1, 1, FColor::White, TEXT("SelectedTabIndex") + FString::FromInt(TabIndex));
 	UE_LOG(LogTemp, Log, TEXT("Selected Tab: %d"), TabIndex);
 }
 
