@@ -36,7 +36,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 			TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
 			ThumbRequest->SetVerb("GET");
 			ThumbRequest->SetURL(item->ImageURL);
-			ThumbRequest->OnProcessRequestComplete().BindSP(this, &SShooterInventoryItem::OnThumbImageReceived);
+			ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterInventoryItem::OnThumbImageReceived);
 			ThumbRequest->ProcessRequest();
 		}
 		else
