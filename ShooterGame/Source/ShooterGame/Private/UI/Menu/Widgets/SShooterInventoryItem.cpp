@@ -118,8 +118,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 				[
 					SNew(STextBlock)
 					.TextStyle(&InventoryStyle->AmountTextStyle)
-					.Text(FText::AsNumber(item->Quantity))
-					.Visibility(item->Consumable ? EVisibility::Visible : EVisibility::Collapsed)
+					.Text(FText::AsNumber(item->Quantity))					
 				]
 			]
 			+ SVerticalBox::Slot()
