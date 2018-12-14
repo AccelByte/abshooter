@@ -41,6 +41,8 @@ FString AShooterGameMode::GetBotsCountOptionName()
 
 void AShooterGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
+    UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameMode::InitGame Option: %s"), *Options);
+
 	const int32 BotsCountOptionValue = UGameplayStatics::GetIntOption(Options, GetBotsCountOptionName(), 0);
 	SetAllowBots(BotsCountOptionValue > 0 ? true : false, BotsCountOptionValue);	
 	Super::InitGame(MapName, Options, ErrorMessage);
@@ -250,6 +252,7 @@ bool AShooterGameMode::IsWinner(class AShooterPlayerState* PlayerState) const
 
 void AShooterGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
+    UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameMode::PreLogin: %s"), *Options);
 	AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
 	const bool bMatchIsOver = MyGameState && MyGameState->HasMatchEnded();
 	if( bMatchIsOver )

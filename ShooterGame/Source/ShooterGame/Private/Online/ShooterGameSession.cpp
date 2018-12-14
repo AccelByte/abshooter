@@ -99,6 +99,8 @@ void AShooterGameSession::HandleMatchHasEnded()
 
 			// server is handled here
 			UE_LOG(LogOnlineGame, Log, TEXT("Ending session %s on server"), *FName(NAME_GameSession).ToString() );
+            // call match making service, tell that session is end
+            UE_LOG(LogOnlineGame, Log, TEXT("Calling matchmaking server: %s"), *FName(NAME_GameSession).ToString());
 			Sessions->EndSession(NAME_GameSession);
 		}
 	}

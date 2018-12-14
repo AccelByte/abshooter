@@ -229,7 +229,6 @@ void UShooterGameInstance::Init()
     });
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
     AccelByte::Api::UserAuthentication::LoginFromLauncher(FString(AuthorizationCode), OnLoginSuccess, OnLoginError);
-#endif
 
 	// Blocking here
 	double LastTime = FPlatformTime::Seconds();
@@ -240,6 +239,7 @@ void UShooterGameInstance::Init()
 		LastTime = AppTime;
 		FPlatformProcess::Sleep(0.5f);
 	}
+#endif
 }
 
 void UShooterGameInstance::Shutdown()

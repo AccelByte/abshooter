@@ -158,7 +158,6 @@ void SLobby::Construct(const FArguments& InArgs)
 				.HAlign(HAlign_Fill)
 				[
 					SNew(SHorizontalBox)
-
 					+ SHorizontalBox::Slot()	//2.1 INPUT FIELD
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Center)
@@ -180,13 +179,12 @@ void SLobby::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				[
 					SNew(SHorizontalBox)	//NonScrollBar
-
 					+ SHorizontalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
 						SNew(SBox)
 						.HAlign(HAlign_Fill)
-						.HeightOverride(800)
+						.HeightOverride(this, &SLobby::GetLobbyHeight)
 						[
 							SAssignNew(FriendListWidget, SListView<TSharedPtr<FFriendEntry>>)
 							.ListItemsSource(&FriendList)
@@ -212,6 +210,7 @@ void SLobby::Construct(const FArguments& InArgs)
 					]
 
 					+ SHorizontalBox::Slot()	//Scroll player list
+                    
 					.AutoWidth()
 					[
 						SNew(SBox)

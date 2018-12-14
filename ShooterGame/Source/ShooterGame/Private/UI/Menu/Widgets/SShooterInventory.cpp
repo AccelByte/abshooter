@@ -225,20 +225,29 @@ void SShooterInventory::GetUserEntitlements()
 		TMap<FString, int> Quantities;
 		for (int i = 0; i < Result.Data.Num(); i++)
 		{
-			Quantities[Result.Data[i].ItemId] = Quantities.FindOrAdd(Result.Data[i].ItemId) + Result.Data[i].UseCount;
+            if (Result.Data[i].Type == EAccelByteEntitlementType::DURABLE)
+            {
+                Quantities[Result.Data[i].ItemId] = Quantities.FindOrAdd(Result.Data[i].ItemId) + 1;
+            }
+            else
+            {
+                Quantities[Result.Data[i].ItemId] = Quantities.FindOrAdd(Result.Data[i].ItemId) + Result.Data[i].UseCount;
+            }			
 		}
 
 		for (TSharedPtr<FInventoryEntry> entry : InventoryList)
 		{
-			int * Quantity = Quantities.Find(entry->ItemId);
-			if ( Quantity != nullptr && *Quantity > 0)
-			{
-				entry->Quantity = *Quantity;
-			}
-			else if (entry->Consumable)
-			{
-				entry->Owned = false;
-			}
+            int* Quantity = Quantities.Find(entry->ItemId);
+            if (Quantity != nullptr)
+            {                
+                entry->Quantity = (*Quantity > 0) ? *Quantity : 1;
+                entry->Owned = true;
+            }
+            else
+            {
+                entry->Quantity = 0;
+                entry->Owned = false;
+            }
 		}
 		InventoryListWidget->RequestListRefresh();
 	}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
