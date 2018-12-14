@@ -156,19 +156,20 @@ void UShooterGameInstance::Init()
 	}
 	
 	
-	TCHAR AuthorizationCode[512];
+	//TCHAR AuthorizationCode[512];
 #ifdef _WIN32
- 	FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 512);
+	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 #elif __linux__ || __clang__
-	FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode.Get(), 512);
+	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 #endif
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), AuthorizationCode);
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
 	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
     AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
     AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
         AccelByte::Api::Lobby::Get().SendSetPresenceStatus(AccelByte::Api::Lobby::Presence::Online, TEXT("Shooter Game"));
+		AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
     });
 
 

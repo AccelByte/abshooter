@@ -33,7 +33,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsInfoPartyResponse
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
         TArray<FString> Members;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-        FString Invitees;
+        TArray<FString> Invitees;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
         FString InvitationToken;
 };
@@ -124,9 +124,9 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsPartyJoinReponse
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
         FString LeaderId;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-        FString Members;
+        TArray<FString> Members;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-        FString Invitees;
+        TArray<FString> Invitees;
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
         FString InvitationToken;
 };

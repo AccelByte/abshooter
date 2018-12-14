@@ -6,6 +6,7 @@
 #include "ShooterGameInstance.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
+#include "SShooterConfirmationDialog.h"
 #include "ShooterGameUserSettings.h"
 
 // AccelByte
@@ -43,6 +44,105 @@ void SLobby::Construct(const FArguments& InArgs)
     // receive presence change
     AccelByte::Api::Lobby::Get().SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FUserPresenceNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
 
+	OnIncomingPartyInvitation = AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateLambda([&](const FAccelByteModelsPartyGetInvitedNotice& Notification)
+	{
+		AccelByte::Api::Oauth2::GetPublicUserInfo(Notification.From, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&, Notification](const FAccelByteModelsOauth2UserInfo& UserInfo)
+		{
+			SAssignNew(InvitationOverlay, SOverlay)
+				+ SOverlay::Slot()
+				[
+					SNew(SBox)
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					//[
+					//	SNew(SImage)
+					//	.Image(&LobbyStyle->PartyInvitationBackground)
+					//]
+				]
+			+ SOverlay::Slot()
+				[
+					SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+					.MessageText(FText::FromString(FString::Printf(TEXT("You're invited by %s to join a party."), (UserInfo.DisplayName != "" ? *UserInfo.DisplayName : *Notification.From))))
+					.ConfirmText(FText::FromString("Accept"))
+					.CancelText(FText::FromString("Reject"))
+					.OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
+					{
+						AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+						AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
+						AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
+						{
+							PartyWidget->ResetAll();
+							PartyWidget->InsertLeader(Response.LeaderId);
+							for (FString MemberId : Response.Members)
+							{
+								if (MemberId != Response.LeaderId) 
+								{
+									PartyWidget->InsertMember(MemberId);
+								}
+							}
+							PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+						}));
+						if (InvitationOverlay.IsValid())
+						{
+							GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
+							InvitationOverlay.Reset();
+						}
+						return FReply::Handled();
+					}))
+					.OnCancelClicked(FOnClicked::CreateLambda([&]()
+					{
+						if (InvitationOverlay.IsValid())
+						{
+							GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
+							InvitationOverlay.Reset();
+						}
+						return FReply::Handled();
+					}))
+					];
+
+			GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());
+			FSlateApplication::Get().SetKeyboardFocus(InvitationOverlay);
+			}), 
+			AccelByte::FErrorHandler::CreateLambda([](int32 Code, FString Messsage)
+			{
+				UE_LOG(LogTemp, Log, TEXT("There's an incoming invitation, but the can't obtain the inviter's information."));
+			}));
+	}
+	);
+
+	OnInvitedFriendJoin = AccelByte::Api::Lobby::FPartyJoinNotif::CreateLambda([&](const FAccelByteModelsPartyJoinNotice& Notification)
+	{
+		AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+	});
+
+	AccelByte::Api::Lobby::Get().SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateLambda([&](const FAccelByteModelsInfoPartyResponse& PartyInfo)
+	{
+		PartyWidget->ResetAll();
+		PartyWidget->InsertLeader(PartyInfo.LeaderId);
+		for (FString MemberId : PartyInfo.Members)
+		{
+			if (MemberId!=PartyInfo.LeaderId)
+			{
+				PartyWidget->InsertMember(MemberId);
+			}
+		}
+		PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+	}));
+
+	AccelByte::Api::Lobby::Get().BindEvent(
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		OnIncomingPartyInvitation,
+		OnInvitedFriendJoin,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr,
+		nullptr);
 
 	ChildSlot
 		.VAlign(VAlign_Fill)
@@ -138,17 +238,19 @@ void SLobby::Construct(const FArguments& InArgs)
 				SNew(SVerticalBox)
 				
 				+ SVerticalBox::Slot()		//PARTY Members those invited
-				.VAlign(VAlign_Top)
-				.AutoHeight()
+				.VAlign(VAlign_Fill)
+				.FillHeight(1.0f)
 				[
-					SNew(SBox)
-					.HeightOverride(500)
-					.HAlign(HAlign_Fill)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString(TEXT("YOUR PARTY")))
-						.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")
-					]
+					//SNew(SBox)
+					//.HeightOverride(500)
+					//.HAlign(HAlign_Fill)
+					//[
+					//	SNew(STextBlock)
+					//	.Text(FText::FromString(TEXT("YOUR PARTY")))
+					//	.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")
+					//]
+					SAssignNew(PartyWidget, SParty)
+					.LobbyStyle(LobbyStyle)
 				]
 				
 				+ SVerticalBox::Slot()		//CHAT Area
@@ -821,7 +923,7 @@ void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 
 void SLobby::InviteToParty(FString UserId)
 {
-    
+	AccelByte::Api::Lobby::Get().SendInviteToPartyRequest(UserId);
 }
 
 TSharedPtr<SWidget> SLobby::GetActiveChatTabWidget()

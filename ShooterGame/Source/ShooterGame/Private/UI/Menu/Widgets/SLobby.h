@@ -10,8 +10,12 @@
 #include "Framework/Text/IRichTextMarkupParser.h"
 #include "Framework/Text/IRichTextMarkupWriter.h"
 #include "LobbyStyle.h"
-
 #include "Models/AccelByteLobbyModels.h"
+#include "Api/AccelByteUserAuthenticationApi.h"
+#include "Api/AccelByteUserManagementApi.h"
+#include "Api/AccelByteUserProfileApi.h"
+#include "Api/AccelByteOauth2Api.h"
+#include "Api/AccelByteLobbyApi.h"
 
 struct FFriendEntry
 {
@@ -217,6 +221,278 @@ public:
 
 };
 
+class SPartyMember : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SPartyMember)
+	{}
+	SLATE_DEFAULT_SLOT(FArguments, Content)
+		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
+		SLATE_END_ARGS()
+
+	TSharedPtr<SImage> LeaderBadge;
+	TSharedPtr<SImage> ProfilePicture;
+	TSharedPtr<STextBlock> Name;
+	TSharedPtr<SButton> KickButton;
+	TSharedPtr<SImage> NoMemberImage;
+	FString UserId;
+	bool bIsOccupied = false;
+
+	void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
+			.VAlign(VAlign_Fill)
+			.HAlign(HAlign_Fill)
+			[
+
+				SNew(SOverlay)
+
+				+ SOverlay::Slot()			//MainInfo
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()			//LeaderBadge
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Top)
+					.AutoWidth()
+					[
+						SAssignNew(LeaderBadge, SImage)
+						.Image(&InArgs._LobbyStyle->PartyLeaderIcon)
+						
+					]
+
+					+ SHorizontalBox::Slot()			//Profile
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Center)
+					.FillWidth(1.0f)
+					[
+						SNew(SHorizontalBox)
+
+						+ SHorizontalBox::Slot()			//Picture
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SAssignNew(ProfilePicture, SImage)
+						]
+
+						+ SHorizontalBox::Slot()			//Name
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Center)
+						.FillWidth(1.0f)
+						[
+							SAssignNew(Name, STextBlock)
+						]
+					]
+
+					+ SHorizontalBox::Slot()			//Kick
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Top)
+					.AutoWidth()
+					[
+						SAssignNew(KickButton, SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(TEXT("KICK")))
+						]
+					]
+				]
+
+				+ SOverlay::Slot()			//NoMemberYet
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SAssignNew(NoMemberImage, SImage)
+					.Image(&InArgs._LobbyStyle->UnoccupiedPartySlot)
+				]
+			
+			];
+	}
+
+	void Set(FString ID, bool IsPartyLeader)
+	{
+		UserId = ID;
+		AccelByte::Api::Oauth2::GetPublicUserInfo(ID, 
+			AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&](const FAccelByteModelsOauth2UserInfo& Info)
+			{
+				Name->SetText(FText::FromString(Info.DisplayName));
+			}),
+			AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+			{
+				Name->SetText(FText::FromString(TEXT("<NotObtained>")));
+				UE_LOG(LogTemp, Log, TEXT("Failed to get party member's <%s> public user info\nErrorCode: %d\nErrorMessage: %s\n"), *ID, Code, *Message);
+			}));
+
+		AccelByte::Api::UserProfile::GetPublicUserProfileInfo(ID, 
+			AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([](const FAccelByteModelsPublicUserProfileInfo& Info)
+			{
+				//Info.AvatarSmallUrl
+			}), 
+			AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+			{
+				UE_LOG(LogTemp, Log, TEXT("Failed to get party member's <%s> public user profile\nErrorCode: %d\nErrorMessage: %s\n"), *ID, Code, *Message);
+			}));
+		//handle avatar picture
+		LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
+		KickButton->SetVisibility(!IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
+		NoMemberImage->SetVisibility(EVisibility::Collapsed);
+		bIsOccupied = true;
+	}
+
+	void Release()
+	{
+		bIsOccupied = false;
+		Name->SetText(FString::Printf(TEXT("")));
+		ProfilePicture.Reset();
+		//AccelByte::Api::Lobby::SendKickPartyMemberRequest(UserId);
+		NoMemberImage->SetVisibility(EVisibility::Visible);
+	}
+};
+
+class SParty: public SOverlay
+{
+public:
+	SLATE_BEGIN_ARGS(SParty)
+	{}
+	SLATE_DEFAULT_SLOT(FArguments, Content)
+		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
+		SLATE_END_ARGS()
+
+	TSharedPtr<SPartyMember> Leader;
+	TSharedPtr<SPartyMember> Member1;
+	TSharedPtr<SPartyMember> Member2;
+	TSharedPtr<SPartyMember> Member3;
+	TSharedPtr<SButton> ButtonCreateParty;
+	TArray<TSharedPtr<SPartyMember>> PartyMembers;
+
+	void Construct(const FArguments& InArgs)
+	{
+		SOverlay::Construct(
+			SOverlay::FArguments()
+			+SOverlay::Slot()	//hold party members
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()		
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				.FillHeight(1.0f)
+				[
+					SNew(SHorizontalBox)		//member 0 (lead) + member 1
+
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.FillWidth(1.0f)
+					[
+						SAssignNew(Leader, SPartyMember)
+						.LobbyStyle(InArgs._LobbyStyle)
+					]
+
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.FillWidth(1.0f)
+					[
+						SAssignNew(Member1, SPartyMember)
+						.LobbyStyle(InArgs._LobbyStyle)
+					]
+				]
+
+				+ SVerticalBox::Slot()		
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				.FillHeight(1.0f)
+				[
+					SNew(SHorizontalBox)		//member 2 + member 3
+
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.FillWidth(1.0f)
+					[
+						SAssignNew(Member2, SPartyMember)
+						.LobbyStyle(InArgs._LobbyStyle)
+					]
+
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Fill)
+					.VAlign(VAlign_Fill)
+					.FillWidth(1.0f)
+					[
+						SAssignNew(Member3, SPartyMember)
+						.LobbyStyle(InArgs._LobbyStyle)
+					]
+				]
+			]
+
+			+SOverlay::Slot()
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SAssignNew(ButtonCreateParty, SButton)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(TEXT("CreateParty")))
+					.Justification(ETextJustify::Center)
+				]
+			]
+		);
+		PartyMembers.Add(Leader);
+		PartyMembers.Add(Member1);
+		PartyMembers.Add(Member2);
+		PartyMembers.Add(Member3);
+		for (int i = 0; i < PartyMembers.Num(); i++)
+		{
+			PartyMembers[i]->KickButton->SetOnClicked(FOnClicked::CreateLambda([&]()
+			{
+				PartyMembers[i]->Release();
+				return FReply::Handled();
+			}));
+		}
+		ButtonCreateParty->SetOnClicked(FOnClicked::CreateLambda([&]()
+		{
+			AccelByte::Api::Lobby::Get().SendCreatePartyRequest();
+			ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+			return FReply::Handled();
+		}));
+	}
+
+	void InsertMember(FString ID)
+	{
+		for(int i = 1; i < 4; i++)
+		{
+			if (!PartyMembers[i]->bIsOccupied)
+			{
+				PartyMembers[i]->Set(ID, false);
+				break;
+			}
+		}
+	}
+
+	void InsertLeader(FString ID)
+	{
+		PartyMembers[0]->Set(ID, true);
+	}
+
+	void ResetAll()
+	{
+		for (auto a : PartyMembers)
+		{
+			a->Release();
+		}
+		ButtonCreateParty->SetVisibility(EVisibility::Visible);
+
+	}
+};
+
 //class declare
 class SLobby : public SCompoundWidget/*, public TSharedFromThis<SLobby>*/
 {
@@ -318,7 +594,6 @@ protected:
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
 	TSharedPtr<class SWidget> OwnerWidget;
 	TSharedPtr<SScrollBar> FriendScrollBar;
-
 #pragma region CHAT
 
 	int32 ActiveTabIndex;
@@ -339,4 +614,13 @@ protected:
     void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
 
 #pragma endregion CHAT
+
+public:
+#pragma region PARTY
+	TSharedPtr<SParty> PartyWidget;
+	TSharedPtr<SOverlay> InvitationOverlay;
+	AccelByte::Api::Lobby::FPartyGetInvitedNotif OnIncomingPartyInvitation;
+	AccelByte::Api::Lobby::FPartyJoinNotif OnInvitedFriendJoin;
+#pragma endregion PARTY
+
 };
