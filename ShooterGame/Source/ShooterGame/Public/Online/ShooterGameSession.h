@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Online.h"
+#include "Http.h"
 #include "ShooterLeaderboards.h"
 #include "ShooterGameSession.generated.h"
 
@@ -122,6 +123,9 @@ protected:
 	 * Called when this instance is starting up as a dedicated server
 	 */
 	virtual void RegisterServer() override;
+
+    static void OnSendMatchmakingResultResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful);
+
 
 	/* 
 	 * Event triggered when a presence session is created
