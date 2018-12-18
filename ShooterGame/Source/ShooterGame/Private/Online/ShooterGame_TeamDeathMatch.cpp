@@ -5,6 +5,7 @@
 #include "Online/ShooterGame_TeamDeathMatch.h"
 #include "Online/ShooterPlayerState.h"
 #include "Bots/ShooterAIController.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 
 AShooterGame_TeamDeathMatch::AShooterGame_TeamDeathMatch(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -12,13 +13,38 @@ AShooterGame_TeamDeathMatch::AShooterGame_TeamDeathMatch(const FObjectInitialize
 	bDelayedStart = true;
 }
 
+FString AShooterGame_TeamDeathMatch::InitNewPlayer(APlayerController * NewPlayerController, const FUniqueNetIdRepl & UniqueId, const FString & Options, const FString & Portal)
+{
+	UE_LOG(LogTemp, Display, TEXT("InitNewPlayer to %s, options: %s, portal: %s"), *UniqueId.ToString(), *Options, *Portal);
+	FString Team = UGameplayStatics::ParseOption(Options, TEXT("Team"));
+	int32 TeamNum = -1;
+
+	if (Team == "A")
+	{
+		TeamNum = 0;
+	}
+	else if (Team == "B")
+	{
+		TeamNum = 1;
+	}
+	
+	if (TeamNum >= 0)
+	{
+		AShooterPlayerState* NewPlayerState = CastChecked<AShooterPlayerState>(NewPlayerController->PlayerState);
+		NewPlayerState->SetFixedTeamNum(TeamNum);
+	}
+	return Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+}
+
 void AShooterGame_TeamDeathMatch::PostLogin(APlayerController* NewPlayer)
 {
 	// Place player on a team before Super (VoIP team based init, findplayerstart, etc)
 	AShooterPlayerState* NewPlayerState = CastChecked<AShooterPlayerState>(NewPlayer->PlayerState);
-	const int32 TeamNum = ChooseTeam(NewPlayerState);
-	NewPlayerState->SetTeamNum(TeamNum);
-
+	if (!NewPlayerState->IsFixedTeam())
+	{
+		const int32 TeamNum = ChooseTeam(NewPlayerState);
+		NewPlayerState->SetTeamNum(TeamNum);
+	}
 	Super::PostLogin(NewPlayer);
 }
 

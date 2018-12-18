@@ -32,6 +32,9 @@ class AShooterPlayerState : public APlayerState
 	 */
 	void SetTeamNum(int32 NewTeamNumber);
 
+	void SetFixedTeamNum(int32 NewTeamNumber);
+	bool IsFixedTeam() const { return FixedTeam; }
+
 	/** player killed someone */
 	void ScoreKill(AShooterPlayerState* Victim, int32 Points);
 
@@ -113,4 +116,7 @@ protected:
 
 	/** helper for scoring points */
 	void ScorePoints(int32 Points);
+
+	UPROPERTY(Transient, Replicated)
+	bool FixedTeam = false;
 };
