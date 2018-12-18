@@ -5,6 +5,7 @@
 #include "ShooterOnlineGameSettings.h"
 #include "OnlineSubsystemSessionSettings.h"
 
+
 namespace
 {
 	const FString CustomMatchKeyword("Custom");
@@ -100,10 +101,33 @@ void AShooterGameSession::HandleMatchHasEnded()
 			// server is handled here
 			UE_LOG(LogOnlineGame, Log, TEXT("Ending session %s on server"), *FName(NAME_GameSession).ToString() );
             // call match making service, tell that session is end
-            UE_LOG(LogOnlineGame, Log, TEXT("Calling matchmaking server: %s"), *FName(NAME_GameSession).ToString());
+            
+            
+            FString Url = FString::Printf(TEXT("http://127.0.0.1:8081"));
+            FString Verb = TEXT("POST");
+            FString ContentType = TEXT("application/json");
+            FString Accept = TEXT("application/json");
+            FString Content = TEXT("{something}");
+
+            FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+            Request->SetURL(Url);            
+            Request->SetVerb(Verb);
+            Request->SetHeader(TEXT("Content-Type"), ContentType);
+            Request->SetHeader(TEXT("Accept"), Accept);
+            Request->SetContentAsString(Content);
+            Request->OnProcessRequestComplete().BindStatic(&AShooterGameSession::OnSendMatchmakingResultResponse);
+            Request->ProcessRequest();
+
+
+
 			Sessions->EndSession(NAME_GameSession);
 		}
 	}
+}
+
+void AShooterGameSession::OnSendMatchmakingResultResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful)
+{
+    UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameSession::OnSendMatchmakingResultResponse :%s"), *Response->GetContentAsString());
 }
 
 bool AShooterGameSession::IsBusy() const
@@ -168,7 +192,7 @@ const TArray<FOnlineSessionSearchResult> & AShooterGameSession::GetSearchResults
  */
 void AShooterGameSession::OnCreateSessionComplete(FName InSessionName, bool bWasSuccessful)
 {
-	UE_LOG(LogOnlineGame, Verbose, TEXT("OnCreateSessionComplete %s bSuccess: %d"), *InSessionName.ToString(), bWasSuccessful);
+	UE_LOG(LogOnlineGame, Log, TEXT("[Accelbyte] AShooterGameSession::OnCreateSessionComplete %s bSuccess: %d"), *InSessionName.ToString(), bWasSuccessful);
 
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 	if (OnlineSub)
@@ -270,7 +294,7 @@ bool AShooterGameSession::HostSession(const TSharedPtr<const FUniqueNetId> UserI
 
 void AShooterGameSession::OnFindSessionsComplete(bool bWasSuccessful)
 {
-	UE_LOG(LogOnlineGame, Verbose, TEXT("OnFindSessionsComplete bSuccess: %d"), bWasSuccessful);
+	UE_LOG(LogOnlineGame, Log, TEXT("[Accelbyte] AShooterGameSession::OnFindSessionsComplete bSuccess: %d"), bWasSuccessful);
 
 	IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get();
 	if (OnlineSub)
