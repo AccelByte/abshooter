@@ -338,3 +338,5 @@ EVisibility SShooterInventoryItem::GetCartIconVisibility() const
 
 	return EVisibility::Collapsed;
 }
+
+#undef LOCTEXT_NAMESPACE
