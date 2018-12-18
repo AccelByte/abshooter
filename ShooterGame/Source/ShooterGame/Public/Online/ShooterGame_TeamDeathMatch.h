@@ -21,6 +21,8 @@ class AShooterGame_TeamDeathMatch : public AShooterGameMode
 	/** can players damage each other? */
 	virtual bool CanDealDamage(AShooterPlayerState* DamageInstigator, AShooterPlayerState* DamagedPlayer) const override;
 
+	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal = TEXT("")) override;
+
 protected:
 
 	/** number of teams */

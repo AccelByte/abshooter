@@ -48,6 +48,12 @@ void AShooterPlayerState::SetTeamNum(int32 NewTeamNumber)
 	UpdateTeamColors();
 }
 
+void AShooterPlayerState::SetFixedTeamNum(int32 NewTeamNumber)
+{
+	FixedTeam = true;
+	SetTeamNum(NewTeamNumber);
+}
+
 void AShooterPlayerState::OnRep_TeamColor()
 {
 	UpdateTeamColors();

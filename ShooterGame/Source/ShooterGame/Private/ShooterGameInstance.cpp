@@ -155,13 +155,7 @@ void UShooterGameInstance::Init()
 		DebugTestEncryptionKey[i] = uint8(i);
 	}
 	
-	
-	//TCHAR AuthorizationCode[512];
-#ifdef _WIN32
 	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
-#elif __linux__ || __clang__
-	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
-#endif
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
 	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
     AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
