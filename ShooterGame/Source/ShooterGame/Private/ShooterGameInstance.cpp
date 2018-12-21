@@ -157,12 +157,12 @@ void UShooterGameInstance::Init()
 	
 	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
-	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
+	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
     AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
     AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
-        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(AccelByte::Api::Lobby::Presence::Online, TEXT("Shooter Game"));
+        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(AccelByte::Api::Lobby::Presence::Availabe, TEXT("Shooter Game"));
 		AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
     });
 
@@ -178,20 +178,10 @@ void UShooterGameInstance::Init()
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%s"), StatusCode, *Reason, WasClean);
     });
 
-    AccelByte::Api::Lobby::Get().BindEvent(
-        OnLobbyConnected, 
-        OnLobbyErrorConnect, 
-        OnLobbyConnectionClosed, 
-        nullptr, 
-        nullptr,
-        nullptr, 
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr, 
-        OnLobbyParsingError);
+    AccelByte::Api::Lobby::Get().SetConnectSuccessDelegate(OnLobbyConnected);
+    AccelByte::Api::Lobby::Get().SetConnectFailedDelegate(OnLobbyErrorConnect);
+    AccelByte::Api::Lobby::Get().SetConnectionClosedDelegate(OnLobbyConnectionClosed);
+    AccelByte::Api::Lobby::Get().SetParsingErrorDelegate(OnLobbyParsingError);
 
 #if !UE_SERVER   
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));

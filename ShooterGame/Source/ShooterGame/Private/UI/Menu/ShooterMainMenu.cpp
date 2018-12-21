@@ -72,7 +72,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 	OnCancelMatchmakingCompleteDelegate = FOnCancelMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnCancelMatchmakingComplete);
 	OnMatchmakingCompleteDelegate = FOnMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnMatchmakingComplete);
-    OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateSP(this, &FShooterMainMenu::OnFriendOnlineResponse);
+    OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &FShooterMainMenu::OnFriendOnlineResponse);
     AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
 	// read user settings
@@ -449,6 +449,8 @@ void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FStri
 	UserProfileWidget->UserName = FText::FromString(Username);
 	UserProfileWidget->UserID = FText::FromString(UserID);
 	UserProfileWidget->UpdateAvatar(AvatarURL);
+
+    FriendListWidget->SetCurrentUser(UserID, Username, AvatarURL);
 }
 
 void FShooterMainMenu::RemoveMenuFromGameViewport()
@@ -1410,15 +1412,13 @@ void FShooterMainMenu::OnShowLobby()
 void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
 {
     UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu::OnFriendOnlineResponse] Found Online friends"));
-    MenuWidget->NextMenu = FriendItem->SubMenu;
-
-    FriendListWidget->SetCurrentUserDisplayName(GameInstance->UserToken.Display_name);
+    MenuWidget->NextMenu = FriendItem->SubMenu;    
     FriendListWidget->InitializeFriends();
-    for (int i = 0; i < Response.onlineFriendsId.Num(); i++)
+    for (int i = 0; i < Response.friendsId.Num(); i++)
     {
-        if (Response.payload[i] == "21-Shooter Game")
+        if (Response.activity[i] == "Shooter Game")
         {
-            FString UserID = Response.onlineFriendsId[i];
+            FString UserID = Response.friendsId[i];
             FriendListWidget->AddFriend(UserID, UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
         }
     }

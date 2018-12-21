@@ -28,10 +28,10 @@ public:
      * @brief presence enumeration.
      */
     enum class Presence : int {
-        Online = 21,
-        InParty = 22,
-        Playing = 23,
-        Offline = 24,
+        Offline = 0,
+        Availabe = 1,
+        Busy = 2,
+        Invisible = 3
     };
 
     // Party 
@@ -123,12 +123,12 @@ public:
     /**
      * @brief delegate for handling other user change their presence status event
      */
-    DECLARE_DELEGATE_OneParam(FUserPresenceNotif, const FAccelByteModelsUsersPresenceNotice&);             // Passive
+    DECLARE_DELEGATE_OneParam(FFriendStatusNotif, const FAccelByteModelsUsersPresenceNotice&);             // Passive
 
     /**
      * @brief delegate for handling get all user presence
      */
-    DECLARE_DELEGATE_OneParam(FGetAllUserPresenceResponse, const FAccelByteModelsGetOnlineUsersResponse&);        
+    DECLARE_DELEGATE_OneParam(FGetAllFriendsStatusResponse, const FAccelByteModelsGetOnlineUsersResponse&);        
 
 
     // Notification
@@ -222,7 +222,7 @@ public:
      * @param State the presence state that you want to use. State is Presence type
      * @param GameName the game name that you play
      */
-	FString SendSetPresenceStatus(const Presence State, const FString& GameName);
+	FString SendSetPresenceStatus(const Presence Availability, const FString& Activity);
 
 	/**
 	 * @brief Accept a party invitation.
@@ -288,21 +288,21 @@ public:
      * @param OnUserPresenceNotice Called when other user change their presence status.
 	 * @param OnParsingError Called when receive invalid response from server.
 	 */
-	void BindEvent(
-        const FConnectSuccess& OnConnectSuccess, 
-        const FErrorHandler& OnConnectError,
-        const FConnectionClosed& OnConnectionClosed,
-		const FPartyLeaveNotif& OnLeavePartyNotice,
-		const FPartyInviteNotif& OnInvitePartyInvitationNotice,
-		const FPartyGetInvitedNotif& OnInvitePartyGetInvitedNotice,
-		const FPartyJoinNotif& OnInvitePartyJoinNotice,
-		const FPartyKickNotif& OnInvitePartyKickedNotice,
-		const FPersonalChatNotif& OnPrivateMessageNotice,
-		const FPartyChatNotif& OnPartyMessageNotice,
-		const FUserPresenceNotif& OnUserPresenceNotice,
-		const FMessageNotif& OnNotificationMessage,
-        const FErrorHandler& OnParsingError
-	);
+	//void BindEvent(
+ //       const FConnectSuccess& OnConnectSuccess, 
+ //       const FErrorHandler& OnConnectError,
+ //       const FConnectionClosed& OnConnectionClosed,
+	//	const FPartyLeaveNotif& OnLeavePartyNotice,
+	//	const FPartyInviteNotif& OnInvitePartyInvitationNotice,
+	//	const FPartyGetInvitedNotif& OnInvitePartyGetInvitedNotice,
+	//	const FPartyJoinNotif& OnInvitePartyJoinNotice,
+	//	const FPartyKickNotif& OnInvitePartyKickedNotice,
+	//	const FPersonalChatNotif& OnPrivateMessageNotice,
+	//	const FPartyChatNotif& OnPartyMessageNotice,
+	//	const FFriendStatusNotif& OnUserPresenceNotice,
+	//	const FMessageNotif& OnNotificationMessage,
+ //       const FErrorHandler& OnParsingError
+	//);
 
 
 	/**
@@ -310,6 +310,21 @@ public:
 	 */
 	void UnbindEvent();
 
+
+
+    void SetConnectSuccessDelegate(const FConnectSuccess& OnConnectSuccess) { ConnectSuccess = OnConnectSuccess; }
+    void SetConnectFailedDelegate(const FErrorHandler& OnConnectError) { ConnectError = OnConnectError; }
+    void SetConnectionClosedDelegate(const FConnectionClosed& OnConnectionClosed) { ConnectionClosed = OnConnectionClosed; }
+    void SetPartyLeaveNotifDelegate(const FPartyLeaveNotif& OnLeavePartyNotice) { PartyLeaveNotif = OnLeavePartyNotice; }
+    void SetPartyInviteNotifDelegate(const FPartyInviteNotif& OnPartyInviteNotif) { PartyInviteNotif = OnPartyInviteNotif; }
+    void SetPartyGetInvitedNotifDelegate(const FPartyGetInvitedNotif& OnInvitePartyGetInvitedNotice) {PartyGetInvitedNotif = OnInvitePartyGetInvitedNotice;}
+    void SetPartyJoinNotifDelegate(const FPartyJoinNotif& OnInvitePartyJoinNotice) { PartyJoinNotif = OnInvitePartyJoinNotice; }
+    void SetPartyKickNotifDelegate(const FPartyKickNotif& OnInvitePartyKickedNotice) { PartyKickNotif = OnInvitePartyKickedNotice; }
+    void SetPrivateMessageNotifDelegate(FPersonalChatNotif OnPersonalChatNotif) { PersonalChatNotif = OnPersonalChatNotif; };
+    void SetPartyChatNotifDelegate(FPartyChatNotif OnPersonalChatNotif) { PartyChatNotif = OnPersonalChatNotif; }
+    void SetUserPresenceNotifDelegate(FFriendStatusNotif OnUserPresenceNotif) { FriendStatusNotif = OnUserPresenceNotif; };
+    void SetMessageNotifDelegate(const FMessageNotif& OnNotificationMessage) { MessageNotif = OnNotificationMessage; }
+    void SetParsingErrorDelegate(const FErrorHandler& OnParsingError) { ParsingError = OnParsingError; }
 
     // Party
     /**
@@ -360,7 +375,6 @@ public:
      *
      * @param OnPrivateMessageResponse set delegate .
      */
-    void SetPrivateMessageNotifDelegate(FPersonalChatNotif OnPersonalChatNotif) { PersonalChatNotif = OnPersonalChatNotif; };
 
     /**
      * @brief set private message receive delegate
@@ -378,6 +392,10 @@ public:
     void SetPartyMessageResponseDelegate(FPartyChatResponse OnPartyMessageResponse) { PartyChatResponse = OnPartyMessageResponse; };
 
 
+
+    
+
+
     // Presence
     /**
      * @brief set user presence response
@@ -390,7 +408,6 @@ public:
 
 
 
-    void SetUserPresenceNotifDelegate(FUserPresenceNotif OnUserPresenceNotif) { UserPresenceNotif = OnUserPresenceNotif; };
 
 
     /**
@@ -398,7 +415,7 @@ public:
      *
      * @param OnGetAllUserPresenceResponse set delegate .
      */
-    void SetGetAllUserPresenceResponseDelegate(FGetAllUserPresenceResponse OnGetAllUserPresenceResponse) { GetAllUserPresenceResponse = OnGetAllUserPresenceResponse; };
+    void SetGetAllUserPresenceResponseDelegate(FGetAllFriendsStatusResponse OnGetAllUserPresenceResponse) { GetAllFriendsStatusResponse = OnGetAllUserPresenceResponse; };
 
     // Notification
 
@@ -458,8 +475,8 @@ private:
 
     // Presence
     FSetUserPresenceResponse SetUserPresenceResponse;
-    FUserPresenceNotif UserPresenceNotif;
-    FGetAllUserPresenceResponse GetAllUserPresenceResponse;
+    FFriendStatusNotif FriendStatusNotif;
+    FGetAllFriendsStatusResponse GetAllFriendsStatusResponse;
 
     // Notification
 	FMessageNotif MessageNotif;

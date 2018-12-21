@@ -141,8 +141,8 @@ void UAccelByteBlueprintsLobby::BindEvent(
     });
 
     // Presence
-    AccelByte::Api::Lobby::FUserPresenceNotif OnOnUserPresenceNoticeDelegate =
-        AccelByte::Api::Lobby::FUserPresenceNotif::CreateLambda([OnUserPresenceNotice](const FAccelByteModelsUsersPresenceNotice& Result) {
+    AccelByte::Api::Lobby::FFriendStatusNotif OnOnUserPresenceNoticeDelegate =
+        AccelByte::Api::Lobby::FFriendStatusNotif::CreateLambda([OnUserPresenceNotice](const FAccelByteModelsUsersPresenceNotice& Result) {
         OnUserPresenceNotice.ExecuteIfBound(Result);
     });
 
@@ -156,20 +156,35 @@ void UAccelByteBlueprintsLobby::BindEvent(
         OnParsingError.ExecuteIfBound(Code, ErrorMessage);
     });
     
-	Lobby::Get().BindEvent(
-        OnSuccessDelegate,
-        OnErrorDelegate,
-        OnConnectionCloseDelegate,
-        OnLeavePartyNoticeDelegate,
-        OnInvitePartyInvitationNoticeDelegate,
-        OnInvitePartyGetInvitedNoticeDelegate,
-        OnInvitePartyJoinNoticeDelegate,
-        OnInvitePartyKickedNoticeDelegate,
-        OnPrivateMessageNoticeDelegate,
-        OnPartyMessageNoticeDelegate,
-        OnOnUserPresenceNoticeDelegate,
-		OnNotificationMessageDelegate,
-        OnParsingErrorDelegate);
+	//Lobby::Get().BindEvent(
+ //       OnSuccessDelegate,
+ //       OnErrorDelegate,
+ //       OnConnectionCloseDelegate,
+ //       OnLeavePartyNoticeDelegate,
+ //       OnInvitePartyInvitationNoticeDelegate,
+ //       OnInvitePartyGetInvitedNoticeDelegate,
+ //       OnInvitePartyJoinNoticeDelegate,
+ //       OnInvitePartyKickedNoticeDelegate,
+ //       OnPrivateMessageNoticeDelegate,
+ //       OnPartyMessageNoticeDelegate,
+ //       OnOnUserPresenceNoticeDelegate,
+	//	OnNotificationMessageDelegate,
+ //       OnParsingErrorDelegate);
+    Lobby::Get().SetConnectSuccessDelegate(OnSuccessDelegate);
+    Lobby::Get().SetConnectFailedDelegate(OnErrorDelegate);
+    Lobby::Get().SetConnectionClosedDelegate(OnConnectionCloseDelegate);
+    Lobby::Get().SetPartyLeaveNotifDelegate(OnLeavePartyNoticeDelegate);
+    Lobby::Get().SetPartyInviteNotifDelegate(OnInvitePartyInvitationNoticeDelegate);
+    Lobby::Get().SetPartyGetInvitedNotifDelegate(OnInvitePartyGetInvitedNoticeDelegate);
+    Lobby::Get().SetPartyJoinNotifDelegate(OnInvitePartyJoinNoticeDelegate);
+    Lobby::Get().SetPartyKickNotifDelegate(OnInvitePartyKickedNoticeDelegate);
+    Lobby::Get().SetPrivateMessageNotifDelegate(OnPrivateMessageNoticeDelegate);
+    Lobby::Get().SetPartyChatNotifDelegate(OnPartyMessageNoticeDelegate);
+    Lobby::Get().SetUserPresenceNotifDelegate(OnOnUserPresenceNoticeDelegate);
+    Lobby::Get().SetMessageNotifDelegate(OnNotificationMessageDelegate);
+    Lobby::Get().SetParsingErrorDelegate(OnParsingErrorDelegate);
+
+
 }
 void UAccelByteBlueprintsLobby::UnbindDelegates()
 {
@@ -260,10 +275,10 @@ void UAccelByteBlueprintsLobby::SetUserPresenceResponseDelegate(FSetUserPresence
     Lobby::Get().SetUserPresenceResponseDelegate(OnInfoPartyResponseDelegate);
 }
 
-void UAccelByteBlueprintsLobby::SetGetAllUserPresenceResponseDelegate(FGetAllUserPresenceResponse OnGetAllUserPresenceResponse)
+void UAccelByteBlueprintsLobby::SetGetAllUserPresenceResponseDelegate(FGetAllFriendsStatusResponse OnGetAllUserPresenceResponse)
 {
-    AccelByte::Api::Lobby::FGetAllUserPresenceResponse OnInfoPartyResponseDelegate =
-        AccelByte::Api::Lobby::FGetAllUserPresenceResponse::CreateLambda([OnGetAllUserPresenceResponse](const FAccelByteModelsGetOnlineUsersResponse& Result) {
+    AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnInfoPartyResponseDelegate =
+        AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateLambda([OnGetAllUserPresenceResponse](const FAccelByteModelsGetOnlineUsersResponse& Result) {
         OnGetAllUserPresenceResponse.ExecuteIfBound(Result);
     });
     Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnInfoPartyResponseDelegate);

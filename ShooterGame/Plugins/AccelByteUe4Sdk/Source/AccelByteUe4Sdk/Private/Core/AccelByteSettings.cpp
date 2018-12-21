@@ -18,6 +18,7 @@ FString Settings::BaseUrl;
 FString Settings::IamServerUrl;
 FString Settings::PlatformServerUrl;
 FString Settings::LobbyServerUrl;
+FString Settings::CloudStorageServerUrl;
 
 }
 
