@@ -125,6 +125,72 @@ FString GetBase64Thumbnail(TSharedPtr<TImagePixelData<FColor>> PixelData, EImage
 	return "";
 }
 
+TArray<uint8> GetCompressedImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
+{
+	IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
+	if (!ensure(ImageWrapperModule))
+	{
+		return TArray<uint8>();
+	}
+
+	const void* RawPtr = nullptr;
+	int32 SizeBytes = 0;
+
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule->CreateImageWrapper(InFormat);
+
+	int Width = PixelData->GetSize().X;
+	int Height = PixelData->GetSize().Y;
+
+	RawPtr = static_cast<const void*>(&PixelData->Pixels[0]);
+	SizeBytes = PixelData->Pixels.Num() * sizeof(FColor);
+	{
+		uint8      BitDepth = PixelData->GetBitDepth();
+		ERGBFormat PixelLayout = PixelData->GetPixelLayout();
+
+		if (ImageWrapper->SetRaw(RawPtr, SizeBytes, Width, Height, PixelLayout, BitDepth))
+		{
+			return ImageWrapper->GetCompressed();
+		}
+	}
+
+	return TArray<uint8>();
+}
+
+TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FName ResourceName, TArray<uint8> ImageData, const EImageFormat InFormat)
+{
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
+
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(InFormat);
+
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
+
+		const TArray<uint8>* RawData = NULL;
+
+		if (ImageWrapper->GetRaw(InFormat == EImageFormat::PNG ? ERGBFormat::BGRA : ERGBFormat::RGBA, 8, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
+
+	return Brush;
+}
+
 class SScreenshotSlotComboBox : public SCompoundWidget
 {
 public:
@@ -405,13 +471,32 @@ public:
 				.HAlign(HAlign_Fill)
 				.FillHeight(1)
 				[
-					SNew(SScaleBox)
+					SNew(SOverlay)
+					+ SOverlay::Slot()
 					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Center)
-					.Stretch(EStretch::ScaleToFit)
+					.VAlign(VAlign_Fill)
 					[
-						SNew(SImage)
-						.Image(InItem->Image == nullptr ? FShooterStyle::Get().GetBrush("ShooterGame.Image") : InItem->Image)
+						SNew(SSafeZone)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.Padding(10.0f)
+						.IsTitleSafe(true)
+						[
+							SAssignNew(LoadingBar, SThrobber)
+						]
+					]
+					+ SOverlay::Slot()
+					.VAlign(VAlign_Fill)
+					.VAlign(VAlign_Fill)
+					[
+						SNew(SScaleBox)
+						.VAlign(VAlign_Fill)
+						.HAlign(HAlign_Center)
+						.Stretch(EStretch::ScaleToFit)
+						[
+							SNew(SImage)
+							.Image(InItem->Image == nullptr ? FShooterStyle::Get().GetBrush("ShooterGame.Image") : InItem->Image)
+						]
 					]
 				]
 				+ SVerticalBox::Slot()
@@ -534,6 +619,18 @@ public:
 		];
 	}
 
+	void SetLoadingBarVisible(bool Visible)
+	{
+		if (Visible)
+		{
+			LoadingBar->SetVisibility(EVisibility::Visible);
+		}
+		else
+		{
+			LoadingBar->SetVisibility(EVisibility::Collapsed);
+		}
+	}
+
 	EVisibility GetSelectedVisibility() const {
 		return IsSelected() && Item.IsValid() && Item.Pin()->Image != nullptr ? EVisibility::Visible : EVisibility::Collapsed;
 	}
@@ -548,6 +645,8 @@ private:
 	TSharedPtr< class SShooterScreenshotEdit > ScreenshotEditWidget;
 	TSharedPtr<SWidget> SelectedWidget;
 	FTableRowStyle Style;
+
+	TSharedPtr<SThrobber> LoadingBar;
 
 	TSharedPtr<STextBlock> TextTitle;
 
@@ -675,6 +774,8 @@ void SShooterScreenshot::BuildScreenshotItem()
 	Brushes.Add(MakeShareable(new FSlateColorBrush(FLinearColor(1, 1, 0))));
 	Brushes.Add(MakeShareable(new FSlateColorBrush(FLinearColor(1, 0, 1))));
 
+	// TODO load screenshot from cloudstorage
+
 	//dummy data
 	SavedScreenshotList.Empty();
 	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 1, "Title aaaa", Brushes[0].Get() }));
@@ -721,6 +822,9 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 				PreviousSelectedScreenshot[PreviousIndex].Title = "";
 				SavedScreenshotListWidget->RebuildList();
 			}
+			//TODO upload to cloudstorage
+			//TODO show loading bar
+			
 		});
 }
 
