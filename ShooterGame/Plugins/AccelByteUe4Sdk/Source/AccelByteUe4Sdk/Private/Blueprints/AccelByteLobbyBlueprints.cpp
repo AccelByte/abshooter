@@ -155,21 +155,7 @@ void UAccelByteBlueprintsLobby::BindEvent(
     FErrorHandler OnParsingErrorDelegate = FErrorHandler::CreateLambda([OnParsingError](int32 Code, const FString& ErrorMessage) {
         OnParsingError.ExecuteIfBound(Code, ErrorMessage);
     });
-    
-	//Lobby::Get().BindEvent(
- //       OnSuccessDelegate,
- //       OnErrorDelegate,
- //       OnConnectionCloseDelegate,
- //       OnLeavePartyNoticeDelegate,
- //       OnInvitePartyInvitationNoticeDelegate,
- //       OnInvitePartyGetInvitedNoticeDelegate,
- //       OnInvitePartyJoinNoticeDelegate,
- //       OnInvitePartyKickedNoticeDelegate,
- //       OnPrivateMessageNoticeDelegate,
- //       OnPartyMessageNoticeDelegate,
- //       OnOnUserPresenceNoticeDelegate,
-	//	OnNotificationMessageDelegate,
- //       OnParsingErrorDelegate);
+  
     Lobby::Get().SetConnectSuccessDelegate(OnSuccessDelegate);
     Lobby::Get().SetConnectFailedDelegate(OnErrorDelegate);
     Lobby::Get().SetConnectionClosedDelegate(OnConnectionCloseDelegate);
@@ -183,8 +169,6 @@ void UAccelByteBlueprintsLobby::BindEvent(
     Lobby::Get().SetUserPresenceNotifDelegate(OnOnUserPresenceNoticeDelegate);
     Lobby::Get().SetMessageNotifDelegate(OnNotificationMessageDelegate);
     Lobby::Get().SetParsingErrorDelegate(OnParsingErrorDelegate);
-
-
 }
 void UAccelByteBlueprintsLobby::UnbindDelegates()
 {

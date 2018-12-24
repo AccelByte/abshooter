@@ -230,36 +230,6 @@ FString Lobby::SendCancelMatchmaking(FString PartyId)
         FString::Printf(TEXT("partyId: %s\n"),*PartyId));
 }
 
-//void Lobby::BindEvent(
-//    const FConnectSuccess& OnConnectSuccess,
-//    const FErrorHandler& OnConnectError,
-//    const FConnectionClosed& OnConnectionClosed,
-//    const FPartyLeaveNotif& OnPartyLeaveNotif,
-//    const FPartyInviteNotif& OnPartyInviteNotif,
-//    const FPartyGetInvitedNotif& OnPartyGetInvitedNotif,
-//    const FPartyJoinNotif& OnPartyJoinNotif,
-//    const FPartyKickNotif& OnPartyKickNotif,
-//    const FPersonalChatNotif& OnPersonalChatNotif,
-//    const FPartyChatNotif& OnPartyChatNotif,
-//    const FFriendStatusNotif& OnUserPresenceNotif,
-//	const FMessageNotif& OnMessageNotif,
-//    const FErrorHandler& OnParsingError)
-//{
-//    ConnectionClosed = OnConnectionClosed;
-//    ConnectSuccess = OnConnectSuccess;
-//    ConnectError = OnConnectError;
-//    PartyLeaveNotif = OnPartyLeaveNotif;
-//    PartyInviteNotif = OnPartyInviteNotif;
-//    PartyGetInvitedNotif = OnPartyGetInvitedNotif;
-//    PartyJoinNotif = OnPartyJoinNotif;
-//    PartyKickNotif = OnPartyKickNotif;
-//    PersonalChatNotif = OnPersonalChatNotif;
-//    PartyChatNotif = OnPartyChatNotif;
-//    FriendStatusNotif = OnUserPresenceNotif;
-//	MessageNotif = OnMessageNotif;
-//    ParsingError = OnParsingError;
-//}
-
 void Lobby::UnbindEvent()
 {
     PartyLeaveNotif.Unbind();

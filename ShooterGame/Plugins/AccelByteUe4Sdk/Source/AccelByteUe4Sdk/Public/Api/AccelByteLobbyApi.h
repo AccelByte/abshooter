@@ -268,49 +268,11 @@ public:
      * @param PartyId Party ID.     
      */
     FString SendCancelMatchmaking(FString PartyId);
-
-	/**
-	 * @brief You must bind delegates/callbacks first to handle the events.
-	 * For example when a user received a private message or a response to create party request.
-	 * A delegate which ends with Notice means that it's like a notification, while one which ends with Response means it's like a response to a request.
-	 * The delegates can be `nullptr` if you want to not bind the callback. All delegates have one parameter `Result` with different types.
-	 * 
-     * @param OnConnectSuccess Called when user connect to lobby successfully.
-     * @param OnConnectError Called when user fail to connect to lobby.
-     * @param FConnectionClosed Called when user disconnected from lobby.     
-     * @param OnLeavePartyNotice Called when other user leave the party.
-     * @param OnInvitePartyInvitationNotice Called when user invite to the party.
-     * @param OnInvitePartyGetInvitedNotice Called when user got invited to the party.
-     * @param OnInvitePartyJoinNotice Called when user join to the party.
-     * @param OnInvitePartyKickedNotice Called when other user has been kicked from the party.
-     * @param OnPrivateMessageNotice Called when user got private message.
-     * @param OnPartyMessageNotice Called when user got party message.
-     * @param OnUserPresenceNotice Called when other user change their presence status.
-	 * @param OnParsingError Called when receive invalid response from server.
-	 */
-	//void BindEvent(
- //       const FConnectSuccess& OnConnectSuccess, 
- //       const FErrorHandler& OnConnectError,
- //       const FConnectionClosed& OnConnectionClosed,
-	//	const FPartyLeaveNotif& OnLeavePartyNotice,
-	//	const FPartyInviteNotif& OnInvitePartyInvitationNotice,
-	//	const FPartyGetInvitedNotif& OnInvitePartyGetInvitedNotice,
-	//	const FPartyJoinNotif& OnInvitePartyJoinNotice,
-	//	const FPartyKickNotif& OnInvitePartyKickedNotice,
-	//	const FPersonalChatNotif& OnPrivateMessageNotice,
-	//	const FPartyChatNotif& OnPartyMessageNotice,
-	//	const FFriendStatusNotif& OnUserPresenceNotice,
-	//	const FMessageNotif& OnNotificationMessage,
- //       const FErrorHandler& OnParsingError
-	//);
-
-
+	
 	/**
 	 * @brief Unbind all delegates set previously.
 	 */
 	void UnbindEvent();
-
-
 
     void SetConnectSuccessDelegate(const FConnectSuccess& OnConnectSuccess) { ConnectSuccess = OnConnectSuccess; }
     void SetConnectFailedDelegate(const FErrorHandler& OnConnectError) { ConnectError = OnConnectError; }
@@ -390,10 +352,6 @@ public:
      * @param OnPartyMessageResponse set delegate .
      */
     void SetPartyMessageResponseDelegate(FPartyChatResponse OnPartyMessageResponse) { PartyChatResponse = OnPartyMessageResponse; };
-
-
-
-    
 
 
     // Presence

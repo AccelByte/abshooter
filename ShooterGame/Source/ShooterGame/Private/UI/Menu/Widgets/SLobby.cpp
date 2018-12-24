@@ -15,6 +15,13 @@
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
+
+SLobby::SLobby()
+    : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+{
+
+}
+
 void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
@@ -23,8 +30,6 @@ void SLobby::Construct(const FArguments& InArgs)
     UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
     ScreenRes = UserSettings->GetScreenResolution();
 
-
-    //FriendListCache = MakeShared<FriendCache>();
     AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
     DiplayNameListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
 
@@ -76,7 +81,6 @@ void SLobby::Construct(const FArguments& InArgs)
 							.Style(&LobbyStyle->SearchBarStyle)
 						]
 					]
-
 				]
 				+ SVerticalBox::Slot()	//FriendListView
 				.AutoHeight()
@@ -111,9 +115,7 @@ void SLobby::Construct(const FArguments& InArgs)
 							)
 						]
 					]
-
 					+ SHorizontalBox::Slot()	//Scroll player list
-                    
 					.AutoWidth()
 					[
 						SNew(SBox)
@@ -143,14 +145,6 @@ void SLobby::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Fill)
 				.FillHeight(1.0f)
 				[
-					//SNew(SBox)
-					//.HeightOverride(500)
-					//.HAlign(HAlign_Fill)
-					//[
-					//	SNew(STextBlock)
-					//	.Text(FText::FromString(TEXT("YOUR PARTY")))
-					//	.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")
-					//]
 					SAssignNew(PartyWidget, SParty)
 					.LobbyStyle(LobbyStyle)
 				]
@@ -280,10 +274,10 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
             SNew(SBox)
             .HAlign(HAlign_Fill)
             .VAlign(VAlign_Fill)
-            //[
-            //	SNew(SImage)
-            //	.Image(&LobbyStyle->PartyInvitationBackground)
-            //]
+            [
+            	SNew(SImage)
+            	.Image(&OverlayBackgroundBrush)
+            ]
         ]
         + SOverlay::Slot()
         [
@@ -293,49 +287,47 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
             .CancelText(FText::FromString("Reject"))
             .OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
             {
-            AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
-            CurrentPartyID = Notification.PartyId;
-            AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
-            AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
-            {
-                PartyWidget->ResetAll();
-                
-                FString LeaderDisplayName = CheckDisplayName(Response.LeaderId) ? GetDisplayName(Response.LeaderId) : Response.LeaderId;
-                FSlateBrush* LeaderAvatar = CheckAvatar(Response.LeaderId) ? GetAvatar(Response.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-
-                PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar);
-                for (FString MemberId : Response.Members)
+                AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+                CurrentPartyID = Notification.PartyId;
+                AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
+                AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
                 {
-                    if (MemberId != Response.LeaderId)
+                    PartyWidget->ResetAll();
+                
+                    FString LeaderDisplayName = CheckDisplayName(Response.LeaderId) ? GetDisplayName(Response.LeaderId) : Response.LeaderId;
+                    FSlateBrush* LeaderAvatar = CheckAvatar(Response.LeaderId) ? GetAvatar(Response.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+                    PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar);
+                    for (FString MemberId : Response.Members)
                     {
-                        FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
-                        FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+                        if (MemberId != Response.LeaderId)
+                        {
+                            FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
+                            FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
 
-                        PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar);
+                            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar);
+                        }
                     }
+                    PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+                }));
+                if (InvitationOverlay.IsValid())
+                {
+                    GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
+                    InvitationOverlay.Reset();
                 }
-                PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
-            }));
-            if (InvitationOverlay.IsValid())
+                // add chat tab
+                AddChatTab(TEXT(""), TEXT("My Party"), Notification.PartyId);
+                return FReply::Handled();
+            }))
+            .OnCancelClicked(FOnClicked::CreateLambda([&]()
             {
-                GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
-                InvitationOverlay.Reset();
-            }
-
-            // add chat tab
-            AddChatTab(TEXT(""), TEXT("My Party"), Notification.PartyId);
-
-            return FReply::Handled();
-        }))
-        .OnCancelClicked(FOnClicked::CreateLambda([&]()
-        {
-        if (InvitationOverlay.IsValid())
-        {
-            GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
-            InvitationOverlay.Reset();
-        }
-        return FReply::Handled();
-    }))
+                if (InvitationOverlay.IsValid())
+                {
+                    GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
+                    InvitationOverlay.Reset();
+                }
+                return FReply::Handled();
+            }))
         ];
 
     GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());

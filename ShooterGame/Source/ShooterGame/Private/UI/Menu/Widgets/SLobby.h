@@ -223,8 +223,6 @@ public:
 		this->InputTextBox->SetText(FText::FromString(TEXT("")));
 		return FReply::Handled();
 	}
-
-
 };
 
 class SPartyMember : public SCompoundWidget
@@ -243,8 +241,6 @@ public:
 	TSharedPtr<SImage> NoMemberImage;
 	FString UserId;
 	bool bIsOccupied = false;
-    //TWeakPtr<SLobby, ESPMode::NotThreadSafe> ParentClass;
-
 
 	void Construct(const FArguments& InArgs)
 	{
@@ -326,28 +322,6 @@ public:
 			];
 	}
 
-    //const FSlateBrush* GetProfileAvatar() const
-    //{
-    //    if (ParentClass.Pin()->CheckAvatar(UserId))
-    //    {
-    //        return ParentClass.Pin()->GetAvatar(Item->UserId).Get();
-    //    }
-    //    else
-    //    {
-    //        return FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-    //    }
-    //}
-
-    //FText GetName() const
-    //{
-    //    if (ParentClass.Pin()->CheckDisplayName(UserId))
-    //    {
-    //        return FText::FromString(ParentClass.Pin()->GetDisplayName(Item->Name));
-    //    }
-    //    return FText::FromString(Item->Name);
-    //}
-
-
 	void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush)
 	{
 		UserId = ID;
@@ -364,8 +338,6 @@ public:
 	{
 		bIsOccupied = false;
 		Name->SetText(FString::Printf(TEXT("")));
-		//ProfilePicture.Reset();
-		//AccelByte::Api::Lobby::SendKickPartyMemberRequest(UserId);
 		NoMemberImage->SetVisibility(EVisibility::Visible);
 	}
 };
@@ -511,9 +483,11 @@ public:
 };
 
 //class declare
-class SLobby : public SCompoundWidget/*, public TSharedFromThis<SLobby>*/
+class SLobby : public SCompoundWidget
 {
 public:
+    SLobby();
+
 	SLATE_BEGIN_ARGS(SLobby)
 	{}
 
@@ -641,13 +615,11 @@ public:
 #pragma region PARTY
 	TSharedPtr<SParty> PartyWidget;
 	TSharedPtr<SOverlay> InvitationOverlay;
-	//AccelByte::Api::Lobby::FPartyGetInvitedNotif OnIncomingPartyInvitation;
-	//AccelByte::Api::Lobby::FPartyJoinNotif OnInvitedFriendJoin;
     FString CurrentPartyID;
     void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
     void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
     void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
-
+    FSlateColorBrush OverlayBackgroundBrush;
 #pragma endregion PARTY
 
 };
