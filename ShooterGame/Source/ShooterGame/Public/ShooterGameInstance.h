@@ -406,7 +406,7 @@ private:
 	// Handle confirming the controller disconnected dialog.
 	FReply OnControllerReconnectConfirm();	
 
-	AccelByte::Api::Lobby::FGetAllUserPresenceResponse OnGetOnlineUsersResponse;
+	AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
 	void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 
 protected:

@@ -18,11 +18,12 @@ public:
 	static FString ClientSecret;
 	static FString Namespace;
 	static FString PublisherNamespace;
-    static FString RedirectURI;
-    static FString BaseUrl;
+	static FString RedirectURI;
+	static FString BaseUrl;
 	static FString IamServerUrl;
 	static FString PlatformServerUrl;
 	static FString LobbyServerUrl;
+	static FString CloudStorageServerUrl;
 private:
 	Settings() = delete; // Static class can't have instance
 	Settings(Settings const&) = delete;

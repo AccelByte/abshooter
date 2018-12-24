@@ -254,10 +254,10 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsUsersPresenceNotice
     FString UserID;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-    FString StatusID;
+    FString Availability;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-    FString GameName;
+    FString Activity;
 };
 
 
@@ -275,11 +275,16 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsGetOnlineUsersResponse
     FString id;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-	TArray<FString> onlineFriendsId;
+	TArray<FString> friendsId;
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-    TArray<FString> payload;
+    TArray<FString> availability;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+    TArray<FString> activity;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+    TArray<FString> lastSeenAt;
 };
 
 // ------------------------------------------------------------------------------------------------
@@ -292,12 +297,19 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsNotificationMessage
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
 	FString Id;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
 	FString From;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
 	FString To;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+    FString Topic;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
 	FString Payload;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
 	FDateTime SentAt;
 };

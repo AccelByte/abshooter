@@ -15,6 +15,13 @@
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
+
+SLobby::SLobby()
+    : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+{
+
+}
+
 void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
@@ -23,8 +30,6 @@ void SLobby::Construct(const FArguments& InArgs)
     UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
     ScreenRes = UserSettings->GetScreenResolution();
 
-
-    //FriendListCache = MakeShared<FriendCache>();
     AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
     DiplayNameListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
 
@@ -41,108 +46,11 @@ void SLobby::Construct(const FArguments& InArgs)
 #endif
 
     AccelByte::Api::Lobby::Get().SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::OnReceivePrivateChat));
-    // receive presence change
-    AccelByte::Api::Lobby::Get().SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FUserPresenceNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
-
-	OnIncomingPartyInvitation = AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateLambda([&](const FAccelByteModelsPartyGetInvitedNotice& Notification)
-	{
-		AccelByte::Api::Oauth2::GetPublicUserInfo(Notification.From, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&, Notification](const FAccelByteModelsOauth2UserInfo& UserInfo)
-		{
-			SAssignNew(InvitationOverlay, SOverlay)
-				+ SOverlay::Slot()
-				[
-					SNew(SBox)
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Fill)
-					//[
-					//	SNew(SImage)
-					//	.Image(&LobbyStyle->PartyInvitationBackground)
-					//]
-				]
-			+ SOverlay::Slot()
-				[
-					SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-					.MessageText(FText::FromString(FString::Printf(TEXT("You're invited by %s to join a party."), (UserInfo.DisplayName != "" ? *UserInfo.DisplayName : *Notification.From))))
-					.ConfirmText(FText::FromString("Accept"))
-					.CancelText(FText::FromString("Reject"))
-					.OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
-					{
-						AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
-						AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
-						AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
-						{
-							PartyWidget->ResetAll();
-							PartyWidget->InsertLeader(Response.LeaderId);
-							for (FString MemberId : Response.Members)
-							{
-								if (MemberId != Response.LeaderId) 
-								{
-									PartyWidget->InsertMember(MemberId);
-								}
-							}
-							PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
-						}));
-						if (InvitationOverlay.IsValid())
-						{
-							GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
-							InvitationOverlay.Reset();
-						}
-						return FReply::Handled();
-					}))
-					.OnCancelClicked(FOnClicked::CreateLambda([&]()
-					{
-						if (InvitationOverlay.IsValid())
-						{
-							GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
-							InvitationOverlay.Reset();
-						}
-						return FReply::Handled();
-					}))
-					];
-
-			GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());
-			FSlateApplication::Get().SetKeyboardFocus(InvitationOverlay);
-			}), 
-			AccelByte::FErrorHandler::CreateLambda([](int32 Code, FString Messsage)
-			{
-				UE_LOG(LogTemp, Log, TEXT("There's an incoming invitation, but the can't obtain the inviter's information."));
-			}));
-	}
-	);
-
-	OnInvitedFriendJoin = AccelByte::Api::Lobby::FPartyJoinNotif::CreateLambda([&](const FAccelByteModelsPartyJoinNotice& Notification)
-	{
-		AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
-	});
-
-	AccelByte::Api::Lobby::Get().SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateLambda([&](const FAccelByteModelsInfoPartyResponse& PartyInfo)
-	{
-		PartyWidget->ResetAll();
-		PartyWidget->InsertLeader(PartyInfo.LeaderId);
-		for (FString MemberId : PartyInfo.Members)
-		{
-			if (MemberId!=PartyInfo.LeaderId)
-			{
-				PartyWidget->InsertMember(MemberId);
-			}
-		}
-		PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
-	}));
-
-	AccelByte::Api::Lobby::Get().BindEvent(
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		OnIncomingPartyInvitation,
-		OnInvitedFriendJoin,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr,
-		nullptr);
+    AccelByte::Api::Lobby::Get().SetPartyChatNotifDelegate(AccelByte::Api::Lobby::FPartyChatNotif::CreateSP(this, &SLobby::OnReceivePartyChat));
+    AccelByte::Api::Lobby::Get().SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
+    AccelByte::Api::Lobby::Get().SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
+    AccelByte::Api::Lobby::Get().SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
+    AccelByte::Api::Lobby::Get().SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
 
 	ChildSlot
 		.VAlign(VAlign_Fill)
@@ -173,7 +81,6 @@ void SLobby::Construct(const FArguments& InArgs)
 							.Style(&LobbyStyle->SearchBarStyle)
 						]
 					]
-
 				]
 				+ SVerticalBox::Slot()	//FriendListView
 				.AutoHeight()
@@ -208,9 +115,7 @@ void SLobby::Construct(const FArguments& InArgs)
 							)
 						]
 					]
-
 					+ SHorizontalBox::Slot()	//Scroll player list
-                    
 					.AutoWidth()
 					[
 						SNew(SBox)
@@ -240,14 +145,6 @@ void SLobby::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Fill)
 				.FillHeight(1.0f)
 				[
-					//SNew(SBox)
-					//.HeightOverride(500)
-					//.HAlign(HAlign_Fill)
-					//[
-					//	SNew(STextBlock)
-					//	.Text(FText::FromString(TEXT("YOUR PARTY")))
-					//	.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")
-					//]
 					SAssignNew(PartyWidget, SParty)
 					.LobbyStyle(LobbyStyle)
 				]
@@ -338,12 +235,111 @@ void SLobby::InputReceived()
 
 }
 
+void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
+{
+    PartyWidget->ResetAll();
+
+    FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;
+    FSlateBrush* LeaderAvatar = CheckAvatar(PartyInfo.LeaderId) ? GetAvatar(PartyInfo.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+    PartyWidget->InsertLeader(PartyInfo.LeaderId, LeaderDisplayName, LeaderAvatar);
+    for (FString MemberId : PartyInfo.Members)
+    {
+        if (MemberId != PartyInfo.LeaderId)
+        {
+            FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
+            FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar);
+        }
+    }
+    PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+    // add chat tab
+    CurrentPartyID = PartyInfo.PartyId;
+    AddChatTab(TEXT(""), TEXT("My Party"), PartyInfo.PartyId);
+}
+
+void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification)
+{
+    // update using OnGetPartyInfoResponse, so we have to trigger SendInfoPartyRequest
+    // TODO optimize this
+    AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+}
+
+void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification)
+{
+    FString DisplayName = CheckDisplayName(Notification.From) ? GetDisplayName(Notification.From) : Notification.From;
+    SAssignNew(InvitationOverlay, SOverlay)
+        + SOverlay::Slot()
+        [
+            SNew(SBox)
+            .HAlign(HAlign_Fill)
+            .VAlign(VAlign_Fill)
+            [
+            	SNew(SImage)
+            	.Image(&OverlayBackgroundBrush)
+            ]
+        ]
+        + SOverlay::Slot()
+        [
+            SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+            .MessageText(FText::FromString(FString::Printf(TEXT("You're invited by %s to join a party."), *DisplayName)))
+            .ConfirmText(FText::FromString("Accept"))
+            .CancelText(FText::FromString("Reject"))
+            .OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
+            {
+                AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+                CurrentPartyID = Notification.PartyId;
+                AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
+                AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
+                {
+                    PartyWidget->ResetAll();
+                
+                    FString LeaderDisplayName = CheckDisplayName(Response.LeaderId) ? GetDisplayName(Response.LeaderId) : Response.LeaderId;
+                    FSlateBrush* LeaderAvatar = CheckAvatar(Response.LeaderId) ? GetAvatar(Response.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+                    PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar);
+                    for (FString MemberId : Response.Members)
+                    {
+                        if (MemberId != Response.LeaderId)
+                        {
+                            FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
+                            FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+                            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar);
+                        }
+                    }
+                    PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+                }));
+                if (InvitationOverlay.IsValid())
+                {
+                    GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
+                    InvitationOverlay.Reset();
+                }
+                // add chat tab
+                AddChatTab(TEXT(""), TEXT("My Party"), Notification.PartyId);
+                return FReply::Handled();
+            }))
+            .OnCancelClicked(FOnClicked::CreateLambda([&]()
+            {
+                if (InvitationOverlay.IsValid())
+                {
+                    GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
+                    InvitationOverlay.Reset();
+                }
+                return FReply::Handled();
+            }))
+        ];
+
+    GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());
+    FSlateApplication::Get().SetKeyboardFocus(InvitationOverlay);
+}
+
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
 {
-    UE_LOG(LogTemp, Log, TEXT("OnUserPresenceNotification: %s playing game: %s"), *Response.UserID, *Response.GameName);
+    UE_LOG(LogTemp, Log, TEXT("OnUserPresenceNotification: %s Activity: %s"), *Response.UserID, *Response.Activity);
 
     // add to friend list, download the avatar
-    if (Response.GameName == "Shooter Game" && Response.StatusID == "21")
+    if (Response.Activity == "Shooter Game" && Response.Availability == "1")
     {
         // user online
         // check if exist
@@ -378,7 +374,7 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
             UpdateSearchStatus();
         }
     }
-    else if (Response.StatusID == "24")
+    else if (Response.Availability == "0")
     {
         UE_LOG(LogTemp, Log, TEXT("There is user going offline : %s"), *Response.UserID);
         // user is offline, update his status
@@ -426,6 +422,30 @@ void SLobby::OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response)
     
 }
 
+void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL)
+{
+    CurrentUserID = UserID;
+    CurrentUserDisplayName = DisplayName; 
+    CurrentAvatarURL = AvatarURL;
+    if (!AvatarListCache->Contains(UserID))
+    {
+        AvatarListCache->Add(UserID, AvatarURL);
+        // start download avatar
+        TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+        ThumbRequest->SetVerb("GET");
+        ThumbRequest->SetURL(AvatarURL);
+        ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserID);
+        ThumbRequest->ProcessRequest();      
+    }
+
+
+    if (!DiplayNameListCache->Contains(UserID))
+    {
+        DiplayNameListCache->Add(UserID, DisplayName);
+    }
+
+
+};
 void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
 {
     TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
@@ -810,7 +830,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
                     DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
                 }
 
-                ParentClass.Pin()->AddChatTab(Item->UserId, DisplayName, TEXT("Party ID"));
+                ParentClass.Pin()->AddChatTab(Item->UserId, DisplayName, TEXT(""));
             }
             
             return FReply::Handled();
@@ -881,39 +901,68 @@ void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
     // find existing
     for (int i = 0; i < LobbyChatPages.Num(); i++)
     {
-        if (LobbyChatPages[i]->UserId == UserId)
+        if (LobbyChatPages[i]->UserId == UserId || LobbyChatPages[i]->PartyId == PartyId)
         {
             // chat tab already existed;
             return;
         }
     }
 
+    if (!UserId.IsEmpty())
+    {
+        // personal chat        
+        LobbyChatPages.Add
+        (
+            SNew(SChatPage)
+            .DisplayName(DisplayName)
+            .LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
+            .ChatPageIndex(LobbyChatPages.Num())
+            .UserId(UserId)
+            .PartyId(PartyId)
+            .OnTextComitted(this, &SLobby::SendPrivateChat)
+            .OnSendButtonPressed(this, &SLobby::SendPrivateChat)
+        );
 
+        //Create Tab Button
+        LobbyChatTabButtons.Add
+        (
+            SNew(SChatTabButton)
+            .TabIndex(LobbyChatTabButtons.Num())
+            .OnClicked(this, &SLobby::SelectTab)
+            .LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
+            .UserId(UserId)
+            .PartyId(PartyId)
+            .DisplayName(DisplayName)
+        );
+    }
+    else if (!PartyId.IsEmpty())
+    {
+        // party chat        
+        LobbyChatPages.Add
+        (
+            SNew(SChatPage)
+            .DisplayName(DisplayName)
+            .LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
+            .ChatPageIndex(LobbyChatPages.Num())
+            .UserId(UserId)
+            .PartyId(PartyId)
+            .OnTextComitted(this, &SLobby::SendPartyChat)
+            .OnSendButtonPressed(this, &SLobby::SendPartyChat)
+        );
 
+        //Create Tab Button
+        LobbyChatTabButtons.Add
+        (
+            SNew(SChatTabButton)
+            .TabIndex(LobbyChatTabButtons.Num())
+            .OnClicked(this, &SLobby::SelectTab)
+            .LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
+            .UserId(UserId)
+            .PartyId(PartyId)
+            .DisplayName(DisplayName)
+        );
+    }
 
-
-	//Create Conversation Widget
-	LobbyChatPages.Add
-	(
-		SNew(SChatPage)
-		.DisplayName(DisplayName)
-		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
-		.ChatPageIndex(LobbyChatPages.Num())
-		.UserId(UserId)
-		.OnTextComitted(this, &SLobby::SendChat)
-		.OnSendButtonPressed(this, &SLobby::SendChat)
-	);
-
-	//Create Tab Button
-	LobbyChatTabButtons.Add
-	(
-		SNew(SChatTabButton)
-		.TabIndex(LobbyChatTabButtons.Num())
-		.OnClicked(this, &SLobby::SelectTab)
-		.LobbyStyle(&FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle"))
-		.UserId(UserId)
-        .DisplayName(DisplayName)
-	);
 	
 	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
 	ScrollBoxChatTabs->AddSlot().AttachWidget(LobbyChatTabButtons[LobbyChatTabButtons.Num() - 1].ToSharedRef());
@@ -992,7 +1041,7 @@ void SLobby::SelectTab(int32 TabIndex)
 	UE_LOG(LogTemp, Log, TEXT("Selected Tab: %d"), TabIndex);
 }
 
-void SLobby::SendChat(FString UserId, FString Message)
+void SLobby::SendPrivateChat(FString UserId, FString Message)
 {
 	// send from this user to target user ( UserId)
     AccelByte::Api::Lobby::Get().SendPrivateMessage(UserId, Message);
@@ -1007,6 +1056,22 @@ void SLobby::SendChat(FString UserId, FString Message)
 			return;
 		}
 	}
+}
+void SLobby::SendPartyChat(FString PartyId, FString Message)
+{
+    // send from this user to target user ( UserId)
+    AccelByte::Api::Lobby::Get().SendPartyMessage(Message);
+
+    // append to chat box UI
+    for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->PartyId.Equals(PartyId))
+        {
+            //My Dislpay Name
+            LobbyChatPages[i]->AppendConversation(CurrentUserDisplayName, Message);
+            return;
+        }
+    }
 }
 
 void SLobby::OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
@@ -1027,10 +1092,33 @@ void SLobby::OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& R
 
     //no chat tab, create new chat
     FString DisplayName = CheckDisplayName(Response.From) ? GetDisplayName(Response.From) : Response.From;
-    AddChatTab(Response.From, DisplayName, TEXT("No Party ID"));
+    AddChatTab(Response.From, DisplayName, TEXT(""));
     LobbyChatPages[iLastNum]->AppendConversation(DisplayName, Response.Payload);
     
 
+}
+
+void SLobby::OnReceivePartyChat(const FAccelByteModelsPartyMessageNotice& Response)
+{
+    // append to chat box UI
+    FString DisplayName = CheckDisplayName(Response.From) ? GetDisplayName(Response.From) : Response.From;
+    for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->PartyId.Equals(CurrentPartyID))
+        {
+            //Get user's name and append it with this function
+
+            // partner display name
+            LobbyChatPages[i]->AppendConversation(DisplayName, Response.Payload);
+            return;
+        }
+    }
+    int32 iLastNum = LobbyChatPages.Num();
+
+    //no chat tab, create new chat
+    
+    AddChatTab(TEXT(""), TEXT("My Party"), CurrentPartyID);
+    LobbyChatPages[iLastNum]->AppendConversation(DisplayName, Response.Payload);
 }
 
 #pragma endregion CHAT

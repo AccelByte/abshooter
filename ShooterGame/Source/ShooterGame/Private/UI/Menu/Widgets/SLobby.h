@@ -35,6 +35,7 @@ public:
 	SLATE_DEFAULT_SLOT(FArguments, Content)
 		SLATE_ARGUMENT(int32, TabIndex)
 		SLATE_ARGUMENT(FString, UserId)
+        SLATE_ARGUMENT(FString, PartyId)
         SLATE_ARGUMENT(FString, DisplayName)
 		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
 		SLATE_EVENT(FOnClickedChatTabButton, OnClicked)
@@ -43,6 +44,7 @@ public:
 
 	int32 TabIndex = 0;
 	FString UserId = TEXT("");
+    FString PartyId = TEXT("");
     FString DisplayName = TEXT("");
 	FOnClickedChatTabButton OnChatTabClicked;
 	FTextBlockStyle ActiveTextStyle;
@@ -57,6 +59,7 @@ public:
 		ActiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextStyle;
 		PassiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextDisabledStyle;
 		UserId = InArgs._UserId;
+        PartyId = InArgs._PartyId;
         DisplayName = InArgs._DisplayName;
 
 		SButton::Construct(
@@ -104,6 +107,7 @@ public:
 	{}
 	SLATE_DEFAULT_SLOT(FArguments, Content)
 		SLATE_ARGUMENT(FString, UserId)
+        SLATE_ARGUMENT(FString, PartyId)
         SLATE_ARGUMENT(FString, DisplayName)
 		SLATE_ARGUMENT(int32, ChatPageIndex)
 		SLATE_EVENT(FOnTextCommited, OnTextComitted)
@@ -115,6 +119,7 @@ public:
 	FTextBlockStyle ConversationTextStyle;
 	int32 ChatPageIndex;
 	FString UserId;
+    FString PartyId;
     FString DisplayName;
 	FOnTextCommited OnTextCommited;
 	FOnSendButtonPressed OnSendButtonPressed;
@@ -124,6 +129,7 @@ public:
 	{
 		ChatPageIndex = InArgs._ChatPageIndex;
 		UserId = InArgs._UserId;
+        PartyId = InArgs._PartyId;
         DisplayName = InArgs._DisplayName;
 		ConversationTextStyle = InArgs._LobbyStyle->ConversationTextStyle;
 		OnTextCommited = InArgs._OnTextComitted;
@@ -206,19 +212,17 @@ public:
 	{
 		if (Type == ETextCommit::Type::OnEnter)
 		{
-			OnTextCommited.ExecuteIfBound(this->UserId, Text.ToString());
+			OnTextCommited.ExecuteIfBound(!this->UserId.IsEmpty() ? this->UserId : this->PartyId, Text.ToString());
 			this->InputTextBox->SetText(FText::FromString(TEXT("")));
 		}
 	}
 
 	FReply OnButtonPressed()
 	{
-		this->OnSendButtonPressed.ExecuteIfBound(this->UserId, InputTextBox->GetText().ToString());
+		this->OnSendButtonPressed.ExecuteIfBound(!this->UserId.IsEmpty() ? this->UserId : this->PartyId, InputTextBox->GetText().ToString());
 		this->InputTextBox->SetText(FText::FromString(TEXT("")));
 		return FReply::Handled();
 	}
-
-
 };
 
 class SPartyMember : public SCompoundWidget
@@ -227,11 +231,11 @@ public:
 	SLATE_BEGIN_ARGS(SPartyMember)
 	{}
 	SLATE_DEFAULT_SLOT(FArguments, Content)
-		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-		SLATE_END_ARGS()
+	SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
+	SLATE_END_ARGS()
 
 	TSharedPtr<SImage> LeaderBadge;
-	TSharedPtr<SImage> ProfilePicture;
+    TSharedPtr<SImage> ProfilePicture;
 	TSharedPtr<STextBlock> Name;
 	TSharedPtr<SButton> KickButton;
 	TSharedPtr<SImage> NoMemberImage;
@@ -272,10 +276,15 @@ public:
 
 						+ SHorizontalBox::Slot()			//Picture
 						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
+						.VAlign(VAlign_Center)                        
 						.AutoWidth()
 						[
-							SAssignNew(ProfilePicture, SImage)
+                            SNew(SBox)
+                            .HeightOverride(56)
+                            .WidthOverride(56)
+                            [
+                                SAssignNew(ProfilePicture, SImage)
+                            ]                            
 						]
 
 						+ SHorizontalBox::Slot()			//Name
@@ -313,30 +322,12 @@ public:
 			];
 	}
 
-	void Set(FString ID, bool IsPartyLeader)
+	void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush)
 	{
 		UserId = ID;
-		AccelByte::Api::Oauth2::GetPublicUserInfo(ID, 
-			AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&](const FAccelByteModelsOauth2UserInfo& Info)
-			{
-				Name->SetText(FText::FromString(Info.DisplayName));
-			}),
-			AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-			{
-				Name->SetText(FText::FromString(TEXT("<NotObtained>")));
-				UE_LOG(LogTemp, Log, TEXT("Failed to get party member's <%s> public user info\nErrorCode: %d\nErrorMessage: %s\n"), *ID, Code, *Message);
-			}));
+		Name->SetText(FText::FromString(DisplayName));
+        ProfilePicture->SetImage(AvatarBrush);
 
-		AccelByte::Api::UserProfile::GetPublicUserProfileInfo(ID, 
-			AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([](const FAccelByteModelsPublicUserProfileInfo& Info)
-			{
-				//Info.AvatarSmallUrl
-			}), 
-			AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Failed to get party member's <%s> public user profile\nErrorCode: %d\nErrorMessage: %s\n"), *ID, Code, *Message);
-			}));
-		//handle avatar picture
 		LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
 		KickButton->SetVisibility(!IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
 		NoMemberImage->SetVisibility(EVisibility::Collapsed);
@@ -347,8 +338,6 @@ public:
 	{
 		bIsOccupied = false;
 		Name->SetText(FString::Printf(TEXT("")));
-		ProfilePicture.Reset();
-		//AccelByte::Api::Lobby::SendKickPartyMemberRequest(UserId);
 		NoMemberImage->SetVisibility(EVisibility::Visible);
 	}
 };
@@ -465,21 +454,21 @@ public:
 		}));
 	}
 
-	void InsertMember(FString ID)
+	void InsertMember(FString ID, FString DisplayName, FSlateBrush* AvatarBrush)
 	{
 		for(int i = 1; i < 4; i++)
 		{
 			if (!PartyMembers[i]->bIsOccupied)
 			{
-				PartyMembers[i]->Set(ID, false);
+				PartyMembers[i]->Set(ID, false, DisplayName, AvatarBrush);
 				break;
 			}
 		}
 	}
 
-	void InsertLeader(FString ID)
+	void InsertLeader(FString ID, FString DisplayName, FSlateBrush* AvatarBrush)
 	{
-		PartyMembers[0]->Set(ID, true);
+		PartyMembers[0]->Set(ID, true, DisplayName, AvatarBrush);
 	}
 
 	void ResetAll()
@@ -494,9 +483,11 @@ public:
 };
 
 //class declare
-class SLobby : public SCompoundWidget/*, public TSharedFromThis<SLobby>*/
+class SLobby : public SCompoundWidget
 {
 public:
+    SLobby();
+
 	SLATE_BEGIN_ARGS(SLobby)
 	{}
 
@@ -526,7 +517,7 @@ public:
 
 	void UpdateSearchStatus();
     void InitializeFriends();
-    void SetCurrentUserDisplayName(FString DisplayName) {CurrentUserDisplayName = DisplayName;};
+    void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
 
@@ -583,6 +574,8 @@ protected:
 	double LastSearchTime;
 	double MinTimeBetweenSearches;
     FString CurrentUserDisplayName;
+    FString CurrentUserID;
+    FString CurrentAvatarURL;
 	TArray< TSharedPtr<FFriendEntry> > FriendList;
 	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
 	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > FriendListWidget;
@@ -594,6 +587,7 @@ protected:
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
 	TSharedPtr<class SWidget> OwnerWidget;
 	TSharedPtr<SScrollBar> FriendScrollBar;
+
 #pragma region CHAT
 
 	int32 ActiveTabIndex;
@@ -608,9 +602,11 @@ protected:
 	FReply OnChatTabScrollRightClicked();
 	FReply OnChatTabScrollLeftClicked();
 	void SelectTab(int32 TabIndex);
-	void SendChat(FString UserId, FString Message);
+	void SendPrivateChat(FString UserId, FString Message);
+    void SendPartyChat(FString PartyId, FString Message);
 
 	void OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response);
+    void OnReceivePartyChat(const FAccelByteModelsPartyMessageNotice& Response);
     void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
 
 #pragma endregion CHAT
@@ -619,8 +615,11 @@ public:
 #pragma region PARTY
 	TSharedPtr<SParty> PartyWidget;
 	TSharedPtr<SOverlay> InvitationOverlay;
-	AccelByte::Api::Lobby::FPartyGetInvitedNotif OnIncomingPartyInvitation;
-	AccelByte::Api::Lobby::FPartyJoinNotif OnInvitedFriendJoin;
+    FString CurrentPartyID;
+    void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
+    void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
+    void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
+    FSlateColorBrush OverlayBackgroundBrush;
 #pragma endregion PARTY
 
 };

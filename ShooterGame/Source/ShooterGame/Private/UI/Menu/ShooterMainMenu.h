@@ -316,7 +316,7 @@ protected:
 	/** Delegate executed when matchmaking completes */
 	FOnMatchmakingCompleteDelegate OnMatchmakingCompleteDelegate;
 
-    AccelByte::Api::Lobby::FGetAllUserPresenceResponse OnGetOnlineUsersResponse;
+    AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
     void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 
 	/** number of bots in game */
