@@ -11,6 +11,7 @@
 #include "AccelByteOrderApi.h"
 #include "AccelByteItemApi.h"
 #include "AccelByteError.h"
+#include "Api/AccelByteCloudStorage.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "Runtime/ImageWriteQueue/Public/ImagePixelData.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
@@ -824,6 +825,12 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 			}
 			//TODO upload to cloudstorage
 			//TODO show loading bar
+
+
+            auto pixelData = FSlateBrushToPixelData(InItem.ScreenshotEntry.Image);
+            auto imageData = GetCompressedImage(pixelData, EImageFormat::PNG);
+
+            AccelByte::Api::CloudStorage::SaveSlot()
 			
 		});
 }

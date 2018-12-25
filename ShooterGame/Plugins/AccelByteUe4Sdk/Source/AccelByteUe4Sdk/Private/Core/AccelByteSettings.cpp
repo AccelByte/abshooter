@@ -61,6 +61,11 @@ FString UAccelByteBlueprintsSettings::GetLobbyServerUrl()
 	return Settings::LobbyServerUrl;
 }
 
+FString UAccelByteBlueprintsSettings::GetCloudStorageServerUrl()
+{
+    return Settings::CloudStorageServerUrl;
+}
+
 void UAccelByteBlueprintsSettings::SetClientId(const FString& ClientId)
 {
 	Settings::ClientId = ClientId;
@@ -94,4 +99,9 @@ void UAccelByteBlueprintsSettings::SetPlatformServerUrl(const FString& PlatformS
 void UAccelByteBlueprintsSettings::SetLobbyServerUrl(const FString& LobbyServerUrl)
 {
 	Settings::LobbyServerUrl = LobbyServerUrl;
+}
+
+void UAccelByteBlueprintsSettings::SetCloudStorageServerUrl(const FString& CloudStorageServerUrl)
+{
+    Settings::CloudStorageServerUrl = CloudStorageServerUrl;
 }

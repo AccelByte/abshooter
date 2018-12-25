@@ -75,6 +75,8 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	Settings::IamServerUrl = GetDefault<UAccelByteSettings>()->IamServerUrl;
 	Settings::PlatformServerUrl = GetDefault<UAccelByteSettings>()->PlatformServerUrl;
 	Settings::LobbyServerUrl = GetDefault<UAccelByteSettings>()->LobbyServerUrl;
+    Settings::CloudStorageServerUrl = GetDefault<UAccelByteSettings>()->CloudStorageServerUrl;
+
 	return true;
 }
 
