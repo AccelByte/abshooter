@@ -23,11 +23,11 @@ public:
 	DECLARE_DELEGATE_OneParam(FCreateSlotsSuccess, const FAccelByteModelsCreateSlotResponse&);
 	static void IntializeSlots(const int32 SlotCount, const FCreateSlotsSuccess& OnSuccess, const FErrorHandler& OnError);
 
-  DECLARE_DELEGATE_OneParam(FGetAllSlotsSuccess, const FAccelByteModelsSlot&);
+  DECLARE_DELEGATE_OneParam(FGetAllSlotsSuccess, const TArray<FAccelByteModelsSlot>&);
 	static void GetAllSlot(const FGetAllSlotsSuccess& OnSuccess, const FErrorHandler& OnError);
 	
   DECLARE_DELEGATE_OneParam(FSaveSlotSuccess, const FString&);
-	static void SaveSlot(const TArray<uint8> BinaryData, const FString& Tags, const FSaveSlotSuccess& OnSuccess, FHttpRequestProgressDelegate OnProgress, const FErrorHandler& OnError);
+	static void SaveSlot(TArray<uint8> BinaryData, const FString& Tags, const FSaveSlotSuccess& OnSuccess, FHttpRequestProgressDelegate OnProgress, const FErrorHandler& OnError);
 
   DECLARE_DELEGATE_OneParam(FLoadSlotSuccess, const TArray<uint8>&);
 	static void LoadSlot(FString SlotID, const FLoadSlotSuccess& OnSuccess, const FErrorHandler& OnError);

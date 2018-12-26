@@ -12,6 +12,7 @@
 #include "Widgets/SShooterLeaderboard.h"
 #include "Widgets/SLobby.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
+#include "Widgets/SShooterScreenshot.h"
 #include "ShooterOptions.h"
 
 
@@ -108,6 +109,12 @@ protected:
 
 	/** inventory widget */
 	TSharedPtr<class SShooterInventory> InventoryWidget;
+
+    /** Screenshot widget */
+    TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
+    /** yet another custom menu */
+    TSharedPtr<class FShooterMenuItem> ScreenshotItem;
+
 
 	/** leaderboard widget */
 	TSharedPtr<class SShooterLeaderboard> LeaderboardWidget;
@@ -244,6 +251,9 @@ protected:
 
 	/** Show inventory */
 	void OnShowInventory();
+
+    /** Show screenshot */
+    void OnShowScreenshot();
 
 	/** Plays sound and calls Quit */
 	void OnUIQuit();

@@ -12,6 +12,7 @@ struct FScreenshotEntry
 	FString Title;
 	const FSlateBrush* Image = nullptr;
 	FString Path;
+    bool bIsReady = false;
 };
 
 struct FScreenshotComboBoxGroup
@@ -59,6 +60,16 @@ public:
 
 	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
 
+    void MainMenuMode() { bMainMenuMode = true; }
+
+    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, TArray<uint8> ImageData);
+
+    void LoadSingleSlot(FString SlotID, int32 slotIndex);
+
+    void RefreshFromCloud();
+
+    void OnReceiveSlotImage(const TArray<uint8>& Result, int32 slotIndex);
+
 protected:
 	/** if menu is currently opened*/
 	bool bIsMenuUp;
@@ -96,6 +107,11 @@ protected:
 	TSharedPtr<FScreenshotComboBoxGroup> ComboBoxGroup;
 
 	TArray<TSharedPtr<FSlateBrush>> Brushes;
+
+
+    TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  CloudBrushCache;
+
+    bool bMainMenuMode;
 };
 
 
