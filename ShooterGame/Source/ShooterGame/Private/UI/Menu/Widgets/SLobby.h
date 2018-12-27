@@ -455,14 +455,6 @@ public:
 		PartyMembers.Add(Member1);
 		PartyMembers.Add(Member2);
 		PartyMembers.Add(Member3);
-		//for (int i = 0; i < PartyMembers.Num(); i++)
-		//{
-		//	PartyMembers[i]->KickButton->SetOnClicked(FOnClicked::CreateLambda([&]()
-		//	{
-		//		PartyMembers[i]->Release();
-		//		return FReply::Handled();
-		//	}));
-		//}
 		ButtonCreateParty->SetOnClicked(FOnClicked::CreateLambda([&]()
 		{
 			AccelByte::Api::Lobby::Get().SendCreatePartyRequest();

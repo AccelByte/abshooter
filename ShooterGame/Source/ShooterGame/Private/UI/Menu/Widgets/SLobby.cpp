@@ -311,7 +311,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                         {
                             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
                             FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-							UE_LOG(LogTemp, Log, TEXT("SetInvitePartyJoinResponseDelegate\nCurrentUserId=%s\nMemberId=%s\n%s"), *SLobby::GetCurrentUserID(), *MemberId, (MemberId == SLobby::GetCurrentUserID())?TEXT("TRUE"):TEXT("FALSE"));
+
                             PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == SLobby::GetCurrentUserID()));
                         }
                     }
@@ -368,7 +368,6 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 			Member->Release();
 		}
 	};
-	//SLobby::PartyWidget->ResetAll();
 }
 
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
@@ -461,7 +460,6 @@ void SLobby::OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response)
 
 void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL)
 {
-	UE_LOG(LogTemp, Log, TEXT("SetCurrentUserId=%s"), *UserID);
     CurrentUserID = UserID;
     CurrentUserDisplayName = DisplayName; 
     CurrentAvatarURL = AvatarURL;
