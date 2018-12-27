@@ -238,8 +238,10 @@ public:
     TSharedPtr<SImage> ProfilePicture;
 	TSharedPtr<STextBlock> Name;
 	TSharedPtr<SButton> KickButton;
+	TSharedPtr<STextBlock> KickText;
 	TSharedPtr<SImage> NoMemberImage;
 	FString UserId;
+	bool bMySelf = false;
 	bool bIsOccupied = false;
 
 	void Construct(const FArguments& InArgs)
@@ -304,9 +306,10 @@ public:
 						SAssignNew(KickButton, SButton)
 						.HAlign(HAlign_Center)
 						.VAlign(VAlign_Center)
+						.OnClicked(this, &SPartyMember::OnKickButtonClicked)
 						[
-							SNew(STextBlock)
-							.Text(FText::FromString(TEXT("KICK")))
+							SAssignNew(KickText, STextBlock)
+							.Text(FText::FromString( bMySelf ? TEXT("LEAVE") : TEXT("KICK")))
 						]
 					]
 				]
@@ -339,6 +342,20 @@ public:
 		bIsOccupied = false;
 		Name->SetText(FString::Printf(TEXT("")));
 		NoMemberImage->SetVisibility(EVisibility::Visible);
+	}
+
+	FReply OnKickButtonClicked()
+	{
+		if (bMySelf)
+		{
+			AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+		}
+		else
+		{
+			AccelByte::Api::Lobby::Get().SendKickPartyMemberRequest(UserId);
+			AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+		}
+		return FReply::Handled();
 	}
 };
 
@@ -438,14 +455,6 @@ public:
 		PartyMembers.Add(Member1);
 		PartyMembers.Add(Member2);
 		PartyMembers.Add(Member3);
-		for (int i = 0; i < PartyMembers.Num(); i++)
-		{
-			PartyMembers[i]->KickButton->SetOnClicked(FOnClicked::CreateLambda([&]()
-			{
-				PartyMembers[i]->Release();
-				return FReply::Handled();
-			}));
-		}
 		ButtonCreateParty->SetOnClicked(FOnClicked::CreateLambda([&]()
 		{
 			AccelByte::Api::Lobby::Get().SendCreatePartyRequest();
@@ -454,13 +463,15 @@ public:
 		}));
 	}
 
-	void InsertMember(FString ID, FString DisplayName, FSlateBrush* AvatarBrush)
+	void InsertMember(FString ID, FString DisplayName, FSlateBrush* AvatarBrush, bool bMyself)
 	{
 		for(int i = 1; i < 4; i++)
 		{
 			if (!PartyMembers[i]->bIsOccupied)
 			{
 				PartyMembers[i]->Set(ID, false, DisplayName, AvatarBrush);
+				PartyMembers[i]->KickText->SetText(bMyself ? FString::Printf(TEXT("LEAVE")) : FString::Printf(TEXT("KICK")));
+				PartyMembers[i]->bMySelf = bMyself;
 				break;
 			}
 		}
@@ -518,6 +529,7 @@ public:
 	void UpdateSearchStatus();
     void InitializeFriends();
     void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
+    FString GetCurrentUserID();
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
 
@@ -619,7 +631,11 @@ public:
     void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
     void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
     void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
+    void OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo);
+    void OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo);
     FSlateColorBrush OverlayBackgroundBrush;
 #pragma endregion PARTY
 
+	TSharedPtr<SOverlay> NotificationOverlay;
+	void OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification);
 };

@@ -51,6 +51,13 @@ void SLobby::Construct(const FArguments& InArgs)
     AccelByte::Api::Lobby::Get().SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
     AccelByte::Api::Lobby::Get().SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
     AccelByte::Api::Lobby::Get().SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
+	AccelByte::Api::Lobby::Get().SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
+	AccelByte::Api::Lobby::Get().SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
+	AccelByte::Api::Lobby::Get().SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
+	{
+		SLobby::PartyWidget->ResetAll();
+	}));
+	AccelByte::Api::Lobby::Get().SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
 
 	ChildSlot
 		.VAlign(VAlign_Fill)
@@ -249,7 +256,7 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
         {
             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
             FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar);
+            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
         }
     }
     PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
@@ -305,7 +312,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
                             FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
 
-                            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar);
+                            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
                         }
                     }
                     PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
@@ -332,6 +339,35 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
 
     GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());
     FSlateApplication::Get().SetKeyboardFocus(InvitationOverlay);
+}
+
+void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo)
+{
+	if (KickInfo.UserId == SLobby::CurrentUserID)
+	{
+		SLobby::PartyWidget->ResetAll();
+	}
+	else
+	{
+		for (auto Member : SLobby::PartyWidget->PartyMembers)
+		{
+			if (Member->UserId == KickInfo.UserId)
+			{
+				Member->Release();
+			}
+		};
+	}
+}
+
+void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
+{
+	for (auto Member : SLobby::PartyWidget->PartyMembers)
+	{
+		if (Member->UserId == LeaveInfo.UserID)
+		{
+			Member->Release();
+		}
+	};
 }
 
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
@@ -446,6 +482,12 @@ void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarU
 
 
 };
+
+FString SLobby::GetCurrentUserID()
+{
+	return CurrentUserID;
+}
+
 void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
 {
     TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
@@ -1122,5 +1164,42 @@ void SLobby::OnReceivePartyChat(const FAccelByteModelsPartyMessageNotice& Respon
 }
 
 #pragma endregion CHAT
+void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification)
+{
+	if (MessageNotification.Topic != TEXT("0004"))
+	{
+		return;
+	}
+
+	SAssignNew(NotificationOverlay, SOverlay)
+		+ SOverlay::Slot()
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SNew(SImage)
+				.Image(&OverlayBackgroundBrush)
+			]
+		]
+		+ SOverlay::Slot()
+		[
+			SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+			.MessageText(FText::FromString(FString::Printf(TEXT("Notification!\nFrom: %s\nMessage: %s"), *MessageNotification.From, *MessageNotification.Payload)))
+			.ConfirmText(FText::FromString("CLOSE"))
+			.OnConfirmClicked(FOnClicked::CreateLambda([&]()
+			{
+				if (NotificationOverlay.IsValid())
+				{
+					GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
+					NotificationOverlay.Reset();
+				}
+				return FReply::Handled();
+			}))
+		];
+
+	GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+}
 
 #undef LOCTEXT_NAMESPACE
