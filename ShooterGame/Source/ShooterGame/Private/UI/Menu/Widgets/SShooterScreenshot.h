@@ -3,6 +3,7 @@
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "ShooterGame.h"
+#include "Models/AccelByteCloudStorageModels.h"
 
 typedef TSharedPtr<int> FScreenshotComboBoxType;
 
@@ -13,6 +14,8 @@ struct FScreenshotEntry
 	const FSlateBrush* Image = nullptr;
 	FString Path;
     bool bIsReady = false;
+    FString SlotID;
+
 };
 
 struct FScreenshotComboBoxGroup
@@ -62,13 +65,15 @@ public:
 
     void MainMenuMode() { bMainMenuMode = true; }
 
-    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, TArray<uint8> ImageData);
+    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
 
-    void LoadSingleSlot(FString SlotID, int32 slotIndex);
+    void LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotIndex);
 
     void RefreshFromCloud();
 
-    void OnReceiveSlotImage(const TArray<uint8>& Result, int32 slotIndex);
+    void OnReceiveSlotImage(const TArray<uint8>& Result, FAccelByteModelsSlot Slot, int32 SlotIndex);
+    void OnDeleteSlot(const FString& SlotID);
+
 
 protected:
 	/** if menu is currently opened*/
@@ -100,14 +105,9 @@ protected:
 
 	void UpdateCurrentScreenshotList();
 
-	//TArray<const FSlateBrush*> SavedImages;
-
 	TArray<FScreenshotEntry> PreviousSelectedScreenshot;
 
 	TSharedPtr<FScreenshotComboBoxGroup> ComboBoxGroup;
-
-	TArray<TSharedPtr<FSlateBrush>> Brushes;
-
 
     TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  CloudBrushCache;
 

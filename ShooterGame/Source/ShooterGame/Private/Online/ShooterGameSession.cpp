@@ -118,8 +118,6 @@ void AShooterGameSession::HandleMatchHasEnded()
             Request->OnProcessRequestComplete().BindStatic(&AShooterGameSession::OnSendMatchmakingResultResponse);
             Request->ProcessRequest();
 
-
-
 			Sessions->EndSession(NAME_GameSession);
 		}
 	}
@@ -127,7 +125,10 @@ void AShooterGameSession::HandleMatchHasEnded()
 
 void AShooterGameSession::OnSendMatchmakingResultResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful)
 {
-    UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameSession::OnSendMatchmakingResultResponse :%s"), *Response->GetContentAsString());
+    if (Successful && Request.IsValid())
+    {
+        UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameSession::OnSendMatchmakingResultResponse :%s"), *Response->GetContentAsString());
+    }
 }
 
 bool AShooterGameSession::IsBusy() const

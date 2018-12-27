@@ -54,10 +54,25 @@ void CloudStorage::GetAllSlot(const FGetAllSlotsSuccess& OnSuccess, const FError
 	Request->ProcessRequest();
 }
 
-void CloudStorage::SaveSlot(TArray<uint8> BinaryData, const FString & Tags, const FSaveSlotSuccess & OnSuccess, FHttpRequestProgressDelegate OnProgress, const FErrorHandler & OnError)
+void CloudStorage::SaveSlot(TArray<uint8> BinaryData, const FString& Tags, const FString& Label, const FSaveSlotSuccess& OnSuccess, FHttpRequestProgressDelegate OnProgress, const FErrorHandler& OnError)
 {
     FString Authorization = FString::Printf(TEXT("%s"), *Credentials::Get().GetUserAccessToken());
     FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/%s/slots"), *Settings::CloudStorageServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
+
+    if (!Tags.IsEmpty() || !Label.IsEmpty())
+    {
+        Url.Append(TEXT("?"));
+    }
+
+    if (!Tags.IsEmpty())
+    {
+        Url.Append(FString::Printf(TEXT("tags=%s&"), *Tags));
+    }
+    if (!Label.IsEmpty())
+    {
+        Url.Append(FString::Printf(TEXT("label=%s"), *Label));
+    }
+
     FString Verb = TEXT("POST");
     FString Accept = TEXT("*/*");
 
@@ -113,6 +128,27 @@ void CloudStorage::UpdateSlot(FString SlotID, const TArray<uint8> BinaryData, co
 {
 }
 
+void CloudStorage::DeleteSlot(FString SlotID, const FDeleteSlotSuccess & OnSuccess, const FErrorHandler & OnError)
+{
+    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
+    FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/%s/slots/%s"), *Settings::CloudStorageServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId(), *SlotID);
+    FString Verb = TEXT("DELETE");
+    FString ContentType = TEXT("application/json");
+    FString Accept = TEXT("*/*");
+    FString Content = TEXT("");
+
+    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(Url);
+    Request->SetHeader(TEXT("Authorization"), Authorization);
+    Request->SetVerb(Verb);
+    Request->SetHeader(TEXT("Content-Type"), ContentType);
+    Request->SetHeader(TEXT("Accept"), Accept);
+    Request->SetContentAsString(Content);
+    Request->OnProcessRequestComplete().BindStatic(OnDeleteSlotResponse, OnSuccess, OnError);
+    Request->ProcessRequest();
+
+}
+
 
 
 // Response
@@ -141,8 +177,21 @@ void CloudStorage::OnGetAllSlotResponse(FHttpRequestPtr Request, FHttpResponsePt
 
 void CloudStorage::OnSaveSlotResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FSaveSlotSuccess OnSuccess, FErrorHandler OnError)
 {
-    FString ResponseText = Response->GetContentAsString();
-    OnSuccess.ExecuteIfBound(ResponseText);
+    int32 Code;
+    FString Message;
+    FAccelByteModelsCreateSlotResponse Result;
+    if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+    {
+        if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0))
+        {
+            OnSuccess.ExecuteIfBound(Result);
+            return;
+        }
+        Code = static_cast<int32>(ErrorCodes::JsonDeserializationFailed);
+    }
+    HandleHttpError(Request, Response, Code, Message);
+    OnError.ExecuteIfBound(Code, Message);
+
 }
 
 void CloudStorage::OnLoadSlotResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FLoadSlotSuccess OnSuccess, FErrorHandler OnError)
@@ -152,7 +201,7 @@ void CloudStorage::OnLoadSlotResponse(FHttpRequestPtr Request, FHttpResponsePtr 
         OnSuccess.ExecuteIfBound(Response->GetContent());
         return;
     }
-    int32 Code = Response->GetResponseCode();
+    int32 Code;
     FString Message;
     HandleHttpError(Request, Response, Code, Message);
     OnError.ExecuteIfBound(Code, Message);
@@ -160,6 +209,20 @@ void CloudStorage::OnLoadSlotResponse(FHttpRequestPtr Request, FHttpResponsePtr 
 
 void CloudStorage::OnUpdateSlotResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FSaveSlotSuccess OnSuccess, FErrorHandler OnError)
 {
+
+}
+
+void CloudStorage::OnDeleteSlotResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FDeleteSlotSuccess OnSuccess, FErrorHandler OnError)
+{
+    if (Successful)
+    {
+        OnSuccess.ExecuteIfBound();
+        return;
+    }
+    int32 Code;
+    FString Message;
+    HandleHttpError(Request, Response, Code, Message);
+    OnError.ExecuteIfBound(Code, Message);
 }
 
 }
