@@ -256,7 +256,7 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
         {
             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
             FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == SLobby::CurrentUserID));
+            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
         }
     }
     PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
@@ -312,7 +312,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
                             FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
 
-                            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == SLobby::GetCurrentUserID()));
+                            PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
                         }
                     }
                     PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
