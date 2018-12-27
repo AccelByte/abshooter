@@ -400,6 +400,12 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		}
 #endif
 
+        // Screenshot
+        {
+            MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Screenshot", "SCREENSHOT"), this, &FShooterMainMenu::OnShowScreenshot);
+            MenuHelper::AddCustomMenuItem(ScreenshotItem, SAssignNew(ScreenshotWidget, SShooterScreenshot).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+        }
+
 		// Options
 		MenuHelper::AddExistingMenuItem(RootMenuItem, ShooterOptions->OptionsItem.ToSharedRef());
 
@@ -1436,6 +1442,14 @@ void FShooterMainMenu::OnShowInventory()
 	InventoryWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
+}
+
+void FShooterMainMenu::OnShowScreenshot()
+{
+    MenuWidget->NextMenu = ScreenshotItem->SubMenu;
+    ScreenshotWidget->MainMenuMode();
+    ScreenshotWidget->RefreshFromCloud();
+    MenuWidget->EnterSubMenu();    
 }
 
 void FShooterMainMenu::OnUIQuit()

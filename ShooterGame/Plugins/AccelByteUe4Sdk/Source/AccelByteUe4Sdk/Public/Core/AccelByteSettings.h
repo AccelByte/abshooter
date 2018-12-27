@@ -68,6 +68,9 @@ public:
 
 	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte | Settings")
 	FString LobbyServerUrl;
+
+    UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte | Settings")
+    FString CloudStorageServerUrl;
 };
 
 
@@ -100,6 +103,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
 	static FString GetLobbyServerUrl();
 
+    UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
+    static FString GetCloudStorageServerUrl();
+
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
 	static void SetClientId(const FString& ClientId);
 
@@ -120,5 +126,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
 	static void SetLobbyServerUrl(const FString& LobbyServerUrl);
+
+    UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
+    static void SetCloudStorageServerUrl(const FString& CloudStorageServerUrl);
 };
 

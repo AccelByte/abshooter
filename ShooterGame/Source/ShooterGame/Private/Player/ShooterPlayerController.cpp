@@ -1050,6 +1050,7 @@ void AShooterPlayerController::ToggleScreenshotWindow()
 		ScreenshotWidget->ToggleScreenshotWindow();
 		if (ScreenshotWidget->IsShowing())
 		{
+            ScreenshotWidget->RefreshFromCloud();
 			SetInputMode(FInputModeUIOnly());
 			bShowMouseCursor = true;
 		}

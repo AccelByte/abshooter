@@ -11,6 +11,7 @@
 #include "AccelByteOrderApi.h"
 #include "AccelByteItemApi.h"
 #include "AccelByteError.h"
+#include "Api/AccelByteCloudStorage.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "Runtime/ImageWriteQueue/Public/ImagePixelData.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
@@ -123,6 +124,111 @@ FString GetBase64Thumbnail(TSharedPtr<TImagePixelData<FColor>> PixelData, EImage
 		}
 	}
 	return "";
+}
+
+TArray<uint8> GetCompressedImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
+{
+	IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
+	if (!ensure(ImageWrapperModule))
+	{
+		return TArray<uint8>();
+	}
+
+	const void* RawPtr = nullptr;
+	int32 SizeBytes = 0;
+
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule->CreateImageWrapper(InFormat);
+
+	int Width = PixelData->GetSize().X;
+	int Height = PixelData->GetSize().Y;
+
+	RawPtr = static_cast<const void*>(&PixelData->Pixels[0]);
+	SizeBytes = PixelData->Pixels.Num() * sizeof(FColor);
+	{
+		uint8      BitDepth = PixelData->GetBitDepth();
+		ERGBFormat PixelLayout = PixelData->GetPixelLayout();
+
+		if (ImageWrapper->SetRaw(RawPtr, SizeBytes, Width, Height, PixelLayout, BitDepth))
+		{
+			return ImageWrapper->GetCompressed();
+		}
+	}
+
+	return TArray<uint8>();
+}
+
+TArray<uint8> GetCompressedAndScaledImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
+{
+    IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
+    if (!ensure(ImageWrapperModule))
+    {
+        return TArray<uint8>();
+    }
+
+    const void* RawPtr = nullptr;
+    int32 SizeBytes = 0;
+
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule->CreateImageWrapper(InFormat);
+
+    int Width = PixelData->GetSize().X;
+    int Height = PixelData->GetSize().Y;
+
+    float Scale = 240.0f / Height;
+    int NewWidth = Width * Scale;
+    int NewHeight = Height * Scale;
+    TArray<FColor> ResizedImage;
+    ResizedImage.SetNum(NewWidth * NewHeight);
+    FImageUtils::ImageResize(Width, Height, PixelData->Pixels, NewWidth, NewHeight, ResizedImage, false);
+
+    RawPtr = static_cast<const void*>(&ResizedImage[0]);
+    SizeBytes = ResizedImage.Num() * sizeof(FColor);
+    {
+        uint8      BitDepth = PixelData->GetBitDepth();
+        ERGBFormat PixelLayout = PixelData->GetPixelLayout();
+
+        if (ImageWrapper->SetRaw(ResizedImage.GetData(), SizeBytes, NewWidth, NewHeight, PixelLayout, BitDepth))
+        {
+            return ImageWrapper->GetCompressed();
+        }
+    }
+
+    return TArray<uint8>();
+}
+
+
+TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FName ResourceName, TArray<uint8> ImageData, const EImageFormat InFormat)
+{
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
+
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(InFormat);
+
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
+
+		const TArray<uint8>* RawData = NULL;
+
+		if (ImageWrapper->GetRaw(InFormat == EImageFormat::PNG ? ERGBFormat::BGRA : ERGBFormat::RGBA, 8, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
+
+	return Brush;
 }
 
 class SScreenshotSlotComboBox : public SCompoundWidget
@@ -366,7 +472,7 @@ public:
 class SShooterScreenshotTileItem : public STableRow< TSharedPtr<FScreenshotEntry> >
 {
 public:
-	DECLARE_DELEGATE(FOnDeleteClick)
+    DECLARE_DELEGATE_OneParam(FOnDeleteClick, const FString&)
 
 	SLATE_BEGIN_ARGS(SShooterScreenshotTileItem) {}
 	SLATE_EVENT(FOnDeleteClick, OnDeleteClick)
@@ -405,13 +511,33 @@ public:
 				.HAlign(HAlign_Fill)
 				.FillHeight(1)
 				[
-					SNew(SScaleBox)
+					SNew(SOverlay)
+					+ SOverlay::Slot()
 					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Center)
-					.Stretch(EStretch::ScaleToFit)
+					.VAlign(VAlign_Fill)
 					[
-						SNew(SImage)
-						.Image(InItem->Image == nullptr ? FShooterStyle::Get().GetBrush("ShooterGame.Image") : InItem->Image)
+						SNew(SSafeZone)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.Padding(10.0f)
+						.IsTitleSafe(true)
+						[
+							SAssignNew(LoadingBar, SThrobber)
+                            .Visibility(this, &SShooterScreenshotTileItem::ShowLoadingBar)
+						]
+					]
+					+ SOverlay::Slot()
+					.VAlign(VAlign_Fill)
+					.VAlign(VAlign_Fill)
+					[
+						SNew(SScaleBox)
+						.VAlign(VAlign_Fill)
+						.HAlign(HAlign_Center)
+						.Stretch(EStretch::ScaleToFit)
+						[
+							SNew(SImage)
+							.Image(this, &SShooterScreenshotTileItem::GetProfileAvatar)
+						]
 					]
 				]
 				+ SVerticalBox::Slot()
@@ -430,7 +556,7 @@ public:
 					.FillWidth(1)
 					[
 						SAssignNew(TextTitle, STextBlock)
-						.Text(FText::FromString(InItem->Title))
+						.Text(this, &SShooterScreenshotTileItem::GetTitle)
 					]
 				]
 			]
@@ -459,6 +585,7 @@ public:
 					.HAlign(HAlign_Fill)
 					[
 						SNew(SButton) // preview button
+                        .Text(FText::FromString(TEXT("P")))
 						.VAlign(VAlign_Fill)
 						.HAlign(HAlign_Fill)
 						.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
@@ -467,10 +594,10 @@ public:
 							this->ScreenshotPreviewWidget->Show();
 							return FReply::Handled();
 						}))
-						[
-							SNew(SImage)
-							.Image(&ButtonBackgrounBrush)
-						]
+						//[
+						//	SNew(SImage)
+						//	.Image(&ButtonBackgrounBrush)
+						//]
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -484,6 +611,7 @@ public:
 					.HAlign(HAlign_Fill)
 					[
 						SNew(SButton) // edit button
+                        .Text(FText::FromString(TEXT("E")))
 						.VAlign(VAlign_Fill)
 						.HAlign(HAlign_Fill)
 						.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
@@ -495,10 +623,10 @@ public:
 							this->ScreenshotEditWidget->Show();
 							return FReply::Handled();
 						}))
-						[
-							SNew(SImage)
-							.Image(&ButtonBackgrounBrush)
-						]
+						//[
+						//	SNew(SImage)
+						//	.Image(&ButtonBackgrounBrush)
+						//]
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -512,6 +640,7 @@ public:
 					.HAlign(HAlign_Fill)
 					[
 						SNew(SButton) // delete button
+                        .Text(FText::FromString(TEXT("D")))
 						.VAlign(VAlign_Fill)
 						.HAlign(HAlign_Fill)
 						.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
@@ -521,17 +650,51 @@ public:
 							{
 								GetBase64Thumbnail(PixelData, EImageFormat::JPEG);
 							}
-							OnDeleteClick.ExecuteIfBound();
+							OnDeleteClick.ExecuteIfBound(Item.Pin()->SlotID);
 							return FReply::Handled();
 						}))
-						[
-							SNew(SImage)
-							.Image(&ButtonBackgrounBrush)
-						]
+						//[
+						//	SNew(SImage)
+						//	.Image(&ButtonBackgrounBrush)
+						//]
 					]
 				]
 			]
 		];
+	}
+
+    const FSlateBrush* GetProfileAvatar() const 
+    {
+        return Item.Pin()->Image == nullptr ? FShooterStyle::Get().GetBrush("ShooterGame.Image") : Item.Pin()->Image;
+    }
+    FText GetTitle() const
+    {
+        return FText::FromString(Item.Pin()->Title);
+    }
+
+
+    EVisibility ShowLoadingBar() const
+    {
+        if (Item.Pin()->bIsReady)
+        {
+            return EVisibility::Hidden;
+        }
+        else
+        {
+            return EVisibility::Visible;
+        }
+    }
+
+	void SetLoadingBarVisible(bool Visible)
+	{
+		if (Visible)
+		{
+			LoadingBar->SetVisibility(EVisibility::Visible);
+		}
+		else
+		{
+			LoadingBar->SetVisibility(EVisibility::Collapsed);
+		}
 	}
 
 	EVisibility GetSelectedVisibility() const {
@@ -549,6 +712,8 @@ private:
 	TSharedPtr<SWidget> SelectedWidget;
 	FTableRowStyle Style;
 
+	TSharedPtr<SThrobber> LoadingBar;
+
 	TSharedPtr<STextBlock> TextTitle;
 
 	FOnDeleteClick OnDeleteClick;
@@ -561,6 +726,7 @@ private:
 };
 
 SShooterScreenshot::SShooterScreenshot()
+    :bMainMenuMode(false)
 {
 }
 
@@ -671,16 +837,11 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 
 void SShooterScreenshot::BuildScreenshotItem()
 {
-	Brushes.Add(MakeShareable(new FSlateColorBrush(FLinearColor(1, 0, 0))));
-	Brushes.Add(MakeShareable(new FSlateColorBrush(FLinearColor(1, 1, 0))));
-	Brushes.Add(MakeShareable(new FSlateColorBrush(FLinearColor(1, 0, 1))));
-
-	//dummy data
 	SavedScreenshotList.Empty();
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 1, "Title aaaa", Brushes[0].Get() }));
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 2, "bbbbbbbb", Brushes[1].Get() }));
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 3, "Title cccc", Brushes[2].Get() }));
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 4, "ddddddd", nullptr }));
+	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 1, "No Image", nullptr }));
+	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 2, "No Image", nullptr }));
+	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 3, "No Image", nullptr }));
+	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 4, "No Image", nullptr }));
 	SavedScreenshotListWidget->RequestListRefresh();
 
 	UpdateCurrentScreenshotList();
@@ -711,7 +872,8 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 				PreviousSelectedScreenshot[Index].Image = SavedScreenshotList[Index]->Image;
 				SavedScreenshotList[Index]->Image = InItem.ScreenshotEntry.Image;
 				SavedScreenshotList[Index]->Title = InItem.ScreenshotEntry.Title;
-				SavedScreenshotListWidget->RebuildList();
+                SavedScreenshotList[Index]->bIsReady = false;
+				//SavedScreenshotListWidget->RebuildList();
 			}
 			
 			if (PreviousIndex >= 0)
@@ -719,14 +881,37 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 				SavedScreenshotList[PreviousIndex]->Image = PreviousSelectedScreenshot[PreviousIndex].Image;
 				PreviousSelectedScreenshot[PreviousIndex].Image = nullptr;
 				PreviousSelectedScreenshot[PreviousIndex].Title = "";
-				SavedScreenshotListWidget->RebuildList();
+				//SavedScreenshotListWidget->RebuildList();
 			}
+
+            auto pixelData = FSlateBrushToPixelData(InItem.ScreenshotEntry.Image);
+            auto imageData = GetCompressedAndScaledImage(pixelData, EImageFormat::PNG);
+
+            FString Label = FString::Printf(TEXT("Screenshot-%s"), *FDateTime::Now().ToString());
+
+            AccelByte::Api::CloudStorage::SaveSlot(imageData, "Screenshot", Label,
+                AccelByte::Api::CloudStorage::FSaveSlotSuccess::CreateLambda([&, Index](const FAccelByteModelsCreateSlotResponse& Output) {
+                UE_LOG(LogTemp, Log, TEXT("File successfullly saved, SlotID :%s"), *Output.SlotId);
+                SavedScreenshotList[Index]->bIsReady = true;
+                SavedScreenshotList[Index]->Title = Output.Label;
+            }), 
+                FHttpRequestProgressDelegate::CreateLambda([](FHttpRequestPtr Request, int32 BytesSent, int32 BytesReceived) {
+                UE_LOG(LogTemp, Log, TEXT("Upload Progress :%d"), BytesSent);
+            }),
+                AccelByte::FErrorHandler::CreateLambda([&, Index](int32 ErrorCode, FString ErrorString) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Upload to cloud storage. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+                SavedScreenshotList[Index]->bIsReady = true;
+                SavedScreenshotList[Index]->Title = TEXT("Upload failed");
+                SavedScreenshotList[Index]->Image = nullptr;
+            }));
+			
 		});
 }
 
 TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForTileView(TSharedPtr<FScreenshotEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {	
-	return SNew(SShooterScreenshotTileItem, OwnerTable, PlayerOwner, Item);
+	return SNew(SShooterScreenshotTileItem, OwnerTable, PlayerOwner, Item)
+        .OnDeleteClick(this, &SShooterScreenshot::OnDeleteSlot);
 }
 
 void SShooterScreenshot::OnFocusLost(const FFocusEvent& InFocusEvent)
@@ -787,10 +972,130 @@ FReply SShooterScreenshot::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 {
 	FReply Result = FReply::Unhandled();
 	const FKey Key = InKeyEvent.GetKey();
-	if (Key == EKeys::Escape || Key == EKeys::Virtual_Back || Key == EKeys::Gamepad_Special_Left)
-	{
-		ToggleScreenshotWindow();
-		Result = FReply::Handled();
-	}
+    if (!bMainMenuMode && (Key == EKeys::Escape || Key == EKeys::Virtual_Back || Key == EKeys::Gamepad_Special_Left))
+    {
+        ToggleScreenshotWindow();
+        Result = FReply::Handled();
+    }
 	return Result;
+}
+
+TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
+{
+    TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+    uint32 BytesPerPixel = 4;
+    int32 Width = 0;
+    int32 Height = 0;
+
+    bool bSucceeded = false;
+    TArray<uint8> DecodedImage;
+    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+    int BitDepth = 8;
+    //jpg
+    EImageFormat ImageFormat = EImageFormat::JPEG;
+    ERGBFormat RgbFormat = ERGBFormat::BGRA;
+    //png
+    if (ContentType.Contains(TEXT("png")))
+    {
+        ImageFormat = EImageFormat::PNG;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+    //bmp
+    else if (ContentType.Contains(TEXT("bmp")))
+    {
+        ImageFormat = EImageFormat::BMP;
+        RgbFormat = ERGBFormat::BGRA;
+    }
+
+    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+    if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+    {
+        Width = ImageWrapper->GetWidth();
+        Height = ImageWrapper->GetHeight();
+
+        const TArray<uint8>* RawData = NULL;
+
+        if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+        {
+            DecodedImage = *RawData;
+            bSucceeded = true;
+        }
+    }
+    if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+    {
+        Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+    }
+
+    return Brush;
+}
+
+void SShooterScreenshot::LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotIndex)
+{
+    SavedScreenshotList[SlotIndex]->bIsReady = false;
+    auto OnSuccess = AccelByte::Api::CloudStorage::FLoadSlotSuccess::CreateSP(this, &SShooterScreenshot::OnReceiveSlotImage, Slot, SlotIndex);
+    AccelByte::Api::CloudStorage::LoadSlot(Slot.SlotId, OnSuccess,
+        AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+    }));
+}
+
+void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, FAccelByteModelsSlot Slot, int32 SlotIndex)
+{
+    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
+    auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.SlotId), Result);
+    CloudBrushCache.Add(Slot.SlotId, ImageBrush); 
+    SavedScreenshotList[SlotIndex]->Image = ImageBrush.Get();
+    SavedScreenshotList[SlotIndex]->Title = !Slot.Label.IsEmpty() ? Slot.Label : TEXT("No Label");
+    SavedScreenshotList[SlotIndex]->bIsReady = true;
+    SavedScreenshotList[SlotIndex]->SlotID = Slot.SlotId;
+}
+
+void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
+{
+    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s"), *SlotID);
+
+    AccelByte::Api::CloudStorage::DeleteSlot(SlotID, 
+        AccelByte::Api::CloudStorage::FDeleteSlotSuccess::CreateLambda([&, SlotID]() {
+            
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s SUCCESS, updating the slot tile..."), *SlotID);
+        for (int i = 0; i < SavedScreenshotList.Num(); i++)
+        {
+            if (SavedScreenshotList[i]->SlotID == SlotID)
+            {
+                // clear the image
+                SavedScreenshotList[i]->Image = nullptr;
+                SavedScreenshotList[i]->Title = TEXT("No Image");
+                SavedScreenshotList[i]->SlotID = TEXT("");
+                break;
+            }
+        }
+        CloudBrushCache.Remove(SlotID);
+
+
+    }),
+        AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+    }));
+
+
+}
+
+void SShooterScreenshot::RefreshFromCloud()
+{
+    AccelByte::Api::CloudStorage::GetAllSlot(AccelByte::Api::CloudStorage::FGetAllSlotsSuccess::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
+        for (int i = 0; i < Result.Num(); i++)
+        {
+            FAccelByteModelsSlot Slot = Result[i];
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte] Response from cloud. slot result: %s, Original:%s"), *Slot.SlotId, *Slot.OriginalName);
+            if (i < 4)
+            {
+                LoadSingleSlot(Slot, i);
+            }
+        }
+    }),
+        AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] AccelByte::Api::CloudStorage::GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+    }));
 }
