@@ -544,6 +544,8 @@ public:
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
     void AddChatTab(FString UserId, FString DisplayName, FString PartyId);
+    void RemovePartyChatTab(FString PartyId);
+
     void InviteToParty(FString UserId);
     typedef TMap<FString, FString> ProfileCache;
 

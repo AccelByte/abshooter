@@ -8,6 +8,7 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "SShooterConfirmationDialog.h"
 #include "ShooterGameUserSettings.h"
+#include "SShooterNotificationPopup.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -294,6 +295,12 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
             .CancelText(FText::FromString("Reject"))
             .OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
             {
+                if (!CurrentPartyID.IsEmpty())
+                {
+                    RemovePartyChatTab(CurrentPartyID);
+                    CurrentPartyID = TEXT("");
+                }
+
                 AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
                 CurrentPartyID = Notification.PartyId;
                 AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
@@ -343,13 +350,15 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
 
 void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo)
 {
-	if (KickInfo.UserId == SLobby::CurrentUserID)
+	if (KickInfo.UserId == CurrentUserID)
 	{
-		SLobby::PartyWidget->ResetAll();
+		PartyWidget->ResetAll();
+        RemovePartyChatTab(CurrentPartyID);
+        CurrentPartyID = TEXT("");
 	}
 	else
 	{
-		for (auto Member : SLobby::PartyWidget->PartyMembers)
+		for (auto Member : PartyWidget->PartyMembers)
 		{
 			if (Member->UserId == KickInfo.UserId)
 			{
@@ -366,6 +375,8 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 		if (Member->UserId == LeaveInfo.UserID)
 		{
 			Member->Release();
+            RemovePartyChatTab(CurrentPartyID);
+            CurrentPartyID = TEXT("");
 		}
 	};
 }
@@ -409,6 +420,17 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
             RefreshFriendList();
             UpdateSearchStatus();
         }
+
+		// show popup
+		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *Response.UserID);
+		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+			.NotificationMessage(NotificationMessage)
+			.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+		{
+		});
+		Popup->Show();		
+
+
     }
     else if (Response.Availability == "0")
     {
@@ -1009,6 +1031,31 @@ void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
 	ScrollBoxChatTabs->AddSlot().AttachWidget(LobbyChatTabButtons[LobbyChatTabButtons.Num() - 1].ToSharedRef());
 	SelectTab(LobbyChatTabButtons.Num() - 1);
+}
+
+void SLobby::RemovePartyChatTab(FString PartyId)
+{
+    // remove chat box UI
+    for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->PartyId.Equals(PartyId))
+        {
+            ChatPageSwitcher->RemoveSlot (LobbyChatPages[i].ToSharedRef());
+            LobbyChatPages.RemoveAt(i);
+            break;
+        }
+    }
+
+    // remove chat button
+    for (int32 i = 0; i < LobbyChatTabButtons.Num(); i++)
+    {
+        if (LobbyChatTabButtons[i]->PartyId.Equals(PartyId))
+        {
+            ScrollBoxChatTabs->RemoveSlot(LobbyChatTabButtons[i].ToSharedRef());
+            LobbyChatTabButtons.RemoveAt(i);
+            break;
+        }
+    }    
 }
 
 void SLobby::InviteToParty(FString UserId)
