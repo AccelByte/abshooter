@@ -16,7 +16,6 @@
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
-
 SLobby::SLobby()
     : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
 {
@@ -267,7 +266,18 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
 }
 
 void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification)
-{
+{   
+    // show popup
+    FString NotificationMessage = FString::Printf(TEXT("%s has join the party"), *Notification.UserId);
+    TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+        .NotificationMessage(NotificationMessage)
+        .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+    {
+    });
+    Popup->Show();
+
+
+
     // update using OnGetPartyInfoResponse, so we have to trigger SendInfoPartyRequest
     // TODO optimize this
     AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
@@ -355,6 +365,17 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 		PartyWidget->ResetAll();
         RemovePartyChatTab(CurrentPartyID);
         CurrentPartyID = TEXT("");
+
+        // show popup
+        FString NotificationMessage = FString::Printf(TEXT("you has been kicked from party"));
+        TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+            .NotificationMessage(NotificationMessage)
+            .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+        {
+        });
+        Popup->Show();
+
+
 	}
 	else
 	{
@@ -365,6 +386,16 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 				Member->Release();
 			}
 		};
+
+        // show popup
+        FString NotificationMessage = FString::Printf(TEXT("%s has been kicked from party"), *KickInfo.UserId);
+        TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+            .NotificationMessage(NotificationMessage)
+            .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+        {
+        });
+        Popup->Show();
+
 	}
 }
 
@@ -379,6 +410,16 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
             CurrentPartyID = TEXT("");
 		}
 	};
+
+    // show popup
+    FString NotificationMessage = FString::Printf(TEXT("%s has left party"), *LeaveInfo.UserID);
+    TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+        .NotificationMessage(NotificationMessage)
+        .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+    {
+    });
+    Popup->Show();
+
 }
 
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
@@ -709,6 +750,19 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
     {
         TArray<uint8> ImageData = Response->GetContent();
         ThumbnailBrushCache.Add(UserID, CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData));        
+
+
+        TArray<FString> Raw;
+        Request->GetURL().ParseIntoArray(Raw, TEXT("/"), true);
+        FString FileName = Raw.Last();
+
+        // save to our cache
+        FString CacheDir = FString::Printf(TEXT("%s\\Cache\\%s_%s"), FPaths::ConvertRelativePathToFull(FPaths::GameDir()), UserID, FileName);
+        if (FFileHelper::SaveArrayToFile(ImageData, *CacheDir))
+        {
+            UE_LOG(LogTemp, Log, TEXT("cache saved locally"));
+        }
+
     }
 }
 

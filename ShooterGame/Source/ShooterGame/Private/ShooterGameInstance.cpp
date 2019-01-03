@@ -805,6 +805,11 @@ void UShooterGameInstance::BeginMainMenuState()
 		MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
 		this->UserProfileInfo = UserProfileInfo; // save our own
 
+
+        // update to local cache
+        FString CacheDir = FPaths::ConvertRelativePathToFull(FPaths::GameDir()) + TEXT("/Cache");
+
+
 	}),
 		AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
