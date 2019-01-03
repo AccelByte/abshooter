@@ -29,6 +29,7 @@ public:
 	void AddMenuToGameViewport();
 
 	void UpdateUserProfile(FString Username, FString UserID, FString AvatarURL);
+    void UpdateUserProfileFromCache(FString Username, FString UserID, FString AvatarPath);
 
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	

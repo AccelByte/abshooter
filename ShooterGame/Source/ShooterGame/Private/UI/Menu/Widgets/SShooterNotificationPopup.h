@@ -18,6 +18,7 @@ public:
 	SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer>, PlayerOwner)
 	SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
 	SLATE_ARGUMENT(FString, NotificationMessage)
+    SLATE_ARGUMENT(FSlateBrush*, AvatarImage)
 	SLATE_EVENT(FPopupClosed, OnPopupClosed)
 
 	SLATE_END_ARGS()
@@ -35,7 +36,7 @@ protected:
 private:
 	TWeakObjectPtr<ULocalPlayer> PlayerOwner;
 	TSharedPtr<SWidget> OwnerWidget;
-	TSharedPtr<FSlateBrush> Image;
+	FSlateBrush* AvatarImage;
 	FString NotificationMessage;
 
 	bool bShowing;

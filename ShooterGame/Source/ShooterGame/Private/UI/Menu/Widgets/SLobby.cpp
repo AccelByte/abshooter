@@ -462,10 +462,16 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
             UpdateSearchStatus();
         }
 
+
+        FString DisplayName = CheckDisplayName(Response.UserID) ? GetDisplayName(Response.UserID) : Response.UserID;
+        FSlateBrush* MemberAvatar = CheckAvatar(Response.UserID) ? GetAvatar(Response.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+
 		// show popup
-		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *Response.UserID);
+		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *DisplayName);
 		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
 			.NotificationMessage(NotificationMessage)
+            .AvatarImage(MemberAvatar)
 			.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
 		{
 		});
@@ -526,24 +532,69 @@ void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarU
     CurrentUserID = UserID;
     CurrentUserDisplayName = DisplayName; 
     CurrentAvatarURL = AvatarURL;
-    if (!AvatarListCache->Contains(UserID))
+
+    // save to our cache
+    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+
+    IFileManager& FileManager = IFileManager::Get();
+
+    // save to our cache
+    if (FileManager.FileExists(*CacheTextDir)) // meta found
     {
-        AvatarListCache->Add(UserID, AvatarURL);
-        // start download avatar
-        TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-        ThumbRequest->SetVerb("GET");
-        ThumbRequest->SetURL(AvatarURL);
-        ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserID);
-        ThumbRequest->ProcessRequest();      
+        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+        FString FileToLoad;
+        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+        {
+            TArray<FString> Raw;
+            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+            if (Raw.Num() > 0)
+            {
+                FString ImagePath = Raw[0];
+                FString CachedDisplayName = Raw.Last();
+                DiplayNameListCache->Add(UserID, CachedDisplayName);
+
+                TArray<uint8> ImageData;
+                FString CacheImagePath = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
+
+                if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
+                {
+                    ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
+                }
+            }
+            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+        }
     }
-
-
-    if (!DiplayNameListCache->Contains(UserID))
+    else
     {
-        DiplayNameListCache->Add(UserID, DisplayName);
+        // userid.txt -> file name fisik 
+        TArray<FString> Raw;
+        AvatarURL.ParseIntoArray(Raw, TEXT("/"), true);
+        FString FileName = Raw.Last();
+        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *DisplayName);
+
+        if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
+        {
+            UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
+        }
+        if (!AvatarListCache->Contains(UserID))
+        {
+            AvatarListCache->Add(UserID, AvatarURL);
+            // start download avatar
+            TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+            ThumbRequest->SetVerb("GET");
+            ThumbRequest->SetURL(AvatarURL);
+            ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserID);
+            ThumbRequest->ProcessRequest();
+        }
+
+
+        if (!DiplayNameListCache->Contains(UserID))
+        {
+            DiplayNameListCache->Add(UserID, DisplayName);
+        }
+
+
     }
-
-
 };
 
 FString SLobby::GetCurrentUserID()
@@ -560,39 +611,93 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
     FriendEntry1->Presence = "Online";
     CompleteFriendList.Add(FriendEntry1);
 
-
-    if (!AvatarListCache->Contains(UserID))
+    // find file
+    IFileManager& FileManager = IFileManager::Get();
+    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+    if (FileManager.FileExists(*CacheTextDir))
     {
-        //get avatar from platform service (User profile)
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
-        AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([this](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
-            AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+        FString FileToLoad;
+        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+        {
+            TArray<FString> Raw;
+            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+            if (Raw.Num() > 0)
+            {
+                FString ImagePath = Raw[0];
+                FString CachedDisplayName = Raw.Last();
+                DiplayNameListCache->Add(UserID, CachedDisplayName);
 
-            // start download avatar
-            TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-            ThumbRequest->SetVerb("GET");
-            ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
-            ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
-            ThumbRequest->ProcessRequest();
+                TArray<uint8> ImageData;
+                FString CacheImagePath = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
 
-        }),
-            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
-        }));
+                if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
+                {
+                    ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
+                }
+            }
+            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+        }
+    }
+    else
+    {
+        if (!AvatarListCache->Contains(UserID))
+        {
+            //get avatar from platform service (User profile)
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
+            AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+                AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+
+                // next get display name
+                if (!DiplayNameListCache->Contains(UserID))
+                {
+                    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
+                    AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([this, UserID, UserProfileInfo](const FAccelByteModelsOauth2UserInfo& UserInfo) {
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
+                        DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
+
+                        // save to our cache
+                        FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+
+                        // userid.txt -> file name fisik \n display name
+
+                        TArray<FString> Raw;
+                        UserProfileInfo.AvatarSmallUrl.ParseIntoArray(Raw, TEXT("/"), true);
+                        FString FileName = Raw.Last();
+                        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserInfo.DisplayName);
+
+                        if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
+                        {
+                            UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
+                        }
+                    }),
+                        AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
+                    }));
+                }
+
+                // start download avatar
+                TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+                ThumbRequest->SetVerb("GET");
+                ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
+                ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
+                ThumbRequest->ProcessRequest();
+
+            }),
+                AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
+            }));
+        }
     }
 
-    if (!DiplayNameListCache->Contains(UserID))
-    {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
-        AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([this](const FAccelByteModelsOauth2UserInfo& UserInfo) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
-            DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
-        }),
-            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
-        }));
-    }
+
+    
+
+
+
+
+
 
 
 
@@ -757,7 +862,7 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
         FString FileName = Raw.Last();
 
         // save to our cache
-        FString CacheDir = FString::Printf(TEXT("%s\\Cache\\%s_%s"), FPaths::ConvertRelativePathToFull(FPaths::GameDir()), UserID, FileName);
+        FString CacheDir = FString::Printf(TEXT("%s\\Cache\\%s_%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID, *FileName);
         if (FFileHelper::SaveArrayToFile(ImageData, *CacheDir))
         {
             UE_LOG(LogTemp, Log, TEXT("cache saved locally"));

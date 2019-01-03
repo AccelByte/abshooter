@@ -14,6 +14,7 @@ void SShooterNotificationPopup::Construct(const FArguments& InArgs)
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
 	NotificationMessage = InArgs._NotificationMessage;
+    AvatarImage = InArgs._AvatarImage;
 	OnPopupClosed = InArgs._OnPopupClosed;
 	bShowing = false;
 
@@ -45,7 +46,7 @@ void SShooterNotificationPopup::Construct(const FArguments& InArgs)
 				.AutoWidth()
 				[
 					SNew(SBox)
-					.WidthOverride(160)
+					.WidthOverride(90)
 					.HeightOverride(90)
 					[
 						SNew(SOverlay)
@@ -56,6 +57,20 @@ void SShooterNotificationPopup::Construct(const FArguments& InArgs)
 							SNew(SImage)
 							.Image(&ColorBlack)
 						]
+
+                        + SOverlay::Slot()
+                        .VAlign(VAlign_Fill)
+                        .HAlign(HAlign_Fill)
+                        [
+                            SNew(SScaleBox)
+                            .VAlign(VAlign_Fill)
+                            .HAlign(HAlign_Center)
+                            .Stretch(EStretch::ScaleToFit)
+                            [
+                                SNew(SImage)
+                                .Image(AvatarImage)
+                            ]
+                        ]
 					]
 				]
 				+ SHorizontalBox::Slot()

@@ -799,38 +799,64 @@ void UShooterGameInstance::BeginMainMenuState()
 
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Started"));
     
-	AccelByte::Api::UserProfile::GetUserProfile(AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.FirstName);
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId);
-		MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
-		this->UserProfileInfo = UserProfileInfo; // save our own
+    // check cache first
+    FString CurrentUserID = UserToken.User_id;
+    IFileManager& FileManager = IFileManager::Get();
+    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *CurrentUserID);
+    if (FileManager.FileExists(*CacheTextDir))
+    {
+        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+        FString FileToLoad;
+        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+        {
+            TArray<FString> Raw;
+            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+            if (Raw.Num() > 0)
+            {
+                FString ImagePath = Raw[0];
+                FString CachedDisplayName = Raw.Last();
+
+                FString ImageCache = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
+                MainMenuUI->UpdateUserProfileFromCache(CachedDisplayName, CurrentUserID, ImageCache);
+            }
+            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+        }
+    }
+    else
+    {
+        AccelByte::Api::UserProfile::GetUserProfile(AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.FirstName);
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId);
+            MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+            this->UserProfileInfo = UserProfileInfo; // save our own
+
+        }),
+            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
+
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
 
 
-        // update to local cache
-        FString CacheDir = FPaths::ConvertRelativePathToFull(FPaths::GameDir()) + TEXT("/Cache");
+            AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
+                AccelByte::Api::UserProfile::FCreateUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *Result.FirstName);
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *Result.UserId);
+                MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, Result.UserId, Result.AvatarSmallUrl);
+                this->UserProfileInfo = Result; // save our own
 
-	}),
-		AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
+            }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
+            }));
 
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
-
-     
-        AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
-            AccelByte::Api::UserProfile::FCreateUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
-
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *Result.FirstName);
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *Result.UserId);
-            MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, Result.UserId, Result.AvatarSmallUrl);
-            this->UserProfileInfo = Result; // save our own
-
-        }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
         }));
+    }
 
-	}));
+
+
+
+
 
 
 
