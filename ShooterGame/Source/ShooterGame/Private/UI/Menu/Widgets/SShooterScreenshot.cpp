@@ -3,6 +3,7 @@
 #include "SShooterScreenshot.h"
 #include "SShooterScreenshotPreview.h"
 #include "SShooterScreenshotEdit.h"
+#include "SShooterScreenshotResolver.h"
 #include "ShooterStyle.h"
 #include "ShooterUIHelpers.h"
 #include "ShooterGameViewportClient.h"
@@ -11,15 +12,17 @@
 #include "AccelByteOrderApi.h"
 #include "AccelByteItemApi.h"
 #include "AccelByteError.h"
-#include "Api/AccelByteCloudStorage.h"
+#include "Api/AccelByteCloudStorageApi.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "Runtime/ImageWriteQueue/Public/ImagePixelData.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Engine/Public/ImageUtils.h"
+#include "Models/ScreenshotSave.h"
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
+const FString STATUS_PENDING = "Pending";
 
 FSlateColorBrush GreyBackgroundBrush = FSlateColorBrush(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 FSlateColorBrush BlackBackgroundBrush = FSlateColorBrush(FLinearColor(0, 0, 0, 0.5f));
@@ -193,6 +196,23 @@ TArray<uint8> GetCompressedAndScaledImage(TSharedPtr<TImagePixelData<FColor>> Pi
     }
 
     return TArray<uint8>();
+}
+
+static FString MD5HashArray(const TArray<uint8>& Array)
+{
+	uint8 Digest[16];
+
+	FMD5 Md5Gen;
+
+	Md5Gen.Update(Array.GetData(), Array.Num());
+	Md5Gen.Final(Digest);
+
+	FString MD5;
+	for (int32 i = 0; i < 16; i++)
+	{
+		MD5 += FString::Printf(TEXT("%02x"), Digest[i]);
+	}
+	return MD5;
 }
 
 class SScreenshotSlotComboBox : public SCompoundWidget
@@ -437,9 +457,13 @@ class SShooterScreenshotTileItem : public STableRow< TSharedPtr<FScreenshotEntry
 {
 public:
     DECLARE_DELEGATE_OneParam(FOnDeleteClick, const FString&)
+	DECLARE_DELEGATE_OneParam(FOnResolveClick, int32)
+	DECLARE_DELEGATE_OneParam(FOnRetryClick, int32)
 
 	SLATE_BEGIN_ARGS(SShooterScreenshotTileItem) {}
 	SLATE_EVENT(FOnDeleteClick, OnDeleteClick)
+	SLATE_EVENT(FOnResolveClick, OnResolveClick)
+	SLATE_EVENT(FOnRetryClick, OnRetryClick)
 	SLATE_END_ARGS()
 
 	/** needed for every widget */
@@ -448,6 +472,8 @@ public:
 		Item = InItem;
 		PlayerOwner = InPlayerOwner;
 		OnDeleteClick = InArgs._OnDeleteClick;
+		OnResolveClick = InArgs._OnResolveClick;
+		OnRetryClick = InArgs._OnRetryClick;
 
 		STableRow< TSharedPtr<FScreenshotEntry> >::Construct(STableRow::FArguments().ShowSelection(false) , InOwnerTable);
 
@@ -495,7 +521,7 @@ public:
 					[
 						SNew(SImage)
 						.Image(&InactiveBrush)
-						.Visibility(this, &SShooterScreenshotTileItem::ShowLoadingBar)
+						.Visibility(this, &SShooterScreenshotTileItem::ShowInactiveBackground)
 					]
 					+ SOverlay::Slot()
 					.VAlign(VAlign_Top)
@@ -663,6 +689,58 @@ public:
 					]
 				]
 			]
+			+ SOverlay::Slot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SVerticalBox)
+				.Visibility(this, &SShooterScreenshotTileItem::ShowConflict)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Conflict"))
+				] 
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SButton)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Resolve"))
+					]
+					.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
+						OnResolveClick.ExecuteIfBound(Item.Pin()->SlotNumber - 1);
+						return FReply::Handled();
+					}))
+				]
+			]
+			+ SOverlay::Slot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SVerticalBox)
+				.Visibility(this, &SShooterScreenshotTileItem::ShowRetry)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Upload Failed"))
+				] 
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SButton)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Retry"))
+					]
+					.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
+						OnRetryClick.ExecuteIfBound(Item.Pin()->SlotNumber - 1);
+						return FReply::Handled();
+					}))
+				]
+			]
 		];
 	}
 
@@ -682,7 +760,10 @@ public:
 		case UPLOADING:
 			return FShooterStyle::Get().GetBrush("ShooterGame.CloudUpload");
 		case ERROR:
+		case ERROR_UPLOAD:
 			return FShooterStyle::Get().GetBrush("ShooterGame.CloudOff");
+		case CONFLICT:
+			return FShooterStyle::Get().GetBrush("ShooterGame.SyncProblem");
 		}
 
 		return FShooterStyle::Get().GetBrush("ShooterGame.CloudOff");
@@ -706,20 +787,40 @@ public:
         }
     }
 
-	EVisibility ShowCloudImage() const
+	EVisibility ShowInactiveBackground() const
 	{
-		if (Item.Pin()->State == NONE)
-		{
-			return EVisibility::Hidden;
-		}
-		else
+		if (Item.Pin()->State > DONE || Item.Pin()->State == CONFLICT)
 		{
 			return EVisibility::Visible;
 		}
+		else
+		{
+			return EVisibility::Hidden;
+		}
+	}
+
+	EVisibility ShowCloudImage() const
+	{
+		return Item.Pin()->State == NONE ? EVisibility::Hidden : EVisibility::Visible;
+	}
+
+	EVisibility ShowConflict() const
+	{
+		return Item.Pin()->State == CONFLICT ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
+	EVisibility ShowRetry() const
+	{
+		return Item.Pin()->State == ERROR_UPLOAD ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	EVisibility GetSelectedVisibility() const {
-		return IsSelected() && Item.IsValid() && Item.Pin()->Image.IsValid() ? EVisibility::Visible : EVisibility::Collapsed;
+		return IsSelected() 
+			&& Item.IsValid() 
+			&& Item.Pin()->Image.IsValid() 
+			&& Item.Pin()->State != CONFLICT
+			? EVisibility::Visible 
+			: EVisibility::Collapsed;
 	}
 
 private:
@@ -739,6 +840,8 @@ private:
 	TSharedPtr<STextBlock> TextTitle;
 
 	FOnDeleteClick OnDeleteClick;
+	FOnResolveClick OnResolveClick;
+	FOnRetryClick OnRetryClick;
 
 	/** pointer to Item */
 	TWeakPtr<FScreenshotEntry> Item;
@@ -863,13 +966,296 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 	BuildScreenshotItem();
 }
 
+FString SShooterScreenshot::GetScreenshotsDir()
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	FString ScreenshotsDir = FPaths::ProjectSavedDir() / "Screenshots";
+	if (!PlatformFile.DirectoryExists(*ScreenshotsDir))
+	{
+		PlatformFile.CreateDirectory(*ScreenshotsDir);
+
+		if (!PlatformFile.DirectoryExists(*ScreenshotsDir))
+		{
+			return "";
+		}
+	}      
+	return ScreenshotsDir;
+}
+
+FString SShooterScreenshot::GetUserScreenshotsDir()
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
+
+	if (GI->UserProfileInfo.UserId.IsEmpty())
+	{
+		return "";
+	}
+
+	FString ScreenshotsDir = FPaths::ProjectSavedDir() / "Screenshots" / GI->UserProfileInfo.UserId;
+	if (!PlatformFile.DirectoryExists(*ScreenshotsDir))
+	{
+		PlatformFile.CreateDirectory(*ScreenshotsDir);
+
+		if (!PlatformFile.DirectoryExists(*ScreenshotsDir))
+		{
+			return "";
+		}
+	}
+	return ScreenshotsDir;
+}
+
+bool SShooterScreenshot::IsScreenshotMetadataExists()
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	FString ScreenshotsDir = GetScreenshotsDir();
+	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
+
+	if (GI->UserProfileInfo.UserId.IsEmpty())
+	{
+		return false;
+	}
+
+	FString SavePath = ScreenshotsDir / GI->UserProfileInfo.UserId + ".json";
+
+	return PlatformFile.FileExists(*SavePath);
+}
+
+void SShooterScreenshot::SaveScreenshotMetadata()
+{
+	FString ScreenshotsDir = GetScreenshotsDir();
+
+	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
+
+	if (GI->UserProfileInfo.UserId.IsEmpty())
+	{
+		return;
+	}
+
+	FString SavePath = ScreenshotsDir / GI->UserProfileInfo.UserId + ".json";
+	FScreenshotSave ScreenshotSave;
+	FString SaveString;
+
+	ScreenshotSave.Screenshots = LocalSlots;
+
+	if (FJsonObjectConverter::UStructToJsonObjectString(ScreenshotSave, SaveString))
+	{
+		if (FFileHelper::SaveStringToFile(SaveString, *SavePath))
+		{
+			UE_LOG(LogTemp, Log, TEXT("File successfullly saved, Path :%s"), *SavePath)
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("File failed to saved, Path :%s"), *SavePath)
+		}
+	}
+}
+
+void SShooterScreenshot::LoadScreenshotMetadata()
+{
+	FString ScreenshotsDir = GetScreenshotsDir();
+
+	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
+
+	if (GI->UserProfileInfo.UserId.IsEmpty())
+	{
+		return;
+	}
+
+	FString SavePath = ScreenshotsDir / GI->UserProfileInfo.UserId + ".json";
+
+	FString SaveString;
+	FFileHelper::LoadFileToString(SaveString, *SavePath);
+
+	FScreenshotSave ScreenshotSave;
+	FJsonObjectConverter::JsonObjectStringToUStruct(SaveString, &ScreenshotSave, 0, 0);
+	LocalSlots = ScreenshotSave.Screenshots;
+}
+
+void SShooterScreenshot::SaveLocalScreenshotImage(int32 Index, const TArray<uint8>& Binary)
+{
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return;
+	}
+
+	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
+
+	FFileHelper::SaveArrayToFile(Binary, *ImageName);
+}
+
+void SShooterScreenshot::SaveScreenshotCloudImage(int32 Index, const TArray<uint8>& Binary)
+{
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return;
+	}
+
+	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + "-cloud.png";
+
+	FFileHelper::SaveArrayToFile(Binary, *ImageName);
+}
+
+void SShooterScreenshot::ResolveUseCloudScreenshot(int32 Index)
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return;
+	}
+
+	FString CloudImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + "-cloud.png";
+	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
+
+	PlatformFile.DeleteFile(*ImageName);
+	PlatformFile.MoveFile(*CloudImageName, *ImageName);
+}
+
+void SShooterScreenshot::ResolveUseLocalScreenshot(int32 Index)
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return;
+	}
+
+	FString CloudImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + "-cloud.png";
+
+	PlatformFile.DeleteFile(*CloudImageName);
+}
+
+bool SShooterScreenshot::LoadScreenshotImage(int32 Index, TArray<uint8>& Result)
+{
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return false;
+	}
+
+	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
+
+	return FFileHelper::LoadFileToArray(Result, *ImageName);
+}
+
+void SShooterScreenshot::DeleteScreenshotImage(int32 Index)
+{
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return;
+	}
+
+	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
+
+	PlatformFile.DeleteFile(*ImageName);
+}
+
+void SShooterScreenshot::SaveToCloud(int32 Index)
+{
+	TArray<uint8> ImageData;
+	LoadScreenshotImage(Index, ImageData);
+
+	FString Label = SavedScreenshotList[Index]->Title;
+	FString Tags = FString::Printf(TEXT("SaveIndex=%d"), Index);
+	FString SlotId = LocalSlots[Index].SlotId;
+
+	LocalSlots[Index].Status = STATUS_PENDING;
+	LocalSlots[Index].Checksum = MD5HashArray(ImageData);
+
+	SaveScreenshotMetadata();
+
+	SavedScreenshotList[Index]->State = UPLOADING;
+
+	auto OnSuccess = AccelByte::Api::CloudStorage::FCreateSlotSuccess::CreateLambda([&, Index](const FAccelByteModelsSlot& Output) {
+		if (Output.Checksum == LocalSlots[Index].Checksum)
+		{
+			UE_LOG(LogTemp, Log, TEXT("File successfully saved, Index: %d, SlotID :%s"), Index, *Output.SlotId);
+			SavedScreenshotList[Index]->State = DONE;
+			SavedScreenshotList[Index]->Title = Output.Label;
+
+			LocalSlots[Index].UserId = Output.UserId;
+			LocalSlots[Index].SlotId = Output.SlotId;
+			LocalSlots[Index].Label = Output.Label;
+			LocalSlots[Index].MimeType = Output.MimeType;
+			LocalSlots[Index].NamespaceId = Output.NamespaceId;
+			LocalSlots[Index].OriginalName = Output.OriginalName;
+			LocalSlots[Index].SlotId = Output.SlotId;
+			LocalSlots[Index].Status = Output.Status;
+			LocalSlots[Index].StoredName = Output.StoredName;
+			LocalSlots[Index].Tags = Output.Tags;
+			LocalSlots[Index].DateAccessed = Output.DateAccessed;
+			LocalSlots[Index].DateCreated = Output.DateCreated;
+			LocalSlots[Index].DateModified = Output.DateModified;
+
+			// compatibility to store save slot index, please remove when custom metadata available
+			bool SlotIndexTagFound = false;
+			for (int i = 0; i < Output.Tags.Num(); i++)
+			{
+				if (Output.Tags[i].StartsWith("SlotIndex="))
+				{
+					SlotIndexTagFound = true;
+					break;
+				}
+			}
+
+			if (!SlotIndexTagFound)
+			{
+				LocalSlots[Index].Tags.Insert(FString::Printf(TEXT("SlotIndex=%d"), Index), 0);
+			}
+
+			SaveScreenshotMetadata();
+		}
+		else
+		{
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Upload to cloud storage. Checksum mismatch: %s == %s"), *LocalSlots[Index].Checksum, *Output.Checksum);
+			SavedScreenshotList[Index]->State = ERROR_UPLOAD;
+		}
+	});
+
+	auto OnProgress = FHttpRequestProgressDelegate::CreateLambda([](FHttpRequestPtr Request, int32 BytesSent, int32 BytesReceived) {
+		UE_LOG(LogTemp, Log, TEXT("Upload Progress :%d"), BytesSent);
+	});
+
+	auto OnError = AccelByte::FErrorHandler::CreateLambda([&, Index](int32 ErrorCode, FString ErrorString) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Upload to cloud storage. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+		SavedScreenshotList[Index]->State = ERROR_UPLOAD;
+		SavedScreenshotList[Index]->Title = TEXT("Upload failed");
+		SavedScreenshotList[Index]->Image = nullptr;
+	});
+
+	if (SlotId.IsEmpty())
+	{
+		AccelByte::Api::CloudStorage::CreateSlot(ImageData, "Screenshot.png", Tags, Label,
+			OnSuccess, OnProgress, OnError);
+	}
+	else
+	{
+		AccelByte::Api::CloudStorage::UpdateSlot(SlotId, ImageData, "Screenshot.png", Tags, Label,
+			OnSuccess, OnProgress, OnError);
+	}
+}
+
 void SShooterScreenshot::BuildScreenshotItem()
 {
 	SavedScreenshotList.Empty();
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 1, "No Image", nullptr }));
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 2, "No Image", nullptr }));
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 3, "No Image", nullptr }));
-	SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ 4, "No Image", nullptr }));
+	for (int i = 0; i < SAVE_SLOT_SIZE; i++)
+	{
+		SavedScreenshotList.Add(MakeShareable(new FScreenshotEntry{ i + 1, "No Image", nullptr }));
+	}
+
 	SavedScreenshotListWidget->RequestListRefresh();
 
 	UpdateCurrentScreenshotList();
@@ -900,8 +1286,11 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 				PreviousSelectedScreenshot[Index].Image = SavedScreenshotList[Index]->Image;
 				SavedScreenshotList[Index]->Image = InItem.ScreenshotEntry.Image;
 				SavedScreenshotList[Index]->Title = InItem.ScreenshotEntry.Title;
-                SavedScreenshotList[Index]->State = UPLOADING;
 				//SavedScreenshotListWidget->RebuildList();
+
+				FString Label = FString::Printf(TEXT("Screenshot-%s"), *FDateTime::Now().ToString());
+				LocalSlots[Index].DateModified = FDateTime::UtcNow();
+				SaveToCloud(Index);
 			}
 			
 			if (PreviousIndex >= 0)
@@ -911,27 +1300,6 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 				PreviousSelectedScreenshot[PreviousIndex].Title = "";
 				//SavedScreenshotListWidget->RebuildList();
 			}
-
-            auto pixelData = FSlateBrushToPixelData(InItem.ScreenshotEntry.Image.Get());
-            auto imageData = GetCompressedAndScaledImage(pixelData, EImageFormat::PNG);
-
-            FString Label = FString::Printf(TEXT("Screenshot-%s"), *FDateTime::Now().ToString());
-
-            AccelByte::Api::CloudStorage::SaveSlot(imageData, "Screenshot", Label,
-                AccelByte::Api::CloudStorage::FSaveSlotSuccess::CreateLambda([&, Index](const FAccelByteModelsCreateSlotResponse& Output) {
-                UE_LOG(LogTemp, Log, TEXT("File successfullly saved, SlotID :%s"), *Output.SlotId);
-                SavedScreenshotList[Index]->State = DONE;
-                SavedScreenshotList[Index]->Title = Output.Label;
-            }), 
-                FHttpRequestProgressDelegate::CreateLambda([](FHttpRequestPtr Request, int32 BytesSent, int32 BytesReceived) {
-                UE_LOG(LogTemp, Log, TEXT("Upload Progress :%d"), BytesSent);
-            }),
-                AccelByte::FErrorHandler::CreateLambda([&, Index](int32 ErrorCode, FString ErrorString) {
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Upload to cloud storage. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-                SavedScreenshotList[Index]->State = ERROR;
-                SavedScreenshotList[Index]->Title = TEXT("Upload failed");
-                SavedScreenshotList[Index]->Image = nullptr;
-            }));
 			
 		});
 }
@@ -939,7 +1307,9 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForTileView(TSharedPtr<FScreenshotEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {	
 	return SNew(SShooterScreenshotTileItem, OwnerTable, PlayerOwner, Item)
-        .OnDeleteClick(this, &SShooterScreenshot::OnDeleteSlot);
+		.OnDeleteClick(this, &SShooterScreenshot::OnDeleteSlot)
+		.OnResolveClick(this, &SShooterScreenshot::OnResolveSlot)
+		.OnRetryClick(this, &SShooterScreenshot::SaveToCloud);
 }
 
 void SShooterScreenshot::OnFocusLost(const FFocusEvent& InFocusEvent)
@@ -1062,8 +1432,8 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString Cont
 void SShooterScreenshot::LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotIndex)
 {
     SavedScreenshotList[SlotIndex]->State = DOWNLOADING;
-    auto OnSuccess = AccelByte::Api::CloudStorage::FLoadSlotSuccess::CreateSP(this, &SShooterScreenshot::OnReceiveSlotImage, Slot, SlotIndex);
-    AccelByte::Api::CloudStorage::LoadSlot(Slot.SlotId, OnSuccess,
+    auto OnSuccess = AccelByte::Api::CloudStorage::FGetSlotSuccess::CreateSP(this, &SShooterScreenshot::OnReceiveSlotImage, Slot, SlotIndex);
+    AccelByte::Api::CloudStorage::GetSlot(Slot.SlotId, OnSuccess,
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
     }));
@@ -1072,13 +1442,35 @@ void SShooterScreenshot::LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotInd
 void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, FAccelByteModelsSlot Slot, int32 SlotIndex)
 {
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
+	auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
+
+	if (LocalSlots[SlotIndex].Status == STATUS_PENDING)
+	{
+		SaveScreenshotCloudImage(SlotIndex, Result);
+		ConflictImages.Add(SlotIndex, ImageBrush);
+		SavedScreenshotList[SlotIndex]->State = CONFLICT;
+		return;
+	}
 	
-    auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
 	SavedScreenshotList[SlotIndex]->Image = ImageBrush;
     SavedScreenshotList[SlotIndex]->Title = !Slot.Label.IsEmpty() ? Slot.Label : TEXT("No Label");
     SavedScreenshotList[SlotIndex]->State = DONE;
     SavedScreenshotList[SlotIndex]->SlotID = Slot.SlotId;
 	SavedScreenshotList[SlotIndex]->Checksum = Slot.Checksum;
+
+	TArray<uint8> Image;
+	if (LoadScreenshotImage(SlotIndex, Image))
+	{
+		FString Checksum = MD5HashArray(Image);
+		if (Checksum != Slot.Checksum)
+		{
+			SaveLocalScreenshotImage(SlotIndex, Result);
+		}
+	}
+	else
+	{
+		SaveLocalScreenshotImage(SlotIndex, Result);
+	}
 }
 
 void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
@@ -1098,58 +1490,176 @@ void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
 				SavedScreenshotList[i]->State = NONE;
                 SavedScreenshotList[i]->Title = TEXT("No Image");
                 SavedScreenshotList[i]->SlotID = TEXT("");
+
+				LocalSlots[i].SlotId = TEXT("");
+				LocalSlots[i].Label = TEXT("No Image");
+				LocalSlots[i].Checksum = TEXT("");
+
+				DeleteScreenshotImage(i);
                 break;
             }
         }
-        CloudBrushCache.Remove(SlotID);
-
-
     }),
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
     }));
 }
 
+void SShooterScreenshot::OnResolveSlot(int32 Index)
+{
+	const FAccelByteModelsSlot& LocalSlot = LocalSlots[Index];
+	const FAccelByteModelsSlot& CloudSlot = ConflictSlots[Index];
+	TSharedPtr<SShooterScreenshotResolver> Resolver;
+	SAssignNew(Resolver, SShooterScreenshotResolver)
+		.PlayerOwner(PlayerOwner)
+		.OwnerWidget(OwnerWidget)
+		.LocalEntry(MakeShareable(new FScreenshotResolveEntry(LocalSlot, SavedScreenshotList[Index]->Image)))
+		.CloudEntry(MakeShareable(new FScreenshotResolveEntry(CloudSlot, ConflictImages[Index])))
+		.OnResolve(SShooterScreenshotResolver::FOnResolve::CreateLambda([&, Index](EScreenshotResolveResult Result) {
+			if (Result == RESULT_CLOUD)
+			{
+				LocalSlots[Index] = ConflictSlots[Index];
+				SavedScreenshotList[Index]->Image = ConflictImages[Index];
+				SavedScreenshotList[Index]->Title = !CloudSlot.Label.IsEmpty() ? CloudSlot.Label : TEXT("No Label");
+				SavedScreenshotList[Index]->State = DONE;
+				SavedScreenshotList[Index]->SlotID = CloudSlot.SlotId;
+				SavedScreenshotList[Index]->Checksum = CloudSlot.Checksum;
+				ResolveUseCloudScreenshot(Index);
+				SaveScreenshotMetadata();
+			}
+			else if (Result == RESULT_LOCAL)
+			{
+				TArray<uint8> ImageData;
+				LoadScreenshotImage(Index, ImageData);
+
+				LocalSlots[Index].Status = STATUS_PENDING;
+				LocalSlots[Index].Checksum = MD5HashArray(ImageData);
+
+				SaveScreenshotMetadata();
+
+				LocalSlots[Index].DateModified = FDateTime::UtcNow();
+
+				SaveToCloud(Index);
+			}
+		}));
+	Resolver->Show();
+}
+
 void SShooterScreenshot::RefreshFromCloud()
 {
-    AccelByte::Api::CloudStorage::GetAllSlot(AccelByte::Api::CloudStorage::FGetAllSlotsSuccess::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
+	if (!IsScreenshotMetadataExists())
+	{
+		for (int i = 0; i < SAVE_SLOT_SIZE; i++)
+		{
+			FAccelByteModelsSlot EmptySlot;
+			EmptySlot.Tags.Add(FString::Printf(TEXT("SlotIndex=%d"), i));
+			LocalSlots.Add(EmptySlot);
+		}
+	}
+	else
+	{
+		LoadScreenshotMetadata();
+	}
+
+	for (int i = 0; i < LocalSlots.Num(); i++)
+	{
+		FAccelByteModelsSlot LocalSlot = LocalSlots[i];
+		if (!LocalSlot.SlotId.IsEmpty())
+		{
+			SavedScreenshotList[i]->Checksum = LocalSlot.Checksum;
+			SavedScreenshotList[i]->SlotID = LocalSlot.SlotId;
+			SavedScreenshotList[i]->Title = LocalSlot.Label;
+			SavedScreenshotList[i]->State = NONE;
+			TArray<uint8> ImageData;
+			if (LoadScreenshotImage(i, ImageData))
+			{
+				SavedScreenshotList[i]->Image = CreateBrush(TEXT("png"), FName(*LocalSlot.SlotId), ImageData);
+				if (SavedScreenshotList[i]->Image.IsValid())
+				{
+					SavedScreenshotList[i]->State = NONE;
+				}
+			}
+		}
+	}
+
+    AccelByte::Api::CloudStorage::GetAllSlots(AccelByte::Api::CloudStorage::FGetAllSlotsSuccess::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
         for (int i = 0; i < Result.Num(); i++)
         {
             FAccelByteModelsSlot Slot = Result[i];
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte] Response from cloud. slot result: %s, Original:%s"), *Slot.SlotId, *Slot.OriginalName);
             if (i < 4)
             {
-				bool exists = false;
-				for (int j = 0; j < SavedScreenshotList.Num(); j++)
+				int SlotIndex = -1;
+
+				// find SlotIndex by tags
+				FString SlotIndexStr = "SlotIndex=";
+				for (int j = 0; j < Slot.Tags.Num(); j++)
 				{
-					TSharedPtr<FScreenshotEntry> SavedSlot = SavedScreenshotList[j];
-					// load to existing slot
-					if (SavedSlot->SlotID == Slot.SlotId)
+					if (Slot.Tags[j].StartsWith(SlotIndexStr))
 					{
-						exists = true;
-						if (SavedSlot->Checksum != Slot.Checksum)
+						FString Num = Slot.Tags[j].RightChop(SlotIndexStr.Len());
+						if (Num.IsNumeric())
 						{
-							LoadSingleSlot(Slot, j);
+							SlotIndex = FCString::Atoi(*Num);
 						}
 						break;
 					}
 				}
 
-				if (!exists)
+				UE_LOG(LogTemp, Log, TEXT("SLOT INDEX %d"), SlotIndex);
+				// SlotIndex tag not found, find by SlotId
+				if (SlotIndex == -1)
+				{
+					for (int j = 0; j < LocalSlots.Num(); j++)
+					{
+						const FAccelByteModelsSlot& LocalSlot = LocalSlots[j];
+						UE_LOG(LogTemp, Log, TEXT("SLOT INDEX %s == %s"), *LocalSlot.SlotId, *Slot.SlotId);
+						// load to existing slot
+						if (LocalSlot.SlotId == Slot.SlotId)
+						{
+							SlotIndex = j;
+							break;
+						}
+					}
+				}
+
+				if (SlotIndex == -1)
 				{
 					for (int j = 0; j < SavedScreenshotList.Num(); j++)
 					{
 						TSharedPtr<FScreenshotEntry> SavedSlot = SavedScreenshotList[j];
 						// load to empty slot
-						if (!SavedSlot->Image.IsValid() && SavedSlot->State == NONE)
+						if (SavedSlot->SlotID.IsEmpty() && SavedSlot->State == NONE)
 						{
+							LocalSlots[j] = Result[j];
 							LoadSingleSlot(Slot, j);
 							break;
 						}
 					}
 				}
+				else
+				{
+					if (!LocalSlots[SlotIndex].SlotId.IsEmpty() && LocalSlots[SlotIndex].Checksum != Slot.Checksum
+						&& LocalSlots[SlotIndex].Status == STATUS_PENDING
+						)
+					{
+						ConflictSlots.Add(SlotIndex, Slot);
+					}
+					else
+					{
+						LocalSlots[SlotIndex] = Slot;
+					}
+
+					TSharedPtr<FScreenshotEntry> SavedSlot = SavedScreenshotList[SlotIndex];
+					if (SavedSlot->Checksum != Slot.Checksum)
+					{
+						LoadSingleSlot(Slot, SlotIndex);
+					}
+				}
             }
         }
+
+		SaveScreenshotMetadata();
     }),
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] AccelByte::Api::CloudStorage::GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);

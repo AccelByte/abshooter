@@ -14,8 +14,9 @@ public class ShooterGame : ModuleRules
 				"ShooterGame/Private",
 				"ShooterGame/Private/UI",
 				"ShooterGame/Private/UI/Menu",
-				"ShooterGame/Private/UI/Style",
+                "ShooterGame/Private/UI/Style",
 				"ShooterGame/Private/UI/Widgets",
+                "ShooterGame/Private/Models",
             }
 		);
 
@@ -31,7 +32,9 @@ public class ShooterGame : ModuleRules
 				"AIModule",
 				"GameplayTasks",
 				"Http",
-				"AccelByteUe4Sdk",
+                "InputCore",
+                "JsonUtilities",
+                "AccelByteUe4Sdk",
 			}
 		);
 

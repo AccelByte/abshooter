@@ -8,92 +8,33 @@
 #include "AccelByteCloudStorageModels.generated.h"
 
 USTRUCT(BlueprintType)
-struct ACCELBYTEUE4SDK_API FAccelByteModelsCreateSlotResponse
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString Checksum;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FDateTime DateAccessed;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FDateTime DateCreated;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FDateTime DateModified;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString Label;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString MimeType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString NamespaceId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString OriginalName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString SlotId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString Status;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString StoredName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		TArray<FString> Tags;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString UserId;
-};
-
-
-
-USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsSlot
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString SlotId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString UserId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString NamespaceId;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString Label;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString OriginalName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString StoredName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString MimeType;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString Status;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FDateTime DateCreated;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FDateTime DateModified;
-
+		FString Checksum;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
 		FDateTime DateAccessed;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
-		FString Checksum;
-
+		FDateTime DateCreated;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FDateTime DateModified;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString Label;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString MimeType;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString NamespaceId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString OriginalName;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString SlotId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString Status;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString StoredName;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
 		TArray<FString> Tags;
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | CloudStorage | Models | CreateSlotResponse")
+		FString UserId;
 };
