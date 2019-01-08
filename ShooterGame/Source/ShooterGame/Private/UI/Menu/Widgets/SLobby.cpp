@@ -1310,7 +1310,7 @@ void SLobby::SendPrivateChat(FString UserId, FString Message)
 		if (LobbyChatPages[i]->UserId.Equals(UserId))
 		{
 			//My Dislpay Name
-			LobbyChatPages[i]->AppendConversation(CurrentUserDisplayName, Message);
+			LobbyChatPages[i]->AppendConversation(TEXT("ME"), Message);
 			return;
 		}
 	}
@@ -1326,7 +1326,7 @@ void SLobby::SendPartyChat(FString PartyId, FString Message)
         if (LobbyChatPages[i]->PartyId.Equals(PartyId))
         {
             //My Dislpay Name
-            LobbyChatPages[i]->AppendConversation(CurrentUserDisplayName, Message);
+            LobbyChatPages[i]->AppendConversation(TEXT("ME"), Message);
             return;
         }
     }
