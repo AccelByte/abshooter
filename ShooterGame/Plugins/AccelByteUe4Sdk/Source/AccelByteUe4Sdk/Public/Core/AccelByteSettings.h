@@ -24,6 +24,7 @@ public:
 	static FString PlatformServerUrl;
 	static FString LobbyServerUrl;
 	static FString CloudStorageServerUrl;
+	static FString BasicServerUrl;
 private:
 	Settings() = delete; // Static class can't have instance
 	Settings(Settings const&) = delete;
@@ -71,6 +72,9 @@ public:
 
     UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte | Settings")
     FString CloudStorageServerUrl;
+
+	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte | Settings")
+	FString BasicServerUrl;
 };
 
 
@@ -107,6 +111,9 @@ public:
     static FString GetCloudStorageServerUrl();
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
+	static FString GetBasicServerUrl();
+
+	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
 	static void SetClientId(const FString& ClientId);
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
@@ -129,5 +136,8 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
     static void SetCloudStorageServerUrl(const FString& CloudStorageServerUrl);
+
+	UFUNCTION(BlueprintCallable, Category = "AccelByte | Settings")
+	static void SetBasicServerUrl(const FString& BasicServerUrl);
 };
 
