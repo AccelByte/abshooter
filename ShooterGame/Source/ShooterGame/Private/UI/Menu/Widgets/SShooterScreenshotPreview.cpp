@@ -40,7 +40,7 @@ void SShooterScreenshotPreview::Construct(const FArguments& InArgs)
 				}))
 				[
 					SNew(SImage)
-					.Image(FShooterStyle::Get().GetBrush("ShooterGame.Image"))
+					.Image(FShooterStyle::Get().GetBrush("ShooterGame.Close"))
 				]
 			]
 		]

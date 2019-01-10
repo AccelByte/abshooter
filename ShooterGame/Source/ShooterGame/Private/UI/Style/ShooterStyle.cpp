@@ -55,7 +55,15 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	Style.Set("ShooterGame.Bullet", new IMAGE_BRUSH("Images/Bullet", FVector2D(96, 96)));
 	Style.Set("ShooterGame.Phaser", new IMAGE_BRUSH("Images/Phaser", FVector2D(96, 96)));
 	Style.Set("ShooterGame.SubmachineGun", new IMAGE_BRUSH("Images/SubmachineGun", FVector2D(96, 96)));
-    //Style.Set("ShooterGame.SubmachineGun", new IMAGE_BRUSH("Images/SubmachineGun", FVector2D(96, 96)));
+
+	// Load icons
+    Style.Set("ShooterGame.Close", new IMAGE_BRUSH("Images/CloseIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.CloudOff", new IMAGE_BRUSH("Images/CloudOffIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.CloudDone", new IMAGE_BRUSH("Images/CloudDoneIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.CloudDownload", new IMAGE_BRUSH("Images/CloudDownloadIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.CloudUpload", new IMAGE_BRUSH("Images/CloudUploadIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.Edit", new IMAGE_BRUSH("Images/EditIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.ZoomOut", new IMAGE_BRUSH("Images/ZoomOutIcon", FVector2D(36, 36)));
 
 
 	// The border image used to draw the replay timeline bar

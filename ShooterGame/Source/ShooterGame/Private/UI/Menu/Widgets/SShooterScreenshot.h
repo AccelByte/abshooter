@@ -7,15 +7,24 @@
 
 typedef TSharedPtr<int> FScreenshotComboBoxType;
 
+enum EScreenshotState
+{
+	NONE = 0,
+	DONE,
+	ERROR,
+	DOWNLOADING,
+	UPLOADING
+};
+
 struct FScreenshotEntry
 {
 	int SlotNumber;
 	FString Title;
-	const FSlateBrush* Image = nullptr;
+	TSharedPtr< FSlateBrush > Image = nullptr;
 	FString Path;
-    bool bIsReady = false;
     FString SlotID;
-
+	FString Checksum;
+	EScreenshotState State = NONE;
 };
 
 struct FScreenshotComboBoxGroup
@@ -65,7 +74,7 @@ public:
 
     void MainMenuMode() { bMainMenuMode = true; }
 
-    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
+    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, const TArray<uint8>& ImageData);
 
     void LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotIndex);
 
