@@ -16,7 +16,7 @@ namespace Api
 void UserProfile::GetUserProfile(const FGetUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::BasicServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
 	FString Verb = TEXT("GET");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -36,7 +36,7 @@ void UserProfile::GetUserProfile(const FGetUserProfileSuccess& OnSuccess, const 
 void UserProfile::GetPublicUserProfileInfo(FString UserID, const FGetPublicUserProfileInfoSuccess& OnSuccess, const FErrorHandler& OnError)
 {
     FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
-    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles/public"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *UserID);
+    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles/public"), *Settings::BasicServerUrl, *Credentials::Get().GetUserNamespace(), *UserID);
     FString Verb = TEXT("GET");
     FString ContentType = TEXT("application/json");
     FString Accept = TEXT("application/json");
@@ -57,7 +57,7 @@ void UserProfile::GetPublicUserProfileInfo(FString UserID, const FGetPublicUserP
 void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FUpdateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::BasicServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
 	FString Verb = TEXT("PUT");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -78,7 +78,7 @@ void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateReque
 void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::BasicServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
 	FString Verb = TEXT("POST");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -99,7 +99,7 @@ void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateReque
 void UserProfile::CreateDefaultUserProfile(FString DisplayName, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
     FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetUserAccessToken());
-    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::PlatformServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
+    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings::BasicServerUrl, *Credentials::Get().GetUserNamespace(), *Credentials::Get().GetUserId());
     FString Verb = TEXT("POST");
     FString ContentType = TEXT("application/json");
     FString Accept = TEXT("application/json");
