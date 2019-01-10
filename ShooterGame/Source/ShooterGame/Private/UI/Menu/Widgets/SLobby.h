@@ -529,12 +529,10 @@ public:
 	void UpdateSearchStatus();
     void InitializeFriends();
     void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
+    void SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath);
     FString GetCurrentUserID();
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
-
-    void OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response);
-
 	void BeginFriendSearch();
 	void OnFriendSearchFinished();
 	void UpdateFriendList();

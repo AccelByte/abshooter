@@ -55,7 +55,9 @@ void SLobby::Construct(const FArguments& InArgs)
 	AccelByte::Api::Lobby::Get().SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
 	AccelByte::Api::Lobby::Get().SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
 	{
-		SLobby::PartyWidget->ResetAll();
+		PartyWidget->ResetAll();
+        RemovePartyChatTab(CurrentPartyID);
+        CurrentPartyID = TEXT("");
 	}));
 	AccelByte::Api::Lobby::Get().SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
 
@@ -268,15 +270,16 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
 void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification)
 {   
     // show popup
-    FString NotificationMessage = FString::Printf(TEXT("%s has join the party"), *Notification.UserId);
+    FString DisplayName = CheckDisplayName(Notification.UserId) ? GetDisplayName(Notification.UserId) : Notification.UserId;
+    FSlateBrush* MemberAvatar = CheckAvatar(Notification.UserId) ? GetAvatar(Notification.UserId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+    FString NotificationMessage = FString::Printf(TEXT("%s has join the party"), *DisplayName);
     TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
         .NotificationMessage(NotificationMessage)
+        .AvatarImage(MemberAvatar)
         .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
     {
     });
     Popup->Show();
-
-
 
     // update using OnGetPartyInfoResponse, so we have to trigger SendInfoPartyRequest
     // TODO optimize this
@@ -309,9 +312,10 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                 {
                     RemovePartyChatTab(CurrentPartyID);
                     CurrentPartyID = TEXT("");
+                    AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
                 }
 
-                AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+                
                 CurrentPartyID = Notification.PartyId;
                 AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
                 AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
@@ -366,10 +370,12 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
         RemovePartyChatTab(CurrentPartyID);
         CurrentPartyID = TEXT("");
 
+        FSlateBrush* MemberAvatar = CheckAvatar(CurrentUserID) ? GetAvatar(CurrentUserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
         // show popup
-        FString NotificationMessage = FString::Printf(TEXT("you has been kicked from party"));
+        FString NotificationMessage = FString::Printf(TEXT("You has been kicked from party"));
         TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
             .NotificationMessage(NotificationMessage)
+            .AvatarImage(MemberAvatar)
             .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
         {
         });
@@ -388,14 +394,17 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 		};
 
         // show popup
-        FString NotificationMessage = FString::Printf(TEXT("%s has been kicked from party"), *KickInfo.UserId);
+        FString DisplayName = CheckDisplayName(KickInfo.UserId) ? GetDisplayName(KickInfo.UserId) : KickInfo.UserId;
+        FSlateBrush* MemberAvatar = CheckAvatar(KickInfo.UserId) ? GetAvatar(KickInfo.UserId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+        FString NotificationMessage = FString::Printf(TEXT("%s has been kicked from party"), *DisplayName);
         TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
             .NotificationMessage(NotificationMessage)
-            .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+            .AvatarImage(MemberAvatar)
+            .OnPopupClosed_Lambda([]() 
         {
         });
         Popup->Show();
-
 	}
 }
 
@@ -406,15 +415,23 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 		if (Member->UserId == LeaveInfo.UserID)
 		{
 			Member->Release();
-            RemovePartyChatTab(CurrentPartyID);
-            CurrentPartyID = TEXT("");
 		}
 	};
 
+    if (LeaveInfo.UserID == CurrentUserID)
+    {
+        RemovePartyChatTab(CurrentPartyID);
+        CurrentPartyID = TEXT("");
+    }
+
+
     // show popup
-    FString NotificationMessage = FString::Printf(TEXT("%s has left party"), *LeaveInfo.UserID);
+    FString DisplayName = CheckDisplayName(LeaveInfo.UserID) ? GetDisplayName(LeaveInfo.UserID) : LeaveInfo.UserID;
+    FSlateBrush* MemberAvatar = CheckAvatar(LeaveInfo.UserID) ? GetAvatar(LeaveInfo.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+    FString NotificationMessage = FString::Printf(TEXT("%s has left party"), *DisplayName);
     TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
         .NotificationMessage(NotificationMessage)
+        .AvatarImage(MemberAvatar)
         .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
     {
     });
@@ -462,10 +479,8 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
             UpdateSearchStatus();
         }
 
-
         FString DisplayName = CheckDisplayName(Response.UserID) ? GetDisplayName(Response.UserID) : Response.UserID;
         FSlateBrush* MemberAvatar = CheckAvatar(Response.UserID) ? GetAvatar(Response.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-
 
 		// show popup
 		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *DisplayName);
@@ -502,9 +517,7 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
 void SLobby::UpdateSearchStatus()
 {
 	bool bFinishSearch = false;
-
 	// SOCIAL SERVICE API
-
 	// foreach friends from social
 	// finish obtain friends
 	bFinishSearch = true;
@@ -519,12 +532,6 @@ void SLobby::InitializeFriends()
 {
     bSearchingForFriends = true;
     CompleteFriendList.Reset();
-    //LobbyChatTabButtons.Reset();
-}
-
-void SLobby::OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response)
-{
-    
 }
 
 void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL)
@@ -596,6 +603,20 @@ void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarU
 
     }
 };
+
+void SLobby::SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath)
+{
+    CurrentUserID = UserID;
+    CurrentUserDisplayName = DisplayName;
+    CurrentAvatarURL = AvatarPath;
+
+    DiplayNameListCache->Add(UserID, DisplayName);
+    TArray<uint8> ImageData;
+    if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
+    {
+        ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData));
+    }
+}
 
 FString SLobby::GetCurrentUserID()
 {
@@ -690,17 +711,6 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
             }));
         }
     }
-
-
-    
-
-
-
-
-
-
-
-
 }
 
 void SLobby::RefreshFriendList()
