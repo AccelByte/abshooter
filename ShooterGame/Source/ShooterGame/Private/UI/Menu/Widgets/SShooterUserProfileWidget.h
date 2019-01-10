@@ -143,6 +143,7 @@ public:
 	FText UserID;
 
 	void UpdateAvatar(FString Url);
+    void SetCurrentUserFromCache(FString _UserID, FString DisplayName, FString AvatarPath);
 
 private:
 

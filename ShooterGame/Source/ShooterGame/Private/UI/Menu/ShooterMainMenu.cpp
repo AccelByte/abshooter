@@ -455,8 +455,13 @@ void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FStri
 	UserProfileWidget->UserName = FText::FromString(Username);
 	UserProfileWidget->UserID = FText::FromString(UserID);
 	UserProfileWidget->UpdateAvatar(AvatarURL);
-
     FriendListWidget->SetCurrentUser(UserID, Username, AvatarURL);
+}
+
+void FShooterMainMenu::UpdateUserProfileFromCache(FString Username, FString UserID, FString AvatarPath)
+{
+    UserProfileWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
+    FriendListWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
 }
 
 void FShooterMainMenu::RemoveMenuFromGameViewport()

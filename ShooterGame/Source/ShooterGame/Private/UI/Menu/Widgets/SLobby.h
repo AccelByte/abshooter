@@ -529,12 +529,10 @@ public:
 	void UpdateSearchStatus();
     void InitializeFriends();
     void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
+    void SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath);
     FString GetCurrentUserID();
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
-
-    void OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response);
-
 	void BeginFriendSearch();
 	void OnFriendSearchFinished();
 	void UpdateFriendList();
@@ -544,6 +542,8 @@ public:
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
     void AddChatTab(FString UserId, FString DisplayName, FString PartyId);
+    void RemovePartyChatTab(FString PartyId);
+
     void InviteToParty(FString UserId);
     typedef TMap<FString, FString> ProfileCache;
 

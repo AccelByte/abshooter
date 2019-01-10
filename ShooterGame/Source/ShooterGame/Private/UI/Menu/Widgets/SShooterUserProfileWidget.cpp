@@ -270,6 +270,22 @@ void SShooterUserProfileWidget::UpdateAvatar(FString Url)
 
 }
 
+void SShooterUserProfileWidget::SetCurrentUserFromCache(FString _UserID, FString DisplayName, FString AvatarPath)
+{
+    if (!bProfileUpdated)
+    {
+        UserName = FText::FromString(DisplayName);
+        UserID = FText::FromString(_UserID);
+
+        TArray<uint8> ImageData;
+        if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
+        {
+            ThumbnailBrush = CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData);
+            bProfileUpdated = true;
+        }
+    }
+}
+
 void SShooterUserProfileWidget::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 {
 	if (bWasSuccessful && Response.IsValid())

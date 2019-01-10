@@ -8,13 +8,13 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "SShooterConfirmationDialog.h"
 #include "ShooterGameUserSettings.h"
+#include "SShooterNotificationPopup.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteOauth2Api.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
-
 
 SLobby::SLobby()
     : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
@@ -55,7 +55,9 @@ void SLobby::Construct(const FArguments& InArgs)
 	AccelByte::Api::Lobby::Get().SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
 	AccelByte::Api::Lobby::Get().SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
 	{
-		SLobby::PartyWidget->ResetAll();
+		PartyWidget->ResetAll();
+        RemovePartyChatTab(CurrentPartyID);
+        CurrentPartyID = TEXT("");
 	}));
 	AccelByte::Api::Lobby::Get().SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
 
@@ -266,7 +268,19 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
 }
 
 void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification)
-{
+{   
+    // show popup
+    FString DisplayName = CheckDisplayName(Notification.UserId) ? GetDisplayName(Notification.UserId) : Notification.UserId;
+    FSlateBrush* MemberAvatar = CheckAvatar(Notification.UserId) ? GetAvatar(Notification.UserId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+    FString NotificationMessage = FString::Printf(TEXT("%s has join the party"), *DisplayName);
+    TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+        .NotificationMessage(NotificationMessage)
+        .AvatarImage(MemberAvatar)
+        .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+    {
+    });
+    Popup->Show();
+
     // update using OnGetPartyInfoResponse, so we have to trigger SendInfoPartyRequest
     // TODO optimize this
     AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
@@ -294,7 +308,14 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
             .CancelText(FText::FromString("Reject"))
             .OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
             {
-                AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+                if (!CurrentPartyID.IsEmpty())
+                {
+                    RemovePartyChatTab(CurrentPartyID);
+                    CurrentPartyID = TEXT("");
+                    AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+                }
+
+                
                 CurrentPartyID = Notification.PartyId;
                 AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
                 AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
@@ -343,19 +364,47 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
 
 void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo)
 {
-	if (KickInfo.UserId == SLobby::CurrentUserID)
+	if (KickInfo.UserId == CurrentUserID)
 	{
-		SLobby::PartyWidget->ResetAll();
+		PartyWidget->ResetAll();
+        RemovePartyChatTab(CurrentPartyID);
+        CurrentPartyID = TEXT("");
+
+        FSlateBrush* MemberAvatar = CheckAvatar(CurrentUserID) ? GetAvatar(CurrentUserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+        // show popup
+        FString NotificationMessage = FString::Printf(TEXT("You has been kicked from party"));
+        TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+            .NotificationMessage(NotificationMessage)
+            .AvatarImage(MemberAvatar)
+            .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+        {
+        });
+        Popup->Show();
+
+
 	}
 	else
 	{
-		for (auto Member : SLobby::PartyWidget->PartyMembers)
+		for (auto Member : PartyWidget->PartyMembers)
 		{
 			if (Member->UserId == KickInfo.UserId)
 			{
 				Member->Release();
 			}
 		};
+
+        // show popup
+        FString DisplayName = CheckDisplayName(KickInfo.UserId) ? GetDisplayName(KickInfo.UserId) : KickInfo.UserId;
+        FSlateBrush* MemberAvatar = CheckAvatar(KickInfo.UserId) ? GetAvatar(KickInfo.UserId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+        FString NotificationMessage = FString::Printf(TEXT("%s has been kicked from party"), *DisplayName);
+        TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+            .NotificationMessage(NotificationMessage)
+            .AvatarImage(MemberAvatar)
+            .OnPopupClosed_Lambda([]() 
+        {
+        });
+        Popup->Show();
 	}
 }
 
@@ -368,6 +417,26 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 			Member->Release();
 		}
 	};
+
+    if (LeaveInfo.UserID == CurrentUserID)
+    {
+        RemovePartyChatTab(CurrentPartyID);
+        CurrentPartyID = TEXT("");
+    }
+
+
+    // show popup
+    FString DisplayName = CheckDisplayName(LeaveInfo.UserID) ? GetDisplayName(LeaveInfo.UserID) : LeaveInfo.UserID;
+    FSlateBrush* MemberAvatar = CheckAvatar(LeaveInfo.UserID) ? GetAvatar(LeaveInfo.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+    FString NotificationMessage = FString::Printf(TEXT("%s has left party"), *DisplayName);
+    TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+        .NotificationMessage(NotificationMessage)
+        .AvatarImage(MemberAvatar)
+        .OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+    {
+    });
+    Popup->Show();
+
 }
 
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
@@ -409,6 +478,21 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
             RefreshFriendList();
             UpdateSearchStatus();
         }
+
+        FString DisplayName = CheckDisplayName(Response.UserID) ? GetDisplayName(Response.UserID) : Response.UserID;
+        FSlateBrush* MemberAvatar = CheckAvatar(Response.UserID) ? GetAvatar(Response.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+		// show popup
+		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *DisplayName);
+		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+			.NotificationMessage(NotificationMessage)
+            .AvatarImage(MemberAvatar)
+			.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
+		{
+		});
+		Popup->Show();		
+
+
     }
     else if (Response.Availability == "0")
     {
@@ -433,9 +517,7 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
 void SLobby::UpdateSearchStatus()
 {
 	bool bFinishSearch = false;
-
 	// SOCIAL SERVICE API
-
 	// foreach friends from social
 	// finish obtain friends
 	bFinishSearch = true;
@@ -450,12 +532,6 @@ void SLobby::InitializeFriends()
 {
     bSearchingForFriends = true;
     CompleteFriendList.Reset();
-    //LobbyChatTabButtons.Reset();
-}
-
-void SLobby::OnPartyCreated(const FAccelByteModelsCreatePartyResponse& Response)
-{
-    
 }
 
 void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL)
@@ -463,25 +539,84 @@ void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarU
     CurrentUserID = UserID;
     CurrentUserDisplayName = DisplayName; 
     CurrentAvatarURL = AvatarURL;
-    if (!AvatarListCache->Contains(UserID))
+
+    // save to our cache
+    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+
+    IFileManager& FileManager = IFileManager::Get();
+
+    // save to our cache
+    if (FileManager.FileExists(*CacheTextDir)) // meta found
     {
-        AvatarListCache->Add(UserID, AvatarURL);
-        // start download avatar
-        TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-        ThumbRequest->SetVerb("GET");
-        ThumbRequest->SetURL(AvatarURL);
-        ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserID);
-        ThumbRequest->ProcessRequest();      
+        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+        FString FileToLoad;
+        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+        {
+            TArray<FString> Raw;
+            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+            if (Raw.Num() > 0)
+            {
+                FString ImagePath = Raw[0];
+                FString CachedDisplayName = Raw.Last();
+                DiplayNameListCache->Add(UserID, CachedDisplayName);
+
+                TArray<uint8> ImageData;
+                FString CacheImagePath = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
+
+                if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
+                {
+                    ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
+                }
+            }
+            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+        }
     }
-
-
-    if (!DiplayNameListCache->Contains(UserID))
+    else
     {
-        DiplayNameListCache->Add(UserID, DisplayName);
+        // userid.txt -> file name fisik 
+        TArray<FString> Raw;
+        AvatarURL.ParseIntoArray(Raw, TEXT("/"), true);
+        FString FileName = Raw.Last();
+        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *DisplayName);
+
+        if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
+        {
+            UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
+        }
+        if (!AvatarListCache->Contains(UserID))
+        {
+            AvatarListCache->Add(UserID, AvatarURL);
+            // start download avatar
+            TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+            ThumbRequest->SetVerb("GET");
+            ThumbRequest->SetURL(AvatarURL);
+            ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserID);
+            ThumbRequest->ProcessRequest();
+        }
+
+
+        if (!DiplayNameListCache->Contains(UserID))
+        {
+            DiplayNameListCache->Add(UserID, DisplayName);
+        }
+
+
     }
-
-
 };
+
+void SLobby::SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath)
+{
+    CurrentUserID = UserID;
+    CurrentUserDisplayName = DisplayName;
+    CurrentAvatarURL = AvatarPath;
+
+    DiplayNameListCache->Add(UserID, DisplayName);
+    TArray<uint8> ImageData;
+    if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
+    {
+        ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData));
+    }
+}
 
 FString SLobby::GetCurrentUserID()
 {
@@ -497,42 +632,85 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
     FriendEntry1->Presence = "Online";
     CompleteFriendList.Add(FriendEntry1);
 
-
-    if (!AvatarListCache->Contains(UserID))
+    // find file
+    IFileManager& FileManager = IFileManager::Get();
+    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+    if (FileManager.FileExists(*CacheTextDir))
     {
-        //get avatar from platform service (User profile)
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
-        AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([this](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
-            AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+        FString FileToLoad;
+        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+        {
+            TArray<FString> Raw;
+            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+            if (Raw.Num() > 0)
+            {
+                FString ImagePath = Raw[0];
+                FString CachedDisplayName = Raw.Last();
+                DiplayNameListCache->Add(UserID, CachedDisplayName);
 
-            // start download avatar
-            TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-            ThumbRequest->SetVerb("GET");
-            ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
-            ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
-            ThumbRequest->ProcessRequest();
+                TArray<uint8> ImageData;
+                FString CacheImagePath = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
 
-        }),
-            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
-        }));
+                if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
+                {
+                    ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
+                }
+            }
+            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+        }
     }
-
-    if (!DiplayNameListCache->Contains(UserID))
+    else
     {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
-        AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([this](const FAccelByteModelsOauth2UserInfo& UserInfo) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
-            DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
-        }),
-            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
-        }));
+        if (!AvatarListCache->Contains(UserID))
+        {
+            //get avatar from platform service (User profile)
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
+            AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::Api::UserProfile::FGetPublicUserProfileInfoSuccess::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+                AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+
+                // next get display name
+                if (!DiplayNameListCache->Contains(UserID))
+                {
+                    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
+                    AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([this, UserID, UserProfileInfo](const FAccelByteModelsOauth2UserInfo& UserInfo) {
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
+                        DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
+
+                        // save to our cache
+                        FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+
+                        // userid.txt -> file name fisik \n display name
+
+                        TArray<FString> Raw;
+                        UserProfileInfo.AvatarSmallUrl.ParseIntoArray(Raw, TEXT("/"), true);
+                        FString FileName = Raw.Last();
+                        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserInfo.DisplayName);
+
+                        if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
+                        {
+                            UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
+                        }
+                    }),
+                        AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
+                    }));
+                }
+
+                // start download avatar
+                TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+                ThumbRequest->SetVerb("GET");
+                ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
+                ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
+                ThumbRequest->ProcessRequest();
+
+            }),
+                AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
+            }));
+        }
     }
-
-
-
 }
 
 void SLobby::RefreshFriendList()
@@ -687,6 +865,19 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
     {
         TArray<uint8> ImageData = Response->GetContent();
         ThumbnailBrushCache.Add(UserID, CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData));        
+
+
+        TArray<FString> Raw;
+        Request->GetURL().ParseIntoArray(Raw, TEXT("/"), true);
+        FString FileName = Raw.Last();
+
+        // save to our cache
+        FString CacheDir = FString::Printf(TEXT("%s\\Cache\\%s_%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID, *FileName);
+        if (FFileHelper::SaveArrayToFile(ImageData, *CacheDir))
+        {
+            UE_LOG(LogTemp, Log, TEXT("cache saved locally"));
+        }
+
     }
 }
 
@@ -1009,6 +1200,31 @@ void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
 	ChatPageSwitcher->AddSlot().AttachWidget(LobbyChatPages[LobbyChatPages.Num() - 1].ToSharedRef());
 	ScrollBoxChatTabs->AddSlot().AttachWidget(LobbyChatTabButtons[LobbyChatTabButtons.Num() - 1].ToSharedRef());
 	SelectTab(LobbyChatTabButtons.Num() - 1);
+}
+
+void SLobby::RemovePartyChatTab(FString PartyId)
+{
+    // remove chat box UI
+    for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+    {
+        if (LobbyChatPages[i]->PartyId.Equals(PartyId))
+        {
+            ChatPageSwitcher->RemoveSlot (LobbyChatPages[i].ToSharedRef());
+            LobbyChatPages.RemoveAt(i);
+            break;
+        }
+    }
+
+    // remove chat button
+    for (int32 i = 0; i < LobbyChatTabButtons.Num(); i++)
+    {
+        if (LobbyChatTabButtons[i]->PartyId.Equals(PartyId))
+        {
+            ScrollBoxChatTabs->RemoveSlot(LobbyChatTabButtons[i].ToSharedRef());
+            LobbyChatTabButtons.RemoveAt(i);
+            break;
+        }
+    }    
 }
 
 void SLobby::InviteToParty(FString UserId)
