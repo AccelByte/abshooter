@@ -599,6 +599,7 @@ protected:
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
 	TSharedPtr<class SWidget> OwnerWidget;
 	TSharedPtr<SScrollBar> FriendScrollBar;
+	FText GetFriendHeaderText() const;
 
 #pragma region CHAT
 

@@ -118,7 +118,7 @@ void SLobby::Construct(const FArguments& InArgs)
 								.HAlignCell(HAlign_Fill)
 								.VAlignCell(VAlign_Fill)
 								.FillWidth(1.0)
-								.DefaultLabel(NSLOCTEXT("FriendList", "FriendColumn", "Friends"))
+								.DefaultLabel(this, &SLobby::GetFriendHeaderText)
 								.HAlignHeader(HAlign_Center)
 								.VAlignHeader(VAlign_Center)
 							)
@@ -725,6 +725,19 @@ FText SLobby::GetBottomText() const
 	return StatusText;
 }
 
+FText SLobby::GetFriendHeaderText() const
+{
+	int32 OnlineFriendsCount = 0;
+	int32 AllFriendsCount = FriendList.Num();
+
+	for (int i = 0 ; i < AllFriendsCount; i++)
+	{
+		OnlineFriendsCount += (FriendList[i]->Presence == TEXT("Online"));
+	}
+
+	return FText::FromString(FString::Printf(TEXT("%d/%d is Online"), OnlineFriendsCount, AllFriendsCount));
+}
+
 /**
  * Ticks this widget.  Override in derived classes, but always call the parent implementation.
  *
@@ -758,7 +771,7 @@ void SLobby::OnFriendSearchFinished()
 void SLobby::UpdateFriendList()
 {
 	int32 SelectedItemIndex = FriendList.IndexOfByKey(SelectedItem);
-
+	FriendListWidget->GetHeaderRow()->Column("Friend").DefaultLabel(GetFriendHeaderText());
 	FriendListWidget->RequestListRefresh();
 	if (FriendList.Num() > 0)
 	{
