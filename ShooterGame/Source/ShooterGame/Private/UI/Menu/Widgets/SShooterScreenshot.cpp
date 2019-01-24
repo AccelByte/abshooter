@@ -1290,6 +1290,9 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 
 				FString Label = FString::Printf(TEXT("Screenshot-%s"), *FDateTime::Now().ToString());
 				LocalSlots[Index].DateModified = FDateTime::UtcNow();
+				auto PixelData = FSlateBrushToPixelData(SavedScreenshotList[Index]->Image.Get());
+				auto ByteData = GetCompressedImage(PixelData, EImageFormat::PNG);
+				SaveLocalScreenshotImage(Index, ByteData);
 				SaveToCloud(Index);
 			}
 			
@@ -1331,10 +1334,12 @@ void SShooterScreenshot::UpdateCurrentScreenshotList()
 
 	if (PlayerController)
 	{
+		const TArray<FDateTime>& Timestamps = PlayerController->GetScreenshotTimestamps();
 		for (int i = ScreenshotList.Num(); i < PlayerController->GetScreenshotList().Num(); i++)
 		{
+			FString Label = FString::Printf(TEXT("Screenshot-%s"), *Timestamps[i].ToString());
 			TSharedPtr<FScreenShotSelectedEntry> Item = MakeShareable(new FScreenShotSelectedEntry());
-			Item->Entry = MakeShareable(new FScreenshotEntry{ i, FString::Printf(TEXT("Screenshot %d"), i + 1), PlayerController->GetScreenshotList()[i] });
+			Item->Entry = MakeShareable(new FScreenshotEntry{ i, Label, PlayerController->GetScreenshotList()[i] });
 			ScreenshotList.Add(Item);
 		}
 		ScreenshotListWidget->RequestListRefresh();
@@ -1587,7 +1592,7 @@ void SShooterScreenshot::RefreshFromCloud()
         {
             FAccelByteModelsSlot Slot = Result[i];
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte] Response from cloud. slot result: %s, Original:%s"), *Slot.SlotId, *Slot.OriginalName);
-            if (i < 4)
+            if (i < SAVE_SLOT_SIZE)
             {
 				int SlotIndex = -1;
 
@@ -1655,9 +1660,24 @@ void SShooterScreenshot::RefreshFromCloud()
 					{
 						LoadSingleSlot(Slot, SlotIndex);
 					}
+					else
+					{
+						SavedScreenshotList[i]->State = DONE;
+					}
 				}
             }
         }
+
+		for (int i = Result.Num(); i < LocalSlots.Num(); i++)
+		{
+			SavedScreenshotList[i]->SlotID = LocalSlots[i].SlotId = "";
+			SavedScreenshotList[i]->Checksum = LocalSlots[i].Checksum = "";
+			SavedScreenshotList[i]->Title = LocalSlots[i].Label = "";
+			SavedScreenshotList[i]->State = NONE;
+			SavedScreenshotList[i]->Image = nullptr;
+			LocalSlots[i].Tags.Empty();
+			LocalSlots[i].Tags.Add(FString::Printf(TEXT("SlotIndex=%d"), i));
+		}
 
 		SaveScreenshotMetadata();
     }),

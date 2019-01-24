@@ -85,43 +85,45 @@ void AShooterPlayerController::SetupInputComponent()
 	InputComponent->BindAction("Screenshot", IE_Pressed, this, &AShooterPlayerController::TakeScreenshot);
 	InputComponent->BindAction("ScreenshotWindow", IE_Pressed, this, &AShooterPlayerController::ToggleScreenshotWindow);
 
-	
-	GetWorld()->GetGameViewport()->OnScreenshotCaptured().AddLambda([&](int32 Width, int32 Height, const TArray<FColor>& Color)
+	GetWorld()->GetGameViewport()->OnScreenshotCaptured().AddUObject(this, &AShooterPlayerController::OnScreenshotCaptured);
+}
+
+void AShooterPlayerController::OnScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Color)
+{
+	UTexture2D* Screenshot = UTexture2D::CreateTransient(Width, Height);
+
+	uint8* MipData = static_cast<uint8*>(Screenshot->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
+
+	uint8* DestPtr = NULL;
+	const FColor* SrcPtr = NULL;
+	for (int32 y = 0; y < Height; y++)
 	{
-		UTexture2D* Screenshot = UTexture2D::CreateTransient(Width, Height);
-
-		uint8* MipData = static_cast<uint8*>(Screenshot->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE));
-
-		uint8* DestPtr = NULL;
-		const FColor* SrcPtr = NULL;
-		for (int32 y = 0; y < Height; y++)
+		DestPtr = &MipData[(Height - 1 - y) * Width * sizeof(FColor)];
+		SrcPtr = &Color[(Height - 1 - y) * Width];
+		for (int32 x = 0; x < Width; x++)
 		{
-			DestPtr = &MipData[(Height - 1 - y) * Width * sizeof(FColor)];
-			SrcPtr = &Color[(Height - 1 - y) * Width];
-			for (int32 x = 0; x < Width; x++)
-			{
-				*DestPtr++ = SrcPtr->B;
-				*DestPtr++ = SrcPtr->G;
-				*DestPtr++ = SrcPtr->R;
-				*DestPtr++ = 0xFF;
-				SrcPtr++;
-			}
+			*DestPtr++ = SrcPtr->B;
+			*DestPtr++ = SrcPtr->G;
+			*DestPtr++ = SrcPtr->R;
+			*DestPtr++ = 0xFF;
+			SrcPtr++;
 		}
+	}
 
-		// Unlock the texture
-		Screenshot->PlatformData->Mips[0].BulkData.Unlock();
-		Screenshot->UpdateResource();
+	// Unlock the texture
+	Screenshot->PlatformData->Mips[0].BulkData.Unlock();
+	Screenshot->UpdateResource();
 
-		TSharedPtr<FSlateDynamicImageBrush> Brush = MakeShareable(new FSlateDynamicImageBrush(Screenshot, FVector2D(Width, Height), FName("Screenshot")));
-		ScreenshotList.Add(Brush);
+	TSharedPtr<FSlateDynamicImageBrush> Brush = MakeShareable(new FSlateDynamicImageBrush(Screenshot, FVector2D(Width, Height), FName("Screenshot")));
+	ScreenshotList.Add(Brush);
+	ScreenshotTimestamps.Add(FDateTime::Now());
 
-		TSharedPtr<SShooterScreenshotPopup> Popup = SNew(SShooterScreenshotPopup)
-			.Image(Brush)
-			.OnPopupClosed_Lambda([Brush]() //Hold Brush until popup closed
-		{
-		});
-		Popup->Show();
+	TSharedPtr<SShooterScreenshotPopup> Popup = SNew(SShooterScreenshotPopup)
+		.Image(Brush)
+		.OnPopupClosed_Lambda([Brush]() //Hold Brush until popup closed
+	{
 	});
+	Popup->Show();
 }
 
 
@@ -1395,6 +1397,11 @@ void AShooterPlayerController::UpdateSaveFileOnGameEnd(bool bIsWinner)
 const TArray<TSharedPtr<FSlateBrush>>& AShooterPlayerController::GetScreenshotList()
 {
 	return ScreenshotList;
+}
+
+const TArray<FDateTime>& AShooterPlayerController::GetScreenshotTimestamps()
+{
+	return ScreenshotTimestamps;
 }
 
 void AShooterPlayerController::PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
