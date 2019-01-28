@@ -24,15 +24,6 @@ namespace Api
 class ACCELBYTEUE4SDK_API Lobby
 {
 public:
-    /**
-     * @brief presence enumeration.
-     */
-    enum class Presence : int {
-        Offline = 0,
-        Availabe = 1,
-        Busy = 2,
-        Invisible = 3
-    };
 
     // Party 
     /**
@@ -123,7 +114,7 @@ public:
     /**
      * @brief delegate for handling other user change their presence status event
      */
-    DECLARE_DELEGATE_OneParam(FFriendStatusNotif, const FAccelByteModelsUsersPresenceNotice&);             // Passive
+    DECLARE_DELEGATE_OneParam(FFriendStatusNotif, const FAccelByteModelsUsersPresenceNotice&);
 
     /**
      * @brief delegate for handling get all user presence
@@ -144,6 +135,51 @@ public:
     DECLARE_DELEGATE_OneParam(FMatchmakingResponse, const FAccelByteModelsMatchmakingResponse&);
 
 
+	// Friends
+	/**
+	 * @brief delegate for handling request friend response
+	 */
+	DECLARE_DELEGATE_OneParam(FRequestFriendsResponse, const FAccelByteModelsRequestFriendsResponse&);
+	
+	/**
+	 * @brief delegate for handling unfriend response
+	 */
+	DECLARE_DELEGATE_OneParam(FUnfriendResponse, const FAccelByteModelsUnfriendResponse&);
+	
+	/**
+	 * @brief delegate for handling list outgoing friends response
+	 */
+	DECLARE_DELEGATE_OneParam(FListOutgoingFriendsResponse, const FAccelByteModelsListOutgoingFriendsResponse&);
+	
+	/**
+	 * @brief delegate for handling cancel friend response
+	 */
+	DECLARE_DELEGATE_OneParam(FCancelFriendsResponse, const FAccelByteModelsCancelFriendsResponse&);
+	
+	/**
+	 * @brief delegate for handling list incoming friends response
+	 */
+	DECLARE_DELEGATE_OneParam(FListIncomingFriendsResponse, const FAccelByteModelsListIncomingFriendsResponse&);
+	
+	/**
+	 * @brief delegate for handling accept friend response
+	 */
+	DECLARE_DELEGATE_OneParam(FAcceptFriendsResponse, const FAccelByteModelsAcceptFriendsResponse&);
+	
+	/**
+	 * @brief delegate for handling reject friend response
+	 */
+	DECLARE_DELEGATE_OneParam(FRejectFriendsResponse, const FAccelByteModelsRejectFriendsResponse&);
+	
+	/**
+	 * @brief delegate for handling load friend list response
+	 */
+	DECLARE_DELEGATE_OneParam(FLoadFriendListResponse, const FAccelByteModelsLoadFriendListResponse&);
+
+	/**
+	 * @brief delegate for handling get friendship status response
+	 */
+	DECLARE_DELEGATE_OneParam(FGetFriendshipStatusResponse, const FAccelByteModelsGetFriendshipStatusResponse&);
 
 	/**
 	 * @brief Get instance of this singleton class.
@@ -222,7 +258,7 @@ public:
      * @param State the presence state that you want to use. State is Presence type
      * @param GameName the game name that you play
      */
-	FString SendSetPresenceStatus(const Presence Availability, const FString& Activity);
+	FString SendSetPresenceStatus(const Availability Availability, const FString& Activity);
 
 	/**
 	 * @brief Accept a party invitation.
@@ -269,6 +305,60 @@ public:
      */
     FString SendCancelMatchmaking(FString PartyId);
 	
+	// Friends
+	/**
+	 * @brief Send request friend request.
+	 *
+	 * @param param UserId Targeted user ID.
+	 */
+	void RequestFriend(FString UserId);
+	
+	/**
+	* @brief Send unfriend request.
+	*
+	* @param UserId Targeted user ID.
+	*/
+	void Unfriend(FString UserId);
+
+	/**
+	* @brief Send list of outgoing friends request.
+	*/
+	void ListOutgoingFriends();
+
+	/**
+	* @brief Send cancel friend request.
+	*
+	* @param UserId Targeted user ID.
+	*/
+	void CancelFriendRequest(FString UserId);
+
+	/**
+	* @brief Send list of incoming friends request.
+	*/
+	void ListIncomingFriends();
+
+	/**
+	* @brief Send accept friend request.
+	*/
+	void AcceptFriend(FString UserId);
+
+	/**
+	* @brief Send reject friend request.
+	*/
+	void RejectFriend(FString UserId);
+
+	/**
+	* @brief Send load friends list request.
+	*/
+	void LoadFriendsList();
+
+	/**
+	* @brief Send get friendship status request.
+	*
+	* @param UserId Targeted user ID.
+	*/
+	void GetFriendshipStatus(FString UserId);
+
 	/**
 	 * @brief Unbind all delegates set previously.
 	 */
@@ -345,7 +435,6 @@ public:
      */
     void SetPrivateMessageResponseDelegate(FPersonalChatResponse OnPrivateMessageResponse) { PersonalChatResponse = OnPrivateMessageResponse; };
 
-
     /**
      * @brief set party message response
      *
@@ -361,12 +450,6 @@ public:
      * @param OnSetUserPresenceResponse set delegate .
      */
     void SetUserPresenceResponseDelegate(FSetUserPresenceResponse OnSetUserPresenceResponse) { SetUserPresenceResponse = OnSetUserPresenceResponse; };
-
-
-
-
-
-
 
     /**
      * @brief set info party response
@@ -385,6 +468,69 @@ public:
      */
     void SetMatchmakingResponseDelegate(FMatchmakingResponse OnMatchmakingResponse) { MatchmakingResponse = OnMatchmakingResponse; };
 
+	// Friends
+	/**
+	 * @brief Set request for friends response.
+	 *
+	 * @param OnRequestFriendsResponse Delegate that will be set.
+	 */
+	void SetRequestFriendsResponseDelegate(FRequestFriendsResponse OnRequestFriendsResponse) { RequestFriendsResponse = OnRequestFriendsResponse; };
+
+	/**
+	 * @brief Set unfriend response.
+	 *
+	 * @param OnUnfriendResponse Delegate that will be set.
+	 */
+	void SetUnfriendResponseDelegate(FUnfriendResponse OnUnfriendResponse) { UnfriendResponse = OnUnfriendResponse; };
+
+	/**
+	 * @brief Set list outgoing request of friend response.
+	 *
+	 * @param OnListOutgoingFriendsResponse Delegate that will be set.
+	 */
+	void SetListOutgoingFriendsResponseDelegate(FListOutgoingFriendsResponse OnListOutgoingFriendsResponse) { ListOutgoingFriendsResponse = OnListOutgoingFriendsResponse; };
+
+	/**
+	 * @brief Set cancel request of friend response.
+	 *
+	 * @param OnCancelFriendsResponse Delegate that will be set.
+	 */
+	void SetCancelFriendsResponseDelegate(FCancelFriendsResponse OnCancelFriendsResponse) { CancelFriendsResponse = OnCancelFriendsResponse; };
+
+	/**
+	 * @brief Set incoming request of friend response.
+	 *
+	 * @param OnListIncomingFriendsResponse Delegate that will be set.
+	 */
+	void SetListIncomingFriendsResponseDelegate (FListIncomingFriendsResponse OnListIncomingFriendsResponse) { ListIncomingFriendsResponse = OnListIncomingFriendsResponse;  };
+
+	/**
+	 * @brief Set accept friend response.
+	 *
+	 * @param OnAcceptFriendsResponse Delegate that will be set.
+	 */
+	void SetAcceptFriendsResponseDelegate(FAcceptFriendsResponse OnAcceptFriendsResponse) { AcceptFriendsResponse = OnAcceptFriendsResponse; };
+
+	/**
+	 * @brief Set reject request for friend response.
+	 *
+	 * @param OnRejectFriendsResponse Delegate that will be set.
+	 */
+	void SetRejectFriendsResponseDelegate(FRejectFriendsResponse OnRejectFriendsResponse) { RejectFriendsResponse = OnRejectFriendsResponse; };
+
+	/**
+	 * @brief Set load friend list response.
+	 *
+	 * @param OnLoadFriendListResponse Delegate that will be set.
+	 */
+	void SetLoadFriendListResponseDelegate(FLoadFriendListResponse OnLoadFriendListResponse) { LoadFriendListResponse = OnLoadFriendListResponse; };
+
+	/**
+	 * @brief Set get friendship status response.
+	 *
+	 * @param OnGetFriendshipStatusResponse Delegate that will be set.
+	 */
+	void SetGetFriendshipStatusResponseDelegate(FGetFriendshipStatusResponse OnGetFriendshipStatusResponse) { GetFriendshipStatusResponse = OnGetFriendshipStatusResponse; };
 
 private:
 	Lobby();
@@ -441,6 +587,17 @@ private:
 
     // Matchmaking
     FMatchmakingResponse MatchmakingResponse;
+
+	// Friends
+	FRequestFriendsResponse RequestFriendsResponse;
+	FUnfriendResponse UnfriendResponse;
+	FListOutgoingFriendsResponse ListOutgoingFriendsResponse;
+	FCancelFriendsResponse CancelFriendsResponse;
+	FListIncomingFriendsResponse ListIncomingFriendsResponse;
+	FAcceptFriendsResponse AcceptFriendsResponse;
+	FRejectFriendsResponse RejectFriendsResponse;
+	FLoadFriendListResponse LoadFriendListResponse;
+	FGetFriendshipStatusResponse GetFriendshipStatusResponse;
 };
 
 } // Namespace Api

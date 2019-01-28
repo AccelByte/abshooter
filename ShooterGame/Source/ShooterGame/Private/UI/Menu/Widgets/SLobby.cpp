@@ -82,7 +82,7 @@ void SLobby::Construct(const FArguments& InArgs)
 					[
 						SNew(SBox)
 						[
-							SAssingNew(FriendSearchBar, SEditableTextBox) //2.1.1 SEDITABLETEXTBOX
+							SAssignNew(FriendSearchBar, SEditableTextBox) //2.1.1 SEDITABLETEXTBOX
 							.HintText(FText::FromString(TEXT("Search your friend by email")))
 							.MinDesiredWidth(300.0f)
 							.SelectAllTextWhenFocused(true)

@@ -162,7 +162,7 @@ void UShooterGameInstance::Init()
 
     AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
-        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(AccelByte::Api::Lobby::Presence::Availabe, TEXT("Shooter Game"));
+        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
 		AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
     });
 
