@@ -64,6 +64,7 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	Style.Set("ShooterGame.CloudUpload", new IMAGE_BRUSH("Images/CloudUploadIcon", FVector2D(36, 36)));
 	Style.Set("ShooterGame.Edit", new IMAGE_BRUSH("Images/EditIcon", FVector2D(36, 36)));
 	Style.Set("ShooterGame.ZoomOut", new IMAGE_BRUSH("Images/ZoomOutIcon", FVector2D(36, 36)));
+	Style.Set("ShooterGame.SyncProblem", new IMAGE_BRUSH("Images/SyncProblemIcon", FVector2D(36, 36)));
 
 
 	// The border image used to draw the replay timeline bar

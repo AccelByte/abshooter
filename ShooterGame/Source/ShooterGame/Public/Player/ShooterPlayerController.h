@@ -320,13 +320,18 @@ public:
 	bool bHasSentStartEvents;
 
 	const TArray<TSharedPtr<FSlateBrush>>& GetScreenshotList();
+	const TArray<FDateTime>& GetScreenshotTimestamps();
 
 private:
+
+	void OnScreenshotCaptured(int32 Width, int32 Height, const TArray<FColor>& Color);
 
 	/** Handle for efficient management of ClientStartOnlineGame timer */
 	FTimerHandle TimerHandle_ClientStartOnlineGame;
 
 	/** Hold Player Screenshot */
 	TArray<TSharedPtr<FSlateBrush>> ScreenshotList;
+
+	TArray<FDateTime> ScreenshotTimestamps;
 };
 
