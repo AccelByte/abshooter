@@ -82,12 +82,23 @@ void SLobby::Construct(const FArguments& InArgs)
 					[
 						SNew(SBox)
 						[
-							SNew(SEditableTextBox) //2.1.1 SEDITABLETEXTBOX
-							.HintText(FText::FromString(TEXT("Search your friend")))
+							SAssingNew(FriendSearchBar, SEditableTextBox) //2.1.1 SEDITABLETEXTBOX
+							.HintText(FText::FromString(TEXT("Search your friend by email")))
 							.MinDesiredWidth(300.0f)
 							.SelectAllTextWhenFocused(true)
-							.OnTextChanged(this, &SLobby::OnTextSearchChanged)
 							.Style(&LobbyStyle->SearchBarStyle)
+						]
+					]
+					+ SHorizontalBox::Slot()	//2.1.1 SBUTTON SEARCH FRIEND
+					[
+						SNew(SButton)
+						.OnClicked(this, &SLobby::OnRequestFriend)
+						.ButtonStyle(&LobbyStyle->InviteButtonStyle)
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(TEXT("ADD")))
+							.TextStyle(&LobbyStyle->InviteButtonTextStyle)
 						]
 					]
 				]
@@ -441,6 +452,8 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
 {
+	//IF Response.UserID is in the Friendlist, THEN PROCEED
+
     UE_LOG(LogTemp, Log, TEXT("OnUserPresenceNotification: %s Activity: %s"), *Response.UserID, *Response.Activity);
 
     // add to friend list, download the avatar
@@ -870,6 +883,20 @@ void SLobby::OnTextSearchChanged(const FText& Text)
 		}
 	}
 	FriendListWidget->RequestListRefresh();	
+}
+
+FReply SLobby::OnRequestFriend()
+{
+	AccelByte::Api::UserManagement::GetUserByLoginId(FriendSearchBar->GetText().ToString(), 
+		AccelByte::Api::UserManagement::FGetUserByLoginIdSuccess::CreateLambda([&](const FAccelByteModelsUserResponse& User)
+		{
+			//AccelByte::Api::Lobby      request for friend
+		}), 
+		AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) 
+		{
+
+		}));
+	return FReply::Handled();
 }
 
 void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID)

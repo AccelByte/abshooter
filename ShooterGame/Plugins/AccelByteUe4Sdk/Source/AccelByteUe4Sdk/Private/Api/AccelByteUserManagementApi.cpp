@@ -270,6 +270,26 @@ void UserManagement::UnlinkUserAccounts(const FString& PlatformId, const FUnlink
 	Request->ProcessRequest();
 }
 
+void UserManagement::GetUserByLoginId(const FString& LoginId, const FGetUserByLoginIdSuccess OnSuccess, const FErrorHandler& OnError)
+{
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials::Get().GetClientAccessToken());
+	FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/byLoginId"), *Settings::IamServerUrl, *Credentials::Get().GetClientNamespace(), *LoginId);
+	FString Verb = TEXT("GET");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+	FString Content;
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+	Request->SetContentAsString(Content);
+	Request->OnProcessRequestComplete().BindStatic(GetUserByLoginIdResponse, OnSuccess, OnError);
+	Request->ProcessRequest();
+}
+
 // =============================================================================================================================
 // ========================================================= Responses =========================================================
 // =============================================================================================================================
@@ -425,5 +445,19 @@ void UserManagement::UpgradeHeadlessAccountWithVerificationCodeResponse(FHttpReq
 	OnError.ExecuteIfBound(Code, Message);
 }
 
+void UserManagement::GetUserByLoginIdResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetUserByLoginIdSuccess OnSuccess, FErrorHandler OnError)
+{
+	int32 Code;
+	FString Message;
+	if (EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+	{
+		FAccelByteModelsUserResponse Result;
+		FJsonObjectConverter::JsonObjectStringToUStruct<FAccelByteModelsUserResponse>(Response->GetContentAsString(), &Result, 0, 0);
+		OnSuccess.ExecuteIfBound(Result);
+		return;
+	}
+	HandleHttpError(Request, Response, Code, Message);
+	OnError.ExecuteIfBound(Code, Message);
+}
 } // Namespace Api
 } // Namespace AccelByte

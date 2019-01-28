@@ -517,7 +517,9 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
+	// Searchbar text commit / change
 	void OnTextSearchChanged(const FText& Text);
+	FReply OnRequestFriend();
 
 	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
@@ -588,6 +590,7 @@ protected:
     FString CurrentUserDisplayName;
     FString CurrentUserID;
     FString CurrentAvatarURL;
+	TSharedPtr<SEditableTextBox> FriendSearchBar;
 	TArray< TSharedPtr<FFriendEntry> > FriendList;
 	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
 	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > FriendListWidget;

@@ -156,6 +156,16 @@ public:
 	 */
 	static void UnlinkUserAccounts(const FString& PlatformId, const FUnlinkUserAccountsSuccess& OnSuccess, const FErrorHandler& OnError);
 
+	DECLARE_DELEGATE_OneParam(FGetUserByLoginIdSuccess, const FAccelByteModelsUserResponse&);
+	/**
+	 * @brief This function will search user by their login ID (email or phone number in the future).
+	 * 
+	 * @param Login Targeted user's login ID.
+	 * @param OnSuccess This will be called when the operation succeeded. The result is FAccelByteModelsUserResponse.
+	 * @param OnError This will be called when the operation failed.
+	 */
+	static void GetUserByLoginId(const FString& LoginId, const FGetUserByLoginIdSuccess OnSuccess, const FErrorHandler& OnError);
+
 private:
 	UserManagement() = delete; // static class can't have instance
 	UserManagement(UserManagement const&) = delete;
@@ -172,6 +182,7 @@ private:
 	static void LinkUserAccountsResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FLinkUserAccountsSuccess OnSuccess, FErrorHandler OnError);
 	static void UnlinkUserAccountsResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FUnlinkUserAccountsSuccess OnSuccess, FErrorHandler OnError);
 	static void UpgradeHeadlessAccountWithVerificationCodeResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FUpgradeHeadlessAccountWithVerificationCodeSuccess OnSuccess, FErrorHandler OnError);
+	static void GetUserByLoginIdResponse(FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful, FGetUserByLoginIdSuccess OnSuccess, FErrorHandler OnError);
 };
 
 } // Namespace Api
