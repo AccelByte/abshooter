@@ -158,12 +158,12 @@ void UShooterGameInstance::Init()
 	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
 	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
-    AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+    AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
     AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
-        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
-		AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+        AccelByte::FRegistry::Lobby.SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
+		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
     });
 
 
@@ -178,10 +178,10 @@ void UShooterGameInstance::Init()
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%s"), StatusCode, *Reason, WasClean);
     });
 
-    AccelByte::Api::Lobby::Get().SetConnectSuccessDelegate(OnLobbyConnected);
-    AccelByte::Api::Lobby::Get().SetConnectFailedDelegate(OnLobbyErrorConnect);
-    AccelByte::Api::Lobby::Get().SetConnectionClosedDelegate(OnLobbyConnectionClosed);
-    AccelByte::Api::Lobby::Get().SetParsingErrorDelegate(OnLobbyParsingError);
+    AccelByte::FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);
+    AccelByte::FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyErrorConnect);
+    AccelByte::FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
+    AccelByte::FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
 
 #if !UE_SERVER   
 	if (!IsRunningDedicatedServer())
@@ -193,7 +193,7 @@ void UShooterGameInstance::Init()
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Success, UserID: %s"), *token.User_id);
 			bHasDone = true;
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
-			AccelByte::Api::Lobby::Get().Connect();
+			AccelByte::FRegistry::Lobby.Connect();
 
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
 			AccelByte::Api::UserProfile::CreateEntitlementReceiver(token.User_id,

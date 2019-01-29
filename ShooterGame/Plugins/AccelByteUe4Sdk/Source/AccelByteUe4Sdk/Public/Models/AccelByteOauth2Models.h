@@ -58,32 +58,6 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsOauth2Token
 		FString Namespace;
 };
 
-
-
-//{
-//    "Namespace": "shootergame",
-//    "UserId" : "a7ea3a4c55174658b1b435ec86db92df",
-//    "DisplayName" : "Friends A",
-//    "AuthType" : "EMAILPASSWD",
-//    "LoginId" : "friendsA@accelbyte.net",
-//    "EmailAddress" : "friendsA@accelbyte.net",
-//    "OldEmailAddress" : "friendsA@accelbyte.net",
-//    "CreatedAt" : "2018-08-16T01:53:02.458383712Z",
-//    "Roles" : [
-//        "2251438839e948d783ec0e5281daf05b"
-//    ],
-//    "Permissions" : [{
-//            "Resource": "NAMESPACE:{namespace}:USER:{userId}:MESSAGE",
-//                "Action" : 1
-//
-//                ,
-//                "PhoneVerified" : false,
-//                "EmailVerified" : false,
-//                "Enabled" : true,
-//                "LastEnabledChangedTime" : "0001-01-01T00:00:00Z",
-//                "Country" : ""
-//        }]
-//}
 USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsOauth2UserInfo
 {

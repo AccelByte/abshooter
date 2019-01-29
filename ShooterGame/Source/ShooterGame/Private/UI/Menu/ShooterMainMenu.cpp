@@ -21,6 +21,7 @@
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Core/AccelByteCredentials.h"
+#include "Core/AccelByteRegistry.h"
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
 #define MAX_BOT_COUNT 8
@@ -73,7 +74,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 	OnCancelMatchmakingCompleteDelegate = FOnCancelMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnCancelMatchmakingComplete);
 	OnMatchmakingCompleteDelegate = FOnMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnMatchmakingComplete);
     OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &FShooterMainMenu::OnFriendOnlineResponse);
-    AccelByte::Api::Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+    AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
 	// read user settings
 #if SHOOTER_CONSOLE_UI
@@ -1424,7 +1425,9 @@ void FShooterMainMenu::OnShowLeaderboard()
 
 void FShooterMainMenu::OnShowLobby()
 {
-	AccelByte::Api::Lobby::Get().SendGetOnlineUsersRequest();
+	AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
+	AccelByte::FRegistry::Lobby.LoadFriendsList();
+	AccelByte::FRegistry::Lobby.ListIncomingFriends();
 }
 
 void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
