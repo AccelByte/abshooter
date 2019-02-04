@@ -32,8 +32,11 @@ class AShooterPlayerState : public APlayerState
 	 */
 	void SetTeamNum(int32 NewTeamNumber);
 
-	void SetFixedTeamNum(int32 NewTeamNumber);
-	bool IsFixedTeam() const { return FixedTeam; }
+	void SetPartyId(const FString& PartyId);
+	const FString& GetPartyId() const { return PartyId; }
+
+	void SetUserId(const FString& UserId);
+	const FString& GetUserId() const { return UserId; }
 
 	/** player killed someone */
 	void ScoreKill(AShooterPlayerState* Victim, int32 Points);
@@ -118,5 +121,8 @@ protected:
 	void ScorePoints(int32 Points);
 
 	UPROPERTY(Transient, Replicated)
-	bool FixedTeam = false;
+	FString PartyId;
+
+	UPROPERTY(Transient, Replicated)
+	FString UserId;
 };

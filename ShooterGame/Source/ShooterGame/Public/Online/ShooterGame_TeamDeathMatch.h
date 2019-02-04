@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Server/Models/AccelByteMatchmakingModels.h"
 #include "ShooterGame_TeamDeathMatch.generated.h"
 
 class AShooterPlayerState;
@@ -11,6 +12,8 @@ UCLASS()
 class AShooterGame_TeamDeathMatch : public AShooterGameMode
 {
 	GENERATED_UCLASS_BODY()
+
+	void PreLogin(const FString & Options, const FString & Address, const FUniqueNetIdRepl & UniqueId, FString & ErrorMessage) override;
 
 	/** setup team changes at player login */
 	void PostLogin(APlayerController* NewPlayer) override;
@@ -22,6 +25,9 @@ class AShooterGame_TeamDeathMatch : public AShooterGameMode
 	virtual bool CanDealDamage(AShooterPlayerState* DamageInstigator, AShooterPlayerState* DamagedPlayer) const override;
 
 	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal = TEXT("")) override;
+
+	virtual void RestartGame() override;
+	virtual void EndMatch() override;
 
 protected:
 
@@ -45,4 +51,6 @@ protected:
 
 	/** initialization for bot after spawning */
 	virtual void InitBot(AShooterAIController* AIC, int32 BotNum) override;	
+
+	FAccelByteModelsMatchmakingInfo MatchmakingInfo;
 };

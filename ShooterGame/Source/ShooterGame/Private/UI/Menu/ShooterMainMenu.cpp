@@ -385,7 +385,14 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 #endif
 		// Lobby
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Lobby", "LOBBY"), this, &FShooterMainMenu::OnShowLobby);
-		MenuHelper::AddCustomMenuItem(FriendItem, SAssignNew(FriendListWidget, SLobby).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+		MenuHelper::AddCustomMenuItem(FriendItem, SAssignNew(FriendListWidget, SLobby)
+			.OwnerWidget(MenuWidget)
+			.PlayerOwner(GetPlayerOwner())
+			.OnStartMatch_Lambda([&] {
+				GameInstance->GotoState(ShooterGameInstanceState::Playing);
+				MenuWidget->LockControls(true);
+				MenuWidget->HideMenu();
+			}));
 
 		// Leaderboards
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Leaderboards", "LEADERBOARDS"), this, &FShooterMainMenu::OnShowLeaderboard);

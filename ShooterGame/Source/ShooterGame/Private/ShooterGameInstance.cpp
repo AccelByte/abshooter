@@ -162,7 +162,7 @@ void UShooterGameInstance::Init()
 
     AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
-        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(AccelByte::Api::Lobby::Presence::Availabe, TEXT("Shooter Game"));
+        AccelByte::Api::Lobby::Get().SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
 		AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
     });
 
@@ -184,44 +184,47 @@ void UShooterGameInstance::Init()
     AccelByte::Api::Lobby::Get().SetParsingErrorDelegate(OnLobbyParsingError);
 
 #if !UE_SERVER   
-    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
-    bool bHasDone = false;
-    AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess OnLoginSuccess = AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([&](const FAccelByteModelsOauth2Token& token) {
-        UserToken = token;
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Success, UserID: %s"), *token.User_id);
-        bHasDone = true;
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
-        AccelByte::Api::Lobby::Get().Connect();      
-
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
-        AccelByte::Api::UserProfile::CreateEntitlementReceiver(token.User_id,
-            TEXT("ext-userid-001"), 
-            TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"), 
-            AccelByte::Api::UserProfile::FCreateEntitlementReceiverSuccess::CreateLambda([](FString Result) {
-
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
-
-        }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            bHasDone = true;
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
-        }));
-    });
-
-    AccelByte::FErrorHandler OnLoginError =  AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-        bHasDone = true;
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Error: %s"), *Message);
-    });
-    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
-    AccelByte::Api::UserAuthentication::LoginFromLauncher(FString(AuthorizationCode), OnLoginSuccess, OnLoginError);
-
-	// Blocking here
-	double LastTime = FPlatformTime::Seconds();
-	while (!bHasDone)
+	if (!IsRunningDedicatedServer())
 	{
-		const double AppTime = FPlatformTime::Seconds();		
-		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
-		LastTime = AppTime;
-		FPlatformProcess::Sleep(0.5f);
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
+		bool bHasDone = false;
+		AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess OnLoginSuccess = AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([&](const FAccelByteModelsOauth2Token& token) {
+			UserToken = token;
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Success, UserID: %s"), *token.User_id);
+			bHasDone = true;
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
+			AccelByte::Api::Lobby::Get().Connect();
+
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
+			AccelByte::Api::UserProfile::CreateEntitlementReceiver(token.User_id,
+				TEXT("ext-userid-001"),
+				TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
+				AccelByte::Api::UserProfile::FCreateEntitlementReceiverSuccess::CreateLambda([](FString Result) {
+
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
+
+			}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+				bHasDone = true;
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
+			}));
+		});
+
+		AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+			bHasDone = true;
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Error: %s"), *Message);
+		});
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
+		AccelByte::Api::UserAuthentication::LoginFromLauncher(FString(AuthorizationCode), OnLoginSuccess, OnLoginError);
+
+		// Blocking here
+		double LastTime = FPlatformTime::Seconds();
+		while (!bHasDone)
+		{
+			const double AppTime = FPlatformTime::Seconds();
+			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+			LastTime = AppTime;
+			FPlatformProcess::Sleep(0.5f);
+		}
 	}
 #endif
 }

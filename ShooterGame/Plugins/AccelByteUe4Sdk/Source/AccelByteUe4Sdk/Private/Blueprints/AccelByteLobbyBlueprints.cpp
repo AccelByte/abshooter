@@ -1,4 +1,4 @@
-// Copyright (c) 2018 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018 - 2019 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -73,6 +73,64 @@ void UAccelByteBlueprintsLobby::SendGetOnlineUsersRequest()
 	Lobby::Get().SendGetOnlineUsersRequest();
 }
 
+// Matchmaking
+void UAccelByteBlueprintsLobby::SendStartMatchmaking(const FString& GameMode)
+{
+	Lobby::Get().SendStartMatchmaking(GameMode);
+}
+
+void UAccelByteBlueprintsLobby::SendCancelMatchmaking(const FString& GameMode)
+{
+	Lobby::Get().SendCancelMatchmaking(GameMode);
+}
+
+
+// Friends
+void UAccelByteBlueprintsLobby::RequestFriend(FString UserId)
+{
+	Lobby::Get().RequestFriend(UserId);
+}
+
+void UAccelByteBlueprintsLobby::Unfriend(FString UserId)
+{
+	Lobby::Get().Unfriend(UserId);
+}
+
+void UAccelByteBlueprintsLobby::ListOutgoingFriends()
+{
+	Lobby::Get().ListOutgoingFriends();
+}
+
+void UAccelByteBlueprintsLobby::CancelFriendRequest(FString UserId)
+{
+	Lobby::Get().CancelFriendRequest(UserId);
+}
+
+void UAccelByteBlueprintsLobby::ListIncomingFriends()
+{
+	Lobby::Get().ListIncomingFriends();
+}
+
+void UAccelByteBlueprintsLobby::AcceptFriend(FString UserId)
+{
+	Lobby::Get().AcceptFriend(UserId);
+}
+
+void UAccelByteBlueprintsLobby::RejectFriend(FString UserId)
+{
+	Lobby::Get().RejectFriend(UserId);
+}
+
+void UAccelByteBlueprintsLobby::LoadFriendsList()
+{
+	Lobby::Get().LoadFriendsList();
+}
+
+void UAccelByteBlueprintsLobby::GetFriendshipStatus(FString UserId)
+{
+	Lobby::Get().GetFriendshipStatus(UserId);
+}
+
 void UAccelByteBlueprintsLobby::BindEvent(
     const FConnectSuccess& OnSuccess,
     const FBlueprintErrorHandler& OnError,
@@ -86,6 +144,7 @@ void UAccelByteBlueprintsLobby::BindEvent(
     const FPartyMessageNotice& OnPartyMessageNotice,
     const FUserPresenceNotice& OnUserPresenceNotice,
 	const FNotificationMessage& OnNotificationMessage,
+	const FMatchmakingNotice& OnMatchmakingNotice,
     const FBlueprintErrorHandler& OnParsingError)
 {
     FSimpleDelegate OnSuccessDelegate = FSimpleDelegate::CreateLambda([OnSuccess]() {
@@ -152,6 +211,12 @@ void UAccelByteBlueprintsLobby::BindEvent(
 		OnNotificationMessage.ExecuteIfBound(Result);
 	});
 
+	// Matchmaking
+	Lobby::FMatchmakingNotif OnMatchmakingNoticeDelegate =
+		Lobby::FMatchmakingNotif::CreateLambda([OnMatchmakingNotice](const FAccelByteModelsMatchmakingNotice& Result) {
+		OnMatchmakingNotice.ExecuteIfBound(Result);
+	});
+
     FErrorHandler OnParsingErrorDelegate = FErrorHandler::CreateLambda([OnParsingError](int32 Code, const FString& ErrorMessage) {
         OnParsingError.ExecuteIfBound(Code, ErrorMessage);
     });
@@ -168,6 +233,7 @@ void UAccelByteBlueprintsLobby::BindEvent(
     Lobby::Get().SetPartyChatNotifDelegate(OnPartyMessageNoticeDelegate);
     Lobby::Get().SetUserPresenceNotifDelegate(OnOnUserPresenceNoticeDelegate);
     Lobby::Get().SetMessageNotifDelegate(OnNotificationMessageDelegate);
+	Lobby::Get().SetMatchmakingNotifDelegate(OnMatchmakingNoticeDelegate);
     Lobby::Get().SetParsingErrorDelegate(OnParsingErrorDelegate);
 }
 void UAccelByteBlueprintsLobby::UnbindDelegates()
@@ -268,6 +334,11 @@ void UAccelByteBlueprintsLobby::SetGetAllUserPresenceResponseDelegate(FGetAllFri
     Lobby::Get().SetGetAllUserPresenceResponseDelegate(OnInfoPartyResponseDelegate);
 }
 
+void UAccelByteBlueprintsLobby::SetPresenceStatus(Availability State, FString GameName)
+{
+	Lobby::Get().SendSetPresenceStatus(State, GameName);
+}
+
 // Notification
 void UAccelByteBlueprintsLobby::GetAllAsyncNotification()
 {
@@ -275,11 +346,102 @@ void UAccelByteBlueprintsLobby::GetAllAsyncNotification()
 }
 
 // Matchmaking
-void UAccelByteBlueprintsLobby::SetMatchmakingResponseDelegate(FMatchmakingResponse OnMatchmakingResponse)
+void UAccelByteBlueprintsLobby::SetStartMatchmakingResponseDelegate(FMatchmakingResponse OnMatchmakingStart)
 {
-    AccelByte::Api::Lobby::FMatchmakingResponse OnInfoPartyResponseDelegate =
-        AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([OnMatchmakingResponse](const FAccelByteModelsMatchmakingResponse& Result) {
-        OnMatchmakingResponse.ExecuteIfBound(Result);
+	Lobby::FMatchmakingResponse OnMatchmakingStartDelegate =
+		Lobby::FMatchmakingResponse::CreateLambda([OnMatchmakingStart](const FAccelByteModelsMatchmakingResponse& Result) {
+		OnMatchmakingStart.ExecuteIfBound(Result);
+	});
+	Lobby::Get().SetStartMatchmakingResponseDelegate(OnMatchmakingStartDelegate);
+}
+
+void UAccelByteBlueprintsLobby::SetCancelMatchmakingResponseDelegate(FMatchmakingResponse OnMatchmakingCancel)
+{
+	Lobby::FMatchmakingResponse OnMatchmakingCancelDelegate =
+		Lobby::FMatchmakingResponse::CreateLambda([OnMatchmakingCancel](const FAccelByteModelsMatchmakingResponse& Result) {
+		OnMatchmakingCancel.ExecuteIfBound(Result);
+	});
+	Lobby::Get().SetCancelMatchmakingResponseDelegate(OnMatchmakingCancelDelegate);
+}
+
+void UAccelByteBlueprintsLobby::SetMatchmakingNotifDelegate(FMatchmakingNotice OnMatchmakingNotice)
+{
+    AccelByte::Api::Lobby::FMatchmakingNotif OnInfoPartyResponseDelegate =
+        AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([OnMatchmakingNotice](const FAccelByteModelsMatchmakingNotice& Result) {
+        OnMatchmakingNotice.ExecuteIfBound(Result);
     });
-    Lobby::Get().SetMatchmakingResponseDelegate(OnInfoPartyResponseDelegate);
+    Lobby::Get().SetMatchmakingNotifDelegate(OnInfoPartyResponseDelegate);
+}
+
+// Friends
+void UAccelByteBlueprintsLobby::SetRequestFriendResponseDelegate(FRequestFriendsResponseDelegate OnResponse)
+{
+	Lobby::Get().SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateLambda([OnResponse](const FAccelByteModelsRequestFriendsResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetUnfriendResponseDelegate(FUnfriendResponseDelegate OnResponse)
+{
+	Lobby::Get().SetUnfriendResponseDelegate(Lobby::FUnfriendResponse::CreateLambda([OnResponse](const FAccelByteModelsUnfriendResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetListOutgoingFriendsResponseDelegate(FListOutgoingFriendsResponseDelegate OnResponse)
+{
+	Lobby::Get().SetListOutgoingFriendsResponseDelegate(Lobby::FListOutgoingFriendsResponse::CreateLambda([OnResponse](const FAccelByteModelsListOutgoingFriendsResponse& Result) 
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetCancelFriendRequestResponseDelegate(FCancelFriendsResponseDelegate OnResponse)
+{
+	Lobby::Get().SetCancelFriendsResponseDelegate(Lobby::FCancelFriendsResponse::CreateLambda([OnResponse](const FAccelByteModelsCancelFriendsResponse& Result) 
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetListIncomingFriendsResponseDelegate(FListIncomingFriendsResponseDelegate OnResponse)
+{
+	Lobby::Get().SetListIncomingFriendsResponseDelegate(Lobby::FListIncomingFriendsResponse::CreateLambda([OnResponse](const FAccelByteModelsListIncomingFriendsResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetAcceptFriendResponseDelegate(FAcceptFriendsResponseDelegate OnResponse)
+{
+	Lobby::Get().SetAcceptFriendsResponseDelegate(Lobby::FAcceptFriendsResponse::CreateLambda([OnResponse](const FAccelByteModelsAcceptFriendsResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetRejectFriendResponseDelegate(FRejectFriendsResponseDelegate OnResponse)
+{
+	Lobby::Get().SetRejectFriendsResponseDelegate(Lobby::FRejectFriendsResponse::CreateLambda([OnResponse](const FAccelByteModelsRejectFriendsResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetLoadFriendsListResponseDelegate(FLoadFriendListResponseDelegate OnResponse)
+{
+	Lobby::Get().SetLoadFriendListResponseDelegate(Lobby::FLoadFriendListResponse::CreateLambda([OnResponse](const FAccelByteModelsLoadFriendListResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
+}
+
+void UAccelByteBlueprintsLobby::SetGetFriendshipStatusResponseDelegate(FGetFriendshipStatusResponseDelegate OnResponse)
+{
+	Lobby::Get().SetGetFriendshipStatusResponseDelegate(Lobby::FGetFriendshipStatusResponse::CreateLambda([OnResponse](const FAccelByteModelsGetFriendshipStatusResponse& Result)
+	{
+		OnResponse.ExecuteIfBound(Result);
+	}));
 }
