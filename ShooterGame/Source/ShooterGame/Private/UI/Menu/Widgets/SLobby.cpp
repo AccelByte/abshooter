@@ -25,6 +25,7 @@ SLobby::SLobby()
 void SLobby::Construct(const FArguments& InArgs)
 {
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+	OnStartMatch = InArgs._OnStartMatch;
 
     //grab the user settings
     UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
@@ -49,6 +50,7 @@ void SLobby::Construct(const FArguments& InArgs)
     AccelByte::Api::Lobby::Get().SetPartyChatNotifDelegate(AccelByte::Api::Lobby::FPartyChatNotif::CreateSP(this, &SLobby::OnReceivePartyChat));
     AccelByte::Api::Lobby::Get().SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
     AccelByte::Api::Lobby::Get().SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
+	AccelByte::Api::Lobby::Get().SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
     AccelByte::Api::Lobby::Get().SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
     AccelByte::Api::Lobby::Get().SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
 	AccelByte::Api::Lobby::Get().SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
@@ -61,183 +63,291 @@ void SLobby::Construct(const FArguments& InArgs)
 	}));
 	AccelByte::Api::Lobby::Get().SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
 
+	AccelByte::Api::Lobby::Get().SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
+	{
+		if (Response.Code != "0")
+		{
+			bMatchmakingStarted = false;
+		}
+	}));
+	AccelByte::Api::Lobby::Get().SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([&](const FAccelByteModelsMatchmakingNotice& Response)
+	{
+		if (Response.Status == EAccelByteMatchmakingStatus::Done)
+		{
+			StartMatch(Response.MatchId);
+		}
+		else
+		{
+			bMatchmakingStarted = false;
+		}
+	}));
+	AccelByte::Api::Lobby::Get().SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
+	{
+		bMatchmakingStarted = false;
+	}));
+
 	ChildSlot
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
 		[
-			SNew(SHorizontalBox)
-
-			+SHorizontalBox::Slot()		//FriendSearchBar
-			.HAlign(HAlign_Fill)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()		//FriendSearchBar
 				.HAlign(HAlign_Fill)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()	//2.1 INPUT FIELD
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Center)
-					.Padding(0.0f, 10.0f)
-					[
-						SNew(SBox)
-						[
-							SAssignNew(FriendSearchBar, SEditableTextBox) //2.1.1 SEDITABLETEXTBOX
-							.HintText(FText::FromString(TEXT("Search your friend by email")))
-							.MinDesiredWidth(300.0f)
-							.SelectAllTextWhenFocused(true)
-							.Style(&LobbyStyle->SearchBarStyle)
-						]
-					]
-					+ SHorizontalBox::Slot()	//2.1.1 SBUTTON SEARCH FRIEND
-					[
-						SNew(SButton)
-						.OnClicked(this, &SLobby::OnRequestFriend)
-						.ButtonStyle(&LobbyStyle->InviteButtonStyle)
-						.Content()
-						[
-							SNew(STextBlock)
-							.Text(FText::FromString(TEXT("ADD")))
-							.TextStyle(&LobbyStyle->InviteButtonTextStyle)
-						]
-					]
-				]
-				+ SVerticalBox::Slot()	//FriendListView
-				.AutoHeight()
-				[
-					SNew(SHorizontalBox)	//NonScrollBar
-					+ SHorizontalBox::Slot()
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
-						SNew(SBox)
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()	//2.1 INPUT FIELD
 						.HAlign(HAlign_Fill)
-						.HeightOverride(this, &SLobby::GetLobbyHeight)
+						.VAlign(VAlign_Center)
+						.Padding(0.0f, 10.0f)
 						[
-							SAssignNew(FriendListWidget, SListView<TSharedPtr<FFriendEntry>>)
-							.ListItemsSource(&FriendList)
-							.SelectionMode(ESelectionMode::Single)
-							.OnGenerateRow(this, &SLobby::MakeListViewWidget)
-							.OnSelectionChanged(this, &SLobby::EntrySelectionChanged)
-							.ExternalScrollbar(
-								FriendScrollBar
-							)
-							.ScrollbarVisibility(EVisibility::Visible)
-							.HeaderRow(
-								SNew(SHeaderRow)
-								.Style(&LobbyStyle->HeaderRowStyle)
-								+ SHeaderRow::Column("Friend")
-								.HAlignCell(HAlign_Fill)
-								.VAlignCell(VAlign_Fill)
-								.FillWidth(1.0)
-								.DefaultLabel(this, &SLobby::GetFriendHeaderText)
-								.HAlignHeader(HAlign_Center)
-								.VAlignHeader(VAlign_Center)
-							)
-						]
-					]
-					+ SHorizontalBox::Slot()	//Scroll player list
-					.AutoWidth()
-					[
-						SNew(SBox)
-						.HAlign(HAlign_Right)
-						[
-							SAssignNew(FriendScrollBar, SScrollBar)
-							.IsEnabled(true)
-							.AlwaysShowScrollbar(true)
-							.Thickness(FVector2D(12.0f, 12.0f))
-							.Orientation(EOrientation::Orient_Vertical)
-							.Visibility(EVisibility::Visible)
-							.Style(&LobbyStyle->ScrollBarStyle)
-						]
-					]
-
-				]
-			]
-
-			+ SHorizontalBox::Slot()	//PARTY Member & CHAT Area
-			.FillWidth(1.0f)
-			.HAlign(HAlign_Fill)
-			.Padding(30.0f, 0.0f)
-			[
-				SNew(SVerticalBox)
-				
-				+ SVerticalBox::Slot()		//PARTY Members those invited
-				.VAlign(VAlign_Fill)
-				.FillHeight(1.0f)
-				[
-					SAssignNew(PartyWidget, SParty)
-					.LobbyStyle(LobbyStyle)
-				]
-				
-				+ SVerticalBox::Slot()		//CHAT Area
-				.VAlign(VAlign_Fill)
-				.FillHeight(1.0f)
-				[
-					SNew(SBox)
-					.HeightOverride(250.0f)
-					.WidthOverride(600.0f)
-					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Fill)
-					[
-						SNew(SVerticalBox)
-
-						+ SVerticalBox::Slot()	//CHAT TABs Area
-						.AutoHeight()
-						.HAlign(HAlign_Fill)
-						[
-							SNew(SHorizontalBox)	
-							+ SHorizontalBox::Slot()	//CHAT TAB Button Scroll LEFT
-							.AutoWidth()
+							SNew(SBox)
 							[
-								SAssignNew(ButtonChatTabScrollLeft, SButton)
-								.VAlign(VAlign_Fill)
-								.OnClicked(this, &SLobby::OnChatTabScrollLeftClicked)
-								[
-									SNew(SImage)
-									.Image(&LobbyStyle->ChatTabLeftButtonStyle)
-								]
+								SAssignNew(FriendSearchBar, SEditableTextBox) //2.1.1 SEDITABLETEXTBOX
+								.HintText(FText::FromString(TEXT("Search your friend by email")))
+								.MinDesiredWidth(300.0f)
+								.SelectAllTextWhenFocused(true)
+								.Style(&LobbyStyle->SearchBarStyle)
 							]
+						]
+						+ SHorizontalBox::Slot()	//2.1.1 SBUTTON SEARCH FRIEND
+						[
+							SNew(SButton)
+							.OnClicked(this, &SLobby::OnRequestFriend)
+							.ButtonStyle(&LobbyStyle->InviteButtonStyle)
+							.Content()
+							[
+								SNew(STextBlock)
+								.Text(FText::FromString(TEXT("ADD")))
+								.TextStyle(&LobbyStyle->InviteButtonTextStyle)
+							]
+						]
+					]
+					+ SVerticalBox::Slot()	//FriendListView
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)	//NonScrollBar
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SBox)
+							.HAlign(HAlign_Fill)
+							.HeightOverride(this, &SLobby::GetLobbyHeight)
+							[
+								SAssignNew(FriendListWidget, SListView<TSharedPtr<FFriendEntry>>)
+								.ListItemsSource(&FriendList)
+								.SelectionMode(ESelectionMode::Single)
+								.OnGenerateRow(this, &SLobby::MakeListViewWidget)
+								.OnSelectionChanged(this, &SLobby::EntrySelectionChanged)
+								.ExternalScrollbar(
+									FriendScrollBar
+								)
+								.ScrollbarVisibility(EVisibility::Visible)
+								.HeaderRow(
+									SNew(SHeaderRow)
+									.Style(&LobbyStyle->HeaderRowStyle)
+									+ SHeaderRow::Column("Friend")
+									.HAlignCell(HAlign_Fill)
+									.VAlignCell(VAlign_Fill)
+									.FillWidth(1.0)
+									.DefaultLabel(this, &SLobby::GetFriendHeaderText)
+									.HAlignHeader(HAlign_Center)
+									.VAlignHeader(VAlign_Center)
+								)
+							]
+						]
+						+ SHorizontalBox::Slot()	//Scroll player list
+						.AutoWidth()
+						[
+							SNew(SBox)
+							.HAlign(HAlign_Right)
+							[
+								SAssignNew(FriendScrollBar, SScrollBar)
+								.IsEnabled(true)
+								.AlwaysShowScrollbar(true)
+								.Thickness(FVector2D(12.0f, 12.0f))
+								.Orientation(EOrientation::Orient_Vertical)
+								.Visibility(EVisibility::Visible)
+								.Style(&LobbyStyle->ScrollBarStyle)
+							]
+						]
 
-							+ SHorizontalBox::Slot()	//CHAT TAB ScrollBar<Button>
-							.FillWidth(1.0f)
+					]
+				]
+
+				+ SHorizontalBox::Slot()	//PARTY Member & CHAT Area
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Fill)
+				.Padding(30.0f, 0.0f)
+				[
+					SNew(SVerticalBox)
+				
+					+ SVerticalBox::Slot()		//PARTY Members those invited
+					.VAlign(VAlign_Fill)
+					.FillHeight(1.0f)
+					[
+						SAssignNew(PartyWidget, SParty)
+						.LobbyStyle(LobbyStyle)
+					]
+				
+					+ SVerticalBox::Slot()		//CHAT Area
+					.VAlign(VAlign_Fill)
+					.FillHeight(1.0f)
+					[
+						SNew(SBox)
+						.HeightOverride(250.0f)
+						.WidthOverride(600.0f)
+						.VAlign(VAlign_Fill)
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SVerticalBox)
+
+							+ SVerticalBox::Slot()	//CHAT TABs Area
+							.AutoHeight()
 							.HAlign(HAlign_Fill)
 							[
-								SAssignNew(ScrollBoxChatTabs, SScrollBox)
-								.IsEnabled(true)
-								.AllowOverscroll(EAllowOverscroll::No)
-								.ConsumeMouseWheel(EConsumeMouseWheel::Always)
-								.ScrollBarAlwaysVisible(false)
-								.ScrollBarVisibility(EVisibility::Collapsed)
-								.Orientation(EOrientation::Orient_Horizontal)
-							]
-
-							+ SHorizontalBox::Slot()	//CHAT TAB Button Scroll RIGHT
-							.AutoWidth()
-							[
-								SAssignNew(ButtonChatTabScrollRight, SButton)
-								.VAlign(VAlign_Fill)
-								.OnClicked(this, &SLobby::OnChatTabScrollRightClicked)
+								SNew(SHorizontalBox)	
+								+ SHorizontalBox::Slot()	//CHAT TAB Button Scroll LEFT
+								.AutoWidth()
 								[
-									SNew(SImage)
-									.Image(&LobbyStyle->ChatTabRightButtonStyle)
+									SAssignNew(ButtonChatTabScrollLeft, SButton)
+									.VAlign(VAlign_Fill)
+									.OnClicked(this, &SLobby::OnChatTabScrollLeftClicked)
+									[
+										SNew(SImage)
+										.Image(&LobbyStyle->ChatTabLeftButtonStyle)
+									]
+								]
+
+								+ SHorizontalBox::Slot()	//CHAT TAB ScrollBar<Button>
+								.FillWidth(1.0f)
+								.HAlign(HAlign_Fill)
+								[
+									SAssignNew(ScrollBoxChatTabs, SScrollBox)
+									.IsEnabled(true)
+									.AllowOverscroll(EAllowOverscroll::No)
+									.ConsumeMouseWheel(EConsumeMouseWheel::Always)
+									.ScrollBarAlwaysVisible(false)
+									.ScrollBarVisibility(EVisibility::Collapsed)
+									.Orientation(EOrientation::Orient_Horizontal)
+								]
+
+								+ SHorizontalBox::Slot()	//CHAT TAB Button Scroll RIGHT
+								.AutoWidth()
+								[
+									SAssignNew(ButtonChatTabScrollRight, SButton)
+									.VAlign(VAlign_Fill)
+									.OnClicked(this, &SLobby::OnChatTabScrollRightClicked)
+									[
+										SNew(SImage)
+										.Image(&LobbyStyle->ChatTabRightButtonStyle)
+									]
 								]
 							]
-						]
 						
-						+ SVerticalBox::Slot()	//CHAT CONV Area
-						.HAlign(HAlign_Fill)
-						.VAlign(VAlign_Fill)
-						.FillHeight(1.0f)
-						[
-							SAssignNew(ChatPageSwitcher, SWidgetSwitcher)
+							+ SVerticalBox::Slot()	//CHAT CONV Area
+							.HAlign(HAlign_Fill)
+							.VAlign(VAlign_Fill)
+							.FillHeight(1.0f)
+							[
+								SAssignNew(ChatPageSwitcher, SWidgetSwitcher)
+							]
 						]
 					]
+
 				]
-
 			]
+			+ SVerticalBox::Slot()
+			.AutoHeight() // start button
+			[
+				SNew(SOverlay)
+				+ SOverlay::Slot()
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.Visibility(TAttribute<EVisibility>::Create([&]
+					{
+						if (bIsPartyLeader && !bMatchmakingStarted)
+						{
+							return EVisibility::Visible;
+						}
 
+						return EVisibility::Collapsed;
+					}))
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Start"))
+					]
+					.OnClicked(FOnClicked::CreateLambda([&] 
+					{
+						bMatchmakingStarted = true;
+						AccelByte::Api::Lobby::Get().SendStartMatchmaking(GameMode);
+						return FReply::Handled();
+					}))
+				]
+				+ SOverlay::Slot()
+				.HAlign(HAlign_Center)
+				[
+					SNew(SHorizontalBox)
+					.Visibility(TAttribute<EVisibility>::Create([&]
+					{
+						if (bMatchmakingStarted)
+						{
+							return EVisibility::Visible;
+						}
+
+						return EVisibility::Collapsed;
+					}))
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Finding Match"))
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SThrobber)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.Visibility(TAttribute<EVisibility>::Create([&]
+						{
+							if (bIsPartyLeader && bMatchmakingStarted)
+							{
+								return EVisibility::Visible;
+							}
+
+							return EVisibility::Collapsed;
+						}))
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString("Cancel"))
+						]
+						.OnClicked(FOnClicked::CreateLambda([&] 
+						{
+							AccelByte::Api::Lobby::Get().SendCancelMatchmaking(GameMode);
+							return FReply::Handled();
+						}))
+					]
+				]
+			]
 		]
 	;
+
+	AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
 }
 
 FOptionalSize SLobby::GetLobbyHeight() const
@@ -249,15 +359,26 @@ int32 SLobby::GetLobbyWidth() const
     return ScreenRes.X * 0.8;
 }
 
+void SLobby::StartMatch(const FString& MatchId)
+{
+	OnStartMatch.ExecuteIfBound();
+	UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName("127.0.0.1"), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *CurrentPartyID, *MatchId, *GetCurrentUserID()));
+}
 
 void SLobby::InputReceived()
 {
 
 }
 
+void SLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& PartyInfo)
+{
+	AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+}
+
 void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
 {
     PartyWidget->ResetAll();
+	bIsPartyLeader = (PartyInfo.LeaderId == GetCurrentUserID());
 
     FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;
     FSlateBrush* LeaderAvatar = CheckAvatar(PartyInfo.LeaderId) ? GetAvatar(PartyInfo.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");

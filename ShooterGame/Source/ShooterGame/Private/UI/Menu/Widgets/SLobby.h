@@ -497,6 +497,8 @@ public:
 class SLobby : public SCompoundWidget
 {
 public:
+	DECLARE_DELEGATE(FOnStartMatch)
+
     SLobby();
 
 	SLATE_BEGIN_ARGS(SLobby)
@@ -504,6 +506,7 @@ public:
 
 	SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer>, PlayerOwner)
 	SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
+	SLATE_EVENT(FOnStartMatch, OnStartMatch)
 
 	SLATE_END_ARGS()
 
@@ -585,6 +588,7 @@ public:
 
 protected:
 	bool bSearchingForFriends;
+	bool bIsPartyLeader{ false };
 	double LastSearchTime;
 	double MinTimeBetweenSearches;
     FString CurrentUserDisplayName;
@@ -603,6 +607,14 @@ protected:
 	TSharedPtr<class SWidget> OwnerWidget;
 	TSharedPtr<SScrollBar> FriendScrollBar;
 	FText GetFriendHeaderText() const;
+
+
+#pragma region Matchmaking
+	void StartMatch(const FString&);
+	bool bMatchmakingStarted{ false };
+	FString GameMode { "test" };
+	FOnStartMatch OnStartMatch;
+#pragma endregion Matchmaking
 
 #pragma region CHAT
 
@@ -635,6 +647,7 @@ public:
     void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
     void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
     void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
+	void OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& CreatePartyInfo);
     void OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo);
     void OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo);
     FSlateColorBrush OverlayBackgroundBrush;

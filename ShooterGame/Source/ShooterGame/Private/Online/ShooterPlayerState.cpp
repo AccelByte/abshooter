@@ -48,11 +48,16 @@ void AShooterPlayerState::SetTeamNum(int32 NewTeamNumber)
 	UpdateTeamColors();
 }
 
-void AShooterPlayerState::SetFixedTeamNum(int32 NewTeamNumber)
+void AShooterPlayerState::SetPartyId(const FString& NewPartyId)
 {
-	FixedTeam = true;
-	SetTeamNum(NewTeamNumber);
+	this->PartyId = NewPartyId;
 }
+
+void AShooterPlayerState::SetUserId(const FString& NewUserId)
+{
+	this->UserId = NewUserId;
+}
+
 
 void AShooterPlayerState::OnRep_TeamColor()
 {
