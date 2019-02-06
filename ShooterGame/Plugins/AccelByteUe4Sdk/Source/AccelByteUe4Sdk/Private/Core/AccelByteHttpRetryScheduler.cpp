@@ -31,11 +31,12 @@ FHttpRetryScheduler::FHttpRetryTask::FHttpRetryTask(const FHttpRequestPtr& Reque
 
 bool FHttpRetryScheduler::ProcessRequest(const FHttpRequestPtr& Request, const FHttpRequestCompleteDelegate& CompleteDelegate, double RequestTime)
 {
+	Request->OnProcessRequestComplete() = CompleteDelegate;
 	bool bIsStarted = Request->ProcessRequest();
 
 	if (bIsStarted)
 	{
-		RetryList.push_back(MakeShared<FHttpRetryTask>(Request, CompleteDelegate, RequestTime, InitialDelay));
+		//RetryList.push_back(MakeShared<FHttpRetryTask>(Request, CompleteDelegate, RequestTime, InitialDelay));
 	}
 
 	return bIsStarted;

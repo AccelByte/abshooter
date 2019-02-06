@@ -14,6 +14,8 @@ public:
 	/** end of slate attributes definition */
 	SLATE_END_ARGS()
 
+	int32 Balance = -1;
+
 	/** needed for every widget */
 	void Construct(const FArguments& InArgs);
 
@@ -25,4 +27,6 @@ private:
 	FIntPoint ScreenRes;
 
 	TSharedPtr<FSlateBrush> CoinsIcon;
+
+	FText GetBalanceText() const;
 };

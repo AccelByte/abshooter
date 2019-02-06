@@ -68,7 +68,7 @@ void SShooterCoinsWidget::Construct(const FArguments& InArgs)
 				SNew(STextBlock)
 				.Margin(FMargin(-8.0f, 0, 0, 0))
 				.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")
-				.Text(FText::FromString("9000"))
+				.Text(this, &SShooterCoinsWidget::GetBalanceText)
 			]
 		]
 	];
@@ -76,4 +76,9 @@ void SShooterCoinsWidget::Construct(const FArguments& InArgs)
 
 void SShooterCoinsWidget::BuildAndShowMenu()
 {
+}
+
+FText SShooterCoinsWidget::GetBalanceText() const
+{
+	return (Balance >= 0) ? FText::FromString(FString::FromInt(Balance)) : FText::FromString(TEXT("_"));
 }

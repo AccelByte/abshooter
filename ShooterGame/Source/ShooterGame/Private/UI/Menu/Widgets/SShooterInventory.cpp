@@ -23,6 +23,7 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 {
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
+	OnBuyItemFinished = InArgs._OnBuyItemFinished;
 	const int32 TileWidth = 288;
 	const int32 TileHeight = 200;
 	const int32 TileColumn = 2;
@@ -50,6 +51,7 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 			.SelectionMode(ESelectionMode::Single)
 		]
 	];
+	BuildInventoryItem();
 }
 
 void SShooterInventory::BuildInventoryItem()
@@ -74,13 +76,12 @@ void SShooterInventory::BuildInventoryItem()
 	GetItemRequestCount.Set(2);
 
 	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
-		"/all/ammo", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 100, 
+		"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20, 
 		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
-
-	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
-		"/all/weapon", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 100,
-		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
+	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
+		"/coin", EAccelByteItemType::COINS, EAccelByteItemStatus::ACTIVE, 0, 20, 
+		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 }
 
@@ -97,7 +98,7 @@ void SShooterInventory::EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem
 void SShooterInventory::OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem)
 {
 	// Only able to buy when item already selected
-	if (SelectedItem == InItem && InItem->Consumable)
+	if (SelectedItem == InItem && InItem->Purchasable)
 	{
 		ShowBuyConfirmationDialog(InItem);
 	}
@@ -105,6 +106,9 @@ void SShooterInventory::OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem
 
 void SShooterInventory::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem)
 {
+	float Price = (InItem->CurrencyType == TEXT("REAL") ? InItem->Price/100.00f : InItem->Price/1.f);
+	FString PriceString = FString::SanitizeFloat(Price, InItem->CurrencyType == TEXT("REAL")? 2 : 0);
+
 	SAssignNew(DialogWidget, SOverlay)
 	+ SOverlay::Slot()
 	[
@@ -114,7 +118,7 @@ void SShooterInventory::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> In
 	+ SOverlay::Slot()
 	[
 		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-		.MessageText(FText::FromString(FString::Printf(TEXT("Buy %s \nusing %d Coins ?"), *InItem->Name, InItem->Price)))
+		.MessageText(FText::FromString(FString::Printf(TEXT("Buy %s \nusing %s %s?"), *InItem->Name, *PriceString, *InItem->CurrencyCode)))
 		.ConfirmText(FText::FromString("Yes"))
 		.CancelText(FText::FromString("No"))
 		.OnConfirmClicked(FOnClicked::CreateSP(this, &SShooterInventory::OnBuyConfirm))
@@ -148,12 +152,23 @@ FReply SShooterInventory::OnBuyConfirm()
 	ShowLoadingDialog();
 
 	AccelByte::Api::Order::CreateNewOrder(OrderCreate, Order::FCreateNewOrderSuccess::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
-		CloseLoadingDialog();
-		ShowMessageDialog(TEXT("Order Success"));
+		CloseLoadingDialog(); 
+		if (!OrderInfo.PaymentStationUrl.IsEmpty())
+		{
+			FPlatformProcess::LaunchURL(*OrderInfo.PaymentStationUrl, nullptr, nullptr);
+			OnBackFromPaymentBrowser(OrderInfo.PaymentStationUrl);
+		}
+		else 
+		{
+			ShowMessageDialog(TEXT("Order Success"));
+			BuildInventoryItem();
+			OnBuyItemFinished.ExecuteIfBound();
+		}
 	}), AccelByte::FErrorHandler::CreateLambda([&](int ErrorCode, FString Message) {
 		CloseLoadingDialog();
 
-		ShowMessageDialog(TEXT("Purchase failed %s"));
+		OnBuyItemFinished.ExecuteIfBound();
+		ShowMessageDialog(FString::Printf(TEXT("Purchase failed %s"), *Message));
 		UE_LOG(LogTemp, Display, TEXT("Purchase failed: code: %d, message: %s"), ErrorCode, *Message)
 	}));
 	return FReply::Handled();
@@ -178,16 +193,16 @@ void SShooterInventory::OnGetItemsByCriteria(const FAccelByteModelsItemPagingSli
 
 		for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
 		{
-			if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL")
+			if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL" || ItemInfo.RegionData[j].CurrencyType == "REAL")
 			{
 				Inventory->CurrencyCode = ItemInfo.RegionData[j].CurrencyCode;
 				Inventory->Price = ItemInfo.RegionData[j].Price;
 				Inventory->DiscountedPrice = ItemInfo.RegionData[j].DiscountedPrice;
+				Inventory->CurrencyType = ItemInfo.RegionData[j].CurrencyType;
 				break;
 			}
 		}
 
-		Inventory->Consumable = ItemInfo.EntitlementType == "CONSUMABLE";
 		for (int j = 0; j < ItemInfo.Tags.Num(); j++)
 		{
 			if (ItemInfo.Tags[j] == "ammo")
@@ -200,7 +215,14 @@ void SShooterInventory::OnGetItemsByCriteria(const FAccelByteModelsItemPagingSli
 				Inventory->Type = EInventoryItemType::WEAPON;
 				break;
 			}
+			else if (ItemInfo.Tags[j] == "coin")
+			{
+				Inventory->Type = EInventoryItemType::COIN;
+				break;
+			}
 		}
+
+		Inventory->Purchasable = Inventory->Type != EInventoryItemType::WEAPON;
 
 		InventoryList.Add(Inventory);
 	}
@@ -331,6 +353,31 @@ void SShooterInventory::CloseMessageDialog()
 		GEngine->GameViewport->RemoveViewportWidgetContent(MessageDialogWidget.ToSharedRef());
 		MessageDialogWidget.Reset();
 	}
+}
+
+void SShooterInventory::OnBackFromPaymentBrowser(FString PaymentUrl)
+{
+	SAssignNew(MessageDialogWidget, SOverlay)
+	+ SOverlay::Slot()
+	[
+		SNew(SImage)
+		.Image(&ConfirmationBackgroundBrush)
+	]
+	+ SOverlay::Slot()
+	[
+		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		.MessageText(FText::FromString("Are your payment is completed already?"))
+		.ConfirmText(FText::FromString("Yes!"))
+		.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {
+			CloseMessageDialog();
+			BuildInventoryItem();
+			OnBuyItemFinished.ExecuteIfBound();
+			return FReply::Handled();
+		}))
+	];
+
+	GEngine->GameViewport->AddViewportWidgetContent(MessageDialogWidget.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(MessageDialogWidget);
 }
 
 void SShooterInventory::OnFocusLost(const FFocusEvent& InFocusEvent)

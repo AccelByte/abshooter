@@ -77,6 +77,12 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	FSlateBrush UnoccupiedPartySlot;
 	UPROPERTY(EditAnywhere, Category = Party)
 	FSlateBrush PartyInvitationBackground;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FButtonStyle KickPartyMemberButton;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FButtonStyle LeavePartyMemberButton;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FButtonStyle CreatePartyMemberButton;
 
 };
 

@@ -239,14 +239,19 @@ public:
     TSharedPtr<SImage> ProfilePicture;
 	TSharedPtr<STextBlock> Name;
 	TSharedPtr<SButton> KickButton;
-	TSharedPtr<STextBlock> KickText;
 	TSharedPtr<SImage> NoMemberImage;
 	FString UserId;
+	FButtonStyle LeavePartyMemberButton;
+	FButtonStyle KickPartyMemberButton;
+
 	bool bMySelf = false;
 	bool bIsOccupied = false;
 
 	void Construct(const FArguments& InArgs)
 	{
+		LeavePartyMemberButton = InArgs._LobbyStyle->LeavePartyMemberButton;
+		KickPartyMemberButton = InArgs._LobbyStyle->KickPartyMemberButton;
+
 		ChildSlot
 			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
@@ -308,10 +313,7 @@ public:
 						.HAlign(HAlign_Center)
 						.VAlign(VAlign_Center)
 						.OnClicked(this, &SPartyMember::OnKickButtonClicked)
-						[
-							SAssignNew(KickText, STextBlock)
-							.Text(FText::FromString( bMySelf ? TEXT("LEAVE") : TEXT("KICK")))
-						]
+						.ButtonStyle(&InArgs._LobbyStyle->LeavePartyMemberButton)
 					]
 				]
 
@@ -357,6 +359,18 @@ public:
 			AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 		}
 		return FReply::Handled();
+	}
+
+	void UpdateButtonStyleMode()
+	{
+		if (bMySelf)
+		{
+			KickButton->SetButtonStyle(&LeavePartyMemberButton);
+		}
+		else
+		{
+			KickButton->SetButtonStyle(&KickPartyMemberButton);
+		}
 	}
 };
 
@@ -447,8 +461,9 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(TEXT("CreateParty")))
+					.Text(FText::FromString(TEXT("CREATE PARTY")))
 					.Justification(ETextJustify::Center)
+					.TextStyle(&((InArgs._LobbyStyle)->UserNameTextStyle))
 				]
 			]
 		);
@@ -471,8 +486,8 @@ public:
 			if (!PartyMembers[i]->bIsOccupied)
 			{
 				PartyMembers[i]->Set(ID, false, DisplayName, AvatarBrush);
-				PartyMembers[i]->KickText->SetText(bMyself ? FString::Printf(TEXT("LEAVE")) : FString::Printf(TEXT("KICK")));
 				PartyMembers[i]->bMySelf = bMyself;
+				PartyMembers[i]->UpdateButtonStyleMode();
 				break;
 			}
 		}
