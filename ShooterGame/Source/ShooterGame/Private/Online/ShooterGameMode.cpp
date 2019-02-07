@@ -95,7 +95,6 @@ void AShooterGameMode::DefaultTimer()
 		{
 			if (GetMatchState() == MatchState::WaitingPostMatch)
 			{
-				RestartGame();
 			}
 			else if (GetMatchState() == MatchState::InProgress)
 			{

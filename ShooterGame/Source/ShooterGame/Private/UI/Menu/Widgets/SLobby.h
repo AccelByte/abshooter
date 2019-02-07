@@ -507,6 +507,16 @@ public:
 		ButtonCreateParty->SetVisibility(EVisibility::Visible);
 
 	}
+
+	int32 GetCurrentPartySize()
+	{
+		int32 Counter = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			Counter += (PartyMembers[i]->bIsOccupied);
+		}
+		return Counter;
+	}
 };
 
 //class declare
