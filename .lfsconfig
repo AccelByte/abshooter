@@ -1,2 +1,2 @@
 [lfs]
-	url = http://192.168.20.26:8081/repository/gitlfs-hosted/info/lfs
+	url = https://nexus.accelbyte.net/repository/justice-git-lfs/info/lfs
