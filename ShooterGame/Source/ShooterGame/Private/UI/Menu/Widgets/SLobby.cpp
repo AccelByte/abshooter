@@ -13,6 +13,7 @@
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteOauth2Api.h"
+#include "Core/AccelByteRegistry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
@@ -46,31 +47,40 @@ void SLobby::Construct(const FArguments& InArgs)
 	MinTimeBetweenSearches = 0.0;
 #endif
 
-    AccelByte::Api::Lobby::Get().SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::OnReceivePrivateChat));
-    AccelByte::Api::Lobby::Get().SetPartyChatNotifDelegate(AccelByte::Api::Lobby::FPartyChatNotif::CreateSP(this, &SLobby::OnReceivePartyChat));
-    AccelByte::Api::Lobby::Get().SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
-    AccelByte::Api::Lobby::Get().SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
-	AccelByte::Api::Lobby::Get().SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
-    AccelByte::Api::Lobby::Get().SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
-    AccelByte::Api::Lobby::Get().SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
-	AccelByte::Api::Lobby::Get().SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
-	AccelByte::Api::Lobby::Get().SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
-	AccelByte::Api::Lobby::Get().SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
+    AccelByte::FRegistry::Lobby.SetPrivateMessageNotifDelegate(AccelByte::Api::Lobby::FPersonalChatNotif::CreateSP(this, &SLobby::OnReceivePrivateChat));
+    AccelByte::FRegistry::Lobby.SetPartyChatNotifDelegate(AccelByte::Api::Lobby::FPartyChatNotif::CreateSP(this, &SLobby::OnReceivePartyChat));
+    AccelByte::FRegistry::Lobby.SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
+    AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
+    AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
+    AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
+    AccelByte::FRegistry::Lobby.SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
+	AccelByte::FRegistry::Lobby.SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
+	AccelByte::FRegistry::Lobby.SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
+	AccelByte::FRegistry::Lobby.SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
 	{
 		PartyWidget->ResetAll();
         RemovePartyChatTab(CurrentPartyID);
         CurrentPartyID = TEXT("");
 	}));
-	AccelByte::Api::Lobby::Get().SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
+	AccelByte::FRegistry::Lobby.SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
+	AccelByte::FRegistry::Lobby.SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateSP(this, &SLobby::OnRequestFriendSent));
+	AccelByte::FRegistry::Lobby.SetListIncomingFriendsResponseDelegate(AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateSP(this, &SLobby::OnIncomingListFriendRequest));
+	AccelByte::FRegistry::Lobby.SetLoadFriendListResponseDelegate(AccelByte::Api::Lobby::FLoadFriendListResponse::CreateSP(this, &SLobby::OnFriendListLoaded));
+	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateLambda([&](const FAccelByteModelsCreatePartyResponse& Response)
+	{
+		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+	}));
+	AccelByte::FRegistry::Lobby.SetOnFriendRequestAcceptedNotifDelegate(AccelByte::Api::Lobby::FAcceptFriendsNotif::CreateSP(this, &SLobby::OnFriendRequestAcceptedNotification));
+	AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &SLobby::OnIncomingFriendRequestNotification));
 
-	AccelByte::Api::Lobby::Get().SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
+	AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
 	{
 		if (Response.Code != "0")
 		{
 			bMatchmakingStarted = false;
 		}
 	}));
-	AccelByte::Api::Lobby::Get().SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([&](const FAccelByteModelsMatchmakingNotice& Response)
+	AccelByte::FRegistry::Lobby.SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([&](const FAccelByteModelsMatchmakingNotice& Response)
 	{
 		if (Response.Status == EAccelByteMatchmakingStatus::Done)
 		{
@@ -81,7 +91,7 @@ void SLobby::Construct(const FArguments& InArgs)
 			bMatchmakingStarted = false;
 		}
 	}));
-	AccelByte::Api::Lobby::Get().SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
+	AccelByte::FRegistry::Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
 	{
 		bMatchmakingStarted = false;
 	}));
@@ -118,10 +128,12 @@ void SLobby::Construct(const FArguments& InArgs)
 							]
 						]
 						+ SHorizontalBox::Slot()	//2.1.1 SBUTTON SEARCH FRIEND
+						.AutoWidth()
 						[
 							SNew(SButton)
 							.OnClicked(this, &SLobby::OnRequestFriend)
 							.ButtonStyle(&LobbyStyle->InviteButtonStyle)
+							.VAlign(VAlign_Center)
 							.Content()
 							[
 								SNew(STextBlock)
@@ -289,7 +301,7 @@ void SLobby::Construct(const FArguments& InArgs)
 					.OnClicked(FOnClicked::CreateLambda([&] 
 					{
 						bMatchmakingStarted = true;
-						AccelByte::Api::Lobby::Get().SendStartMatchmaking(GameMode);
+						AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
 						return FReply::Handled();
 					}))
 				]
@@ -338,7 +350,7 @@ void SLobby::Construct(const FArguments& InArgs)
 						]
 						.OnClicked(FOnClicked::CreateLambda([&] 
 						{
-							AccelByte::Api::Lobby::Get().SendCancelMatchmaking(GameMode);
+							AccelByte::FRegistry::Lobby.SendCancelMatchmaking(GameMode);
 							return FReply::Handled();
 						}))
 					]
@@ -347,7 +359,7 @@ void SLobby::Construct(const FArguments& InArgs)
 		]
 	;
 
-	AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 }
 
 FOptionalSize SLobby::GetLobbyHeight() const
@@ -372,7 +384,7 @@ void SLobby::InputReceived()
 
 void SLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& PartyInfo)
 {
-	AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 }
 
 void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
@@ -415,7 +427,7 @@ void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Not
 
     // update using OnGetPartyInfoResponse, so we have to trigger SendInfoPartyRequest
     // TODO optimize this
-    AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+    AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 }
 
 void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification)
@@ -444,13 +456,13 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                 {
                     RemovePartyChatTab(CurrentPartyID);
                     CurrentPartyID = TEXT("");
-                    AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+                    AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
                 }
 
                 
                 CurrentPartyID = Notification.PartyId;
-                AccelByte::Api::Lobby::Get().SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
-                AccelByte::Api::Lobby::Get().SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
+                AccelByte::FRegistry::Lobby.SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
+                AccelByte::FRegistry::Lobby.SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
                 {
                     PartyWidget->ResetAll();
                 
@@ -574,6 +586,18 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
 {
 	//IF Response.UserID is in the Friendlist, THEN PROCEED
+	bool UserPresenceIsFriend = false;
+	for (int i = 0; i < CompleteFriendList.Num() ; i++)
+	{
+		if (Response.UserID == CompleteFriendList[i]->UserId)
+		{
+			UserPresenceIsFriend = true;
+		}
+	}
+	if (!UserPresenceIsFriend) 
+	{
+		return;
+	}
 
     UE_LOG(LogTemp, Log, TEXT("OnUserPresenceNotification: %s Activity: %s"), *Response.UserID, *Response.Activity);
 
@@ -1011,11 +1035,14 @@ FReply SLobby::OnRequestFriend()
 	AccelByte::Api::UserManagement::GetUserByLoginId(FriendSearchBar->GetText().ToString(), 
 		AccelByte::Api::UserManagement::FGetUserByLoginIdSuccess::CreateLambda([&](const FAccelByteModelsUserResponse& User)
 		{
-			//AccelByte::Api::Lobby      request for friend
+			AccelByte::FRegistry::Lobby.RequestFriend(User.UserId);
 		}), 
 		AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) 
 		{
-
+			if (Code == 404)
+			{
+				FriendSearchBar->SetText(FText::FromString("NOT FOUND!!"));
+			}
 		}));
 	return FReply::Handled();
 }
@@ -1195,7 +1222,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 						.TextStyle(&LobbyStyle->InviteButtonTextStyle)
 					]
 				]
-                + SHorizontalBox::Slot()	//3.Invite Party TODO
+                + SHorizontalBox::Slot()	//3.Invite Party
                     .AutoWidth()
                     .VAlign(VAlign_Center)
                     .Padding(0, 0, 25, 0)
@@ -1208,6 +1235,21 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
                         [
                             SNew(STextBlock)
                             .Text(FText::FromString(TEXT("INVITE PARTY")))
+                            .TextStyle(&LobbyStyle->InviteButtonTextStyle)
+                        ]
+                    ]
+                + SHorizontalBox::Slot()	//3.Unfriend
+                    .AutoWidth()
+                    .VAlign(VAlign_Center)
+                    .Padding(0, 0, 25, 0)
+                    [
+                        SNew(SButton)
+                        .OnClicked(this, &SFriendEntryWidget::OnUnfriendClicked)
+                        .ButtonStyle(&LobbyStyle->InviteButtonStyle)
+                        .Content()
+                        [
+                            SNew(STextBlock)
+                            .Text(FText::FromString(TEXT("Unfriend")))
                             .TextStyle(&LobbyStyle->InviteButtonTextStyle)
                         ]
                     ]
@@ -1238,6 +1280,13 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
             }
             return FReply::Handled();
         }
+
+		FReply OnUnfriendClicked()
+		{
+			AccelByte::FRegistry::Lobby.Unfriend(Item->UserId);
+			AccelByte::FRegistry::Lobby.LoadFriendsList();
+			return FReply::Handled();
+		}
 
 		const FSlateBrush* GetProfileAvatar() const {
 			if (ParentClass.Pin()->CheckAvatar(Item->Name))
@@ -1287,6 +1336,216 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 	};
 	return SNew(SFriendEntryWidget, OwnerTable, Item, this);
 }
+
+#pragma region FRIENDS_SERVICE
+
+	void SLobby::OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response)
+	{
+		FString Message;
+		if (Response.Code == TEXT("11703"))
+		{
+			Message = TEXT("You already sent a request!");
+		} else
+		if (Response.Code == TEXT("0"))
+		{
+			Message = TEXT("Successfully sent a friend request!");
+		}
+		else
+		{
+			Message = FString::Printf(TEXT("Failed. Error code= %s"), *Response.Code);
+		}
+
+		SAssignNew(NotificationOverlay, SOverlay)
+		+ SOverlay::Slot()
+			[
+				SNew(SBox)
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SImage)
+					.Image(&OverlayBackgroundBrush)
+				]
+			]
+		+ SOverlay::Slot()
+			[
+				SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+				.MessageText(FText::FromString(Message))
+				.ConfirmText(FText::FromString("CLOSE"))
+				.OnConfirmClicked(FOnClicked::CreateLambda([&]()
+				{
+					if (NotificationOverlay.IsValid())
+					{
+						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
+						NotificationOverlay.Reset();
+					}
+					return FReply::Handled();
+				}))
+			];
+
+		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
+		FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+	}
+
+	void SLobby::OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response)
+	{
+		if (Response.friendsId.Num() == 0) 
+		{
+			return;
+		} 
+
+		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendsId[0], AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&, Response](const FAccelByteModelsOauth2UserInfo& User)
+		{
+
+		FString DisplayedRequestName = (User.EmailAddress != TEXT("")) ? User.EmailAddress : User.DisplayName;
+
+		SAssignNew(NotificationOverlay, SOverlay)
+		+ SOverlay::Slot()
+			[
+				SNew(SBox)
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SImage)
+					.Image(&OverlayBackgroundBrush)
+				]
+			]
+		+ SOverlay::Slot()
+			[
+				SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), *DisplayedRequestName)))
+				.ConfirmText(FText::FromString("ACCEPT"))
+				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
+				{
+					AccelByte::FRegistry::Lobby.AcceptFriend(Response.friendsId[0]);
+					AccelByte::FRegistry::Lobby.LoadFriendsList();
+					if (NotificationOverlay.IsValid())
+					{
+						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
+						NotificationOverlay.Reset();
+					}
+					if (Response.friendsId.Num() > 1)
+					{
+						AccelByte::FRegistry::Lobby.ListIncomingFriends();
+					}
+					return FReply::Handled();
+				}))
+				.CancelText(FText::FromString("REJECT"))
+				.OnCancelClicked(FOnClicked::CreateLambda([&, Response]()
+				{
+					AccelByte::FRegistry::Lobby.RejectFriend(Response.friendsId[0]);
+					if (NotificationOverlay.IsValid())
+					{
+						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
+						NotificationOverlay.Reset();
+					}
+					if (Response.friendsId.Num() > 1)
+					{
+						AccelByte::FRegistry::Lobby.ListIncomingFriends();
+					}
+					return FReply::Handled();
+				}))
+			];
+
+		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
+		FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+
+		}),
+		FErrorHandler::CreateLambda([&](int32 Code, FString Message){}));
+
+	}
+
+	void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response)
+	{
+		if (Response.Code != TEXT("0"))
+		{
+			return;
+		}
+
+		FriendList.Reset();
+		CompleteFriendList.Reset();
+		
+		for (int i = 0; i < Response.friendsId.Num(); i++)
+		{
+			AddFriend(Response.friendsId[i], Response.friendsId[i], TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
+		}
+		RefreshFriendList();
+	}
+
+	void SLobby::OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response)
+	{
+		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendId, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&](const FAccelByteModelsOauth2UserInfo& User)
+		{
+			RefreshFriendList();
+			FSlateBrush* FriendAvatar = CheckAvatar(Response.friendId) ? GetAvatar(Response.friendId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+
+			FString NotificationMessage = FString::Printf(TEXT("%s accept your friend request!"), (User.EmailAddress == TEXT(""))? *User.EmailAddress : *User.DisplayName);
+			TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
+				.NotificationMessage(NotificationMessage)
+				.AvatarImage(FriendAvatar)
+				.OnPopupClosed_Lambda([]()
+			{
+			});
+			Popup->Show();
+
+			AccelByte::FRegistry::Lobby.LoadFriendsList();
+		}), FErrorHandler::CreateLambda([&](int32 Code, FString Message) {}));
+
+	}
+
+	void SLobby::OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response)
+	{
+		FString DisplayName = CheckDisplayName(Response.friendId) ? GetDisplayName(Response.friendId) : Response.friendId;
+
+		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendId, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&, Response](const FAccelByteModelsOauth2UserInfo& User)
+		{
+
+		SAssignNew(NotificationOverlay, SOverlay)
+		+ SOverlay::Slot()
+			[
+				SNew(SBox)
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SImage)
+					.Image(&OverlayBackgroundBrush)
+				]
+			]
+		+ SOverlay::Slot()
+			[
+				SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), (User.EmailAddress == TEXT(""))? *User.EmailAddress : *User.DisplayName)))
+				.ConfirmText(FText::FromString("ACCEPT"))
+				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
+				{
+					AccelByte::FRegistry::Lobby.AcceptFriend(Response.friendId);
+					if (NotificationOverlay.IsValid())
+					{
+						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
+						NotificationOverlay.Reset();
+					}
+					AccelByte::FRegistry::Lobby.LoadFriendsList();
+					return FReply::Handled();
+				}))
+				.CancelText(FText::FromString("REJECT"))
+				.OnCancelClicked(FOnClicked::CreateLambda([&, Response]()
+				{
+					AccelByte::FRegistry::Lobby.RejectFriend(Response.friendId);
+					if (NotificationOverlay.IsValid())
+					{
+						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
+						NotificationOverlay.Reset();
+					}
+					return FReply::Handled();
+				}))
+			];
+
+		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
+		FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+
+		}), FErrorHandler::CreateLambda([&](int32 Code, FString Message) {}));
+	}
+
+#pragma endregion FRIENDS_SERVICE
 
 #pragma region CHAT
 
@@ -1390,7 +1649,7 @@ void SLobby::RemovePartyChatTab(FString PartyId)
 
 void SLobby::InviteToParty(FString UserId)
 {
-	AccelByte::Api::Lobby::Get().SendInviteToPartyRequest(UserId);
+	AccelByte::FRegistry::Lobby.SendInviteToPartyRequest(UserId);
 }
 
 TSharedPtr<SWidget> SLobby::GetActiveChatTabWidget()
@@ -1463,7 +1722,7 @@ void SLobby::SelectTab(int32 TabIndex)
 void SLobby::SendPrivateChat(FString UserId, FString Message)
 {
 	// send from this user to target user ( UserId)
-    AccelByte::Api::Lobby::Get().SendPrivateMessage(UserId, Message);
+    AccelByte::FRegistry::Lobby.SendPrivateMessage(UserId, Message);
 
     // append to chat box UI
 	for (int32 i = 0; i < LobbyChatPages.Num(); i++)
@@ -1479,7 +1738,7 @@ void SLobby::SendPrivateChat(FString UserId, FString Message)
 void SLobby::SendPartyChat(FString PartyId, FString Message)
 {
     // send from this user to target user ( UserId)
-    AccelByte::Api::Lobby::Get().SendPartyMessage(Message);
+    AccelByte::FRegistry::Lobby.SendPartyMessage(Message);
 
     // append to chat box UI
     for (int32 i = 0; i < LobbyChatPages.Num(); i++)

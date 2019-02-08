@@ -273,8 +273,8 @@ void UserManagement::UnlinkUserAccounts(const FString& PlatformId, const FUnlink
 
 void UserManagement::GetUserByLoginId(const FString& LoginId, const FGetUserByLoginIdSuccess OnSuccess, const FErrorHandler& OnError)
 {
-	FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetClientAccessToken());
-	FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/byLoginId"), *FRegistry::Settings.IamServerUrl, *FRegistry::Credentials.GetClientNamespace(), *LoginId);
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetUserAccessToken());
+	FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/byLoginId?loginId=%s"), *FRegistry::Settings.IamServerUrl, *FRegistry::Credentials.GetUserNamespace(), *FGenericPlatformHttp::UrlEncode(LoginId));
 	FString Verb = TEXT("GET");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");

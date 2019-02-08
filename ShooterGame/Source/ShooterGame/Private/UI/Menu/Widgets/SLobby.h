@@ -16,6 +16,7 @@
 #include "Api/AccelByteUserProfileApi.h"
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
+#include "Core/AccelByteRegistry.h"
 
 struct FFriendEntry
 {
@@ -348,12 +349,12 @@ public:
 	{
 		if (bMySelf)
 		{
-			AccelByte::Api::Lobby::Get().SendLeavePartyRequest();
+			AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
 		}
 		else
 		{
-			AccelByte::Api::Lobby::Get().SendKickPartyMemberRequest(UserId);
-			AccelByte::Api::Lobby::Get().SendInfoPartyRequest();
+			AccelByte::FRegistry::Lobby.SendKickPartyMemberRequest(UserId);
+			AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 		}
 		return FReply::Handled();
 	}
@@ -457,7 +458,7 @@ public:
 		PartyMembers.Add(Member3);
 		ButtonCreateParty->SetOnClicked(FOnClicked::CreateLambda([&]()
 		{
-			AccelByte::Api::Lobby::Get().SendCreatePartyRequest();
+			AccelByte::FRegistry::Lobby.SendCreatePartyRequest();
 			ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
 			return FReply::Handled();
 		}));
@@ -608,6 +609,13 @@ protected:
 	TSharedPtr<SScrollBar> FriendScrollBar;
 	FText GetFriendHeaderText() const;
 
+#pragma region FRIENDS_SERVICE
+	void OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response);
+	void OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response);
+	void OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response);
+	void OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response);
+	void OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response);
+#pragma endregion FRIENDS_SERVICE
 
 #pragma region Matchmaking
 	void StartMatch(const FString&);

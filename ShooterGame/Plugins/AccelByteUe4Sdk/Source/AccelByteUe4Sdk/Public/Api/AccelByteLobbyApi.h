@@ -14,6 +14,8 @@ class IWebSocket;
 
 namespace AccelByte
 {
+class Credentials;
+class Settings;
 namespace Api
 {
 
@@ -23,6 +25,13 @@ namespace Api
  */
 class ACCELBYTEUE4SDK_API Lobby
 {
+public:
+	Lobby(const Credentials& Credentials, const Settings& Settings);
+	~Lobby();
+private:
+	const Credentials& LobbyCredentials;
+	const Settings& LobbySettings;
+
 public:
 
     // Party 
@@ -186,13 +195,21 @@ public:
 	 */
 	DECLARE_DELEGATE_OneParam(FGetFriendshipStatusResponse, const FAccelByteModelsGetFriendshipStatusResponse&);
 
+	// Friends + Notification
 	/**
-	 * @brief Get instance of this singleton class.
+	 * @brief delegate for handling notification when your request friend is accepted
 	 */
-	static Lobby& Get();
+	DECLARE_DELEGATE_OneParam(FAcceptFriendsNotif, const FAccelByteModelsAcceptFriendsNotif&);
+
+	/**
+	 * @brief delegate for handling notification when you receive a request friend
+	 */
+	DECLARE_DELEGATE_OneParam(FRequestFriendsNotif, const FAccelByteModelsRequestFriendsNotif&);
+
 	DECLARE_DELEGATE(FConnectSuccess);
 	DECLARE_DELEGATE_ThreeParams(FConnectionClosed, int32 /* StatusCode */, const FString& /* Reason */, bool /* WasClean */);
 	
+public:
     /**
 	 * @brief Connect to the Lobby server via websocket. You must connect to the server before you can start sending/receiving. Also make sure you have logged in first as this operation requires access token.
 	 */
@@ -379,7 +396,9 @@ public:
     void SetPartyChatNotifDelegate(FPartyChatNotif OnPersonalChatNotif) { PartyChatNotif = OnPersonalChatNotif; }
     void SetUserPresenceNotifDelegate(FFriendStatusNotif OnUserPresenceNotif) { FriendStatusNotif = OnUserPresenceNotif; };
     void SetMessageNotifDelegate(const FMessageNotif& OnNotificationMessage) { MessageNotif = OnNotificationMessage; }
-    void SetParsingErrorDelegate(const FErrorHandler& OnParsingError) { ParsingError = OnParsingError; }
+	void SetOnFriendRequestAcceptedNotifDelegate(const FAcceptFriendsNotif& OnAcceptFriendsNotif) { AcceptFriendsNotif = OnAcceptFriendsNotif;  }
+	void SetOnIncomingRequestFriendsNotifDelegate(const FRequestFriendsNotif& OnRequestFriendsNotif) { RequestFriendsNotif = OnRequestFriendsNotif;  }
+	void SetParsingErrorDelegate(const FErrorHandler& OnParsingError) { ParsingError = OnParsingError; }
 
     // Party
     /**
@@ -550,8 +569,6 @@ public:
 	void SetGetFriendshipStatusResponseDelegate(FGetFriendshipStatusResponse OnGetFriendshipStatusResponse) { GetFriendshipStatusResponse = OnGetFriendshipStatusResponse; };
 
 private:
-	Lobby();
-	~Lobby();
 	Lobby(Lobby const&) = delete; // Copy constructor
 	Lobby(Lobby&&) = delete; // Move constructor
 	Lobby& operator=(Lobby const&) = delete; // Copy assignment operator
@@ -617,6 +634,10 @@ private:
 	FRejectFriendsResponse RejectFriendsResponse;
 	FLoadFriendListResponse LoadFriendListResponse;
 	FGetFriendshipStatusResponse GetFriendshipStatusResponse;
+
+	// Friends + Notification
+	FAcceptFriendsNotif AcceptFriendsNotif;
+	FRequestFriendsNotif RequestFriendsNotif;
 };
 
 } // Namespace Api
