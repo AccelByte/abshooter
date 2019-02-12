@@ -9,19 +9,24 @@
 #include "AccelByteOauth2Api.h"
 #include "AccelByteOauth2Models.h"
 
-//#define CLIENT_ID "<PUT_CLIENT_ID_HERE>"
-//#define CLIENT_SECRET "<PUT_CLIENT_SECRET_HERE>"
+//#define SERVER_CLIENT_ID "<PUT_SERVER_CLIENT_ID_HERE>"
+//#define SERVER_CLIENT_SECRET "<PUT_SERVER_CLIENT_SECRET_HERE>"
 #define MATCHMAKING_SERVER_URL "https://alpha.justice.accelbyte.net/matchmaking"
 
-#ifndef CLIENT_ID
+#ifndef SERVER_CLIENT_ID
 #error Server Client Id is undefined
 #endif
 
-#ifndef CLIENT_SECRET
+#ifndef SERVER_CLIENT_SECRET
 #error Server Client Secret is undefined
 #endif
 
 using AccelByte::Api::Oauth2;
+
+const FString& Coalesce(const FString& Value, const FString& DefaultValue)
+{
+	return Value.IsEmpty() ? DefaultValue : Value;
+}
 
 FServerConfig& FServerConfig::Get()
 {
@@ -30,9 +35,9 @@ FServerConfig& FServerConfig::Get()
 }
 
 FServerConfig::FServerConfig()
-	: ClientId{ CLIENT_ID }
-	, ClientSecret{ CLIENT_SECRET }
-	, MatchmakingServerUrl{ MATCHMAKING_SERVER_URL }
+	: ClientId{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_SERVER_CLIENT_ID")), SERVER_CLIENT_ID) }
+	, ClientSecret{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_SERVER_CLIENT_SECRET")), SERVER_CLIENT_SECRET) }
+	, MatchmakingServerUrl{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_MATCHMAKING_SERVER_URL")), MATCHMAKING_SERVER_URL) }
 {
 	Credentials.SetClientCredentials(ClientId, ClientSecret);
 }
@@ -58,7 +63,7 @@ void FServerConfig::GetClientAccessToken(const FGetClientAccessTokenSuccess& OnS
 	
 }
 
-#undef CLIENT_ID
-#undef CLIENT_SECRET
+#undef SERVER_CLIENT_ID
+#undef SERVER_CLIENT_SECRET
 
 #endif

@@ -5,6 +5,9 @@
 #include "GameDelegates.h"
 #include "WebServer.h"
 #include "UObject/PackageReload.h"
+#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
+#include "ShooterGame_TeamDeathMatch.h"
 
 //#include "Runtime/RHI/Public/RHICommandlist.h"
 
@@ -36,6 +39,11 @@ TSharedPtr<FWebServer> ServerInstance;
 // respond to requests from a companion app
 static void WebServerDelegate(int32 UserIndex, const FString& Action, const FString& URL, const TMap<FString, FString>& Params, TMap<FString, FString>& Response)
 {    
+	FString ContentType = "application/json; charset=utf-8";
+	FString Body = "";
+	FString Code = "404";
+	static const TCHAR MessageFormat[] = TEXT(R"sz({"code": %d, "message": "%s"})sz");
+
 	if (URL == TEXT("/index.html?scoreboard"))
 	{
 		FString ScoreboardStr = TEXT("{ \"scoreboard\" : [ ");
@@ -72,16 +80,92 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 
 				ScoreboardStr += TEXT(" ] }");
 
-				Response.Add(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
-				Response.Add(TEXT("Body"), ScoreboardStr);
+				Code = "200";
+				Body = ScoreboardStr;
 			}
 		}
-        return;
 	}
-    Response.Add(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
-    Response.Add(TEXT("Body"), TEXT("{}"));
+	else if (Action == "POST" && URL == "/match")
+	{
+		Code = "500";
 
+		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+		if (GameEngine)
+		{
+			UWorld* World = GameEngine->GetGameWorld();
+			if (World)
+			{
+				AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
+				if (GameMode)
+				{
+					if (!GameMode->IsMatchStarted())
+					{
+						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+						FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &MatchmakingInfo, 0, 0);
+						bool Initialized = false;
+						AsyncTask(ENamedThreads::GameThread, [&]() {
+							GameMode->SetupMatch(MatchmakingInfo);
+							Initialized = true;
+						});
 
+						while(!Initialized) FPlatformProcess::Sleep(0.1f);
+
+						Code = "200";
+						Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
+					}
+					else
+					{
+#if SIMULATE_SETUP_MATCHMAKING
+						// second party try join to the match
+						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+						FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &MatchmakingInfo, 0, 0);
+						bool Initialized = false;
+						bool Success = false;
+						AsyncTask(ENamedThreads::GameThread, [&]() {
+							Success = GameMode->SetupSecondParty(MatchmakingInfo);
+							Initialized = true;
+						});
+
+						while (!Initialized) FPlatformProcess::Sleep(0.1f);
+
+						if (Success)
+						{
+							Code = "200";
+							Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
+						}
+						else
+						{
+							Code = "409";
+							Body = FString::Printf(MessageFormat, 1100, TEXT("Match already started"));
+						}
+
+#else
+						Code = "409";
+						Body = FString::Printf(MessageFormat, 1100, TEXT("Match already started"));
+#endif
+
+					}
+				}
+				else
+				{
+					Body = FString::Printf(MessageFormat, 1002, TEXT("Wrong game mode"));
+				}
+			}
+			else
+			{
+				Body = FString::Printf(MessageFormat, 1001, TEXT("Server not ready: World not found!"));
+			}
+		}
+		else
+		{
+			Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
+		}
+	}
+
+	Response.Add(TEXT("Content-Type"), ContentType);
+	Response.Add(TEXT("Content-Length"), FString::FromInt(Body.Len()));
+	Response.Add(TEXT("Body"), Body);
+	Response.Add(TEXT("Code"), Code);
 }
 
 static void AssignLayerChunkDelegate(const FAssignLayerChunkMap* ChunkManifest, const FString& Platform, const int32 ChunkIndex, int32& OutChunkLayer)
@@ -216,7 +300,8 @@ void InitializeShooterGameDelegates()
 	FGameDelegates::Get().GetExtendedSaveGameInfoDelegate() = FExtendedSaveGameInfoDelegate::CreateStatic(ExtendedSaveGameInfoDelegate);
 	FCoreUObjectDelegates::NetworkFileRequestPackageReload.BindStatic(&ReloadPackagesCallback);
 
-#if UE_SERVER
-    ServerInstance = MakeShared<FWebServer>();    
-#endif
+	if (IsRunningDedicatedServer())
+	{
+		ServerInstance = MakeShared<FWebServer>();
+	}
 }

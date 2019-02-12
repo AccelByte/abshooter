@@ -6,9 +6,11 @@
 #include "ShooterGameInstance.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
+#include "Runtime/Sockets/Public/SocketSubsystem.h"
 #include "SShooterConfirmationDialog.h"
 #include "ShooterGameUserSettings.h"
 #include "SShooterNotificationPopup.h"
+#include "Server/Models/AccelByteMatchmakingModels.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -28,18 +30,76 @@ void SLobby::Construct(const FArguments& InArgs)
 	const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
 	OnStartMatch = InArgs._OnStartMatch;
 
-    //grab the user settings
-    UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
-    ScreenRes = UserSettings->GetScreenResolution();
+	//grab the user settings
+	UShooterGameUserSettings* UserSettings = CastChecked<UShooterGameUserSettings>(GEngine->GetGameUserSettings());
+	ScreenRes = UserSettings->GetScreenResolution();
 
-    AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
-    DiplayNameListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
+	AvatarListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
+	DiplayNameListCache = MakeShared<ProfileCache, ESPMode::ThreadSafe>();
 
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
 	bSearchingForFriends = false;
 	StatusText = FText::GetEmpty();
 	LastSearchTime = 0.0f;
+
+#pragma region LoadDedicatedServerUrl
+	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
+	FString ConfigFile = FPaths::ProjectSavedDir() / "Config/Server.txt";
+	if (PlatformFile.FileExists(*ConfigFile))
+	{
+		TArray<FString> Lines;
+		if (FFileHelper::LoadFileToStringArray(Lines, *ConfigFile) && Lines.Num() > 0)
+		{
+			DedicatedServerBaseUrl = Lines[0];
+		}
+	}
+
+	if (DedicatedServerBaseUrl.IsEmpty())
+	{
+		DedicatedServerBaseUrl = "http://127.0.0.1:8080";
+	}
+
+	int32 StartIndex = DedicatedServerBaseUrl.Find("://");
+	if (StartIndex > 0)
+	{
+		StartIndex += 3;
+	}
+	else
+	{
+		StartIndex = 0;
+	}
+	int32 EndIndex = DedicatedServerBaseUrl.Find(":", ESearchCase::CaseSensitive, ESearchDir::FromStart, StartIndex + 3);
+	if (EndIndex > 0)
+	{
+		DedicatedServerAddress = DedicatedServerBaseUrl.Mid(StartIndex, EndIndex - StartIndex);
+	}
+	else
+	{
+		DedicatedServerAddress = DedicatedServerBaseUrl.RightChop(StartIndex);
+	}
+
+	const FRegexPattern IPAddressPattern(TEXT("^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"));
+	if (!FRegexMatcher(IPAddressPattern, DedicatedServerAddress).FindNext())
+	{
+		ISocketSubsystem* const SocketSubSystem = ISocketSubsystem::Get();
+		if (SocketSubSystem)
+		{
+			FResolveInfo* ResolveInfo = SocketSubSystem->GetHostByName(TCHAR_TO_ANSI(*DedicatedServerAddress));
+
+			while (!ResolveInfo->IsComplete()) FPlatformProcess::Sleep(0.1f);
+
+			if (ResolveInfo->GetErrorCode() == 0)
+			{
+				const FInternetAddr& Address = ResolveInfo->GetResolvedAddress();
+				uint32 IP = 0;
+				Address.GetIp(IP);
+				DedicatedServerAddress = FString::Printf(TEXT("%d.%d.%d.%d"), 0xff & (IP >> 24), 0xff & (IP >> 16), 0xff & (IP >> 8), 0xff & IP);
+			}
+		}
+	}
+
+#pragma endregion LoadDedicatedServerUrl
 
 #if PLATFORM_SWITCH
 	MinTimeBetweenSearches = 6.0;
@@ -84,7 +144,66 @@ void SLobby::Construct(const FArguments& InArgs)
 	{
 		if (Response.Status == EAccelByteMatchmakingStatus::Done)
 		{
-			StartMatch(Response.MatchId);
+#if SIMULATE_SETUP_MATCHMAKING
+			// for test only, may not work on the future
+			FString MatchId = Response.MatchId;
+			FString Url = FString::Printf(TEXT("%s/match"), *DedicatedServerBaseUrl);
+			FString Verb = TEXT("POST");
+			FString ContentType = TEXT("application/json");
+			FString Accept = TEXT("application/json");
+
+			FString Content;
+
+			FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+			MatchmakingInfo.channel = GameMode;
+			MatchmakingInfo.match_id = Response.MatchId;
+
+			FAccelByteModelsMatchmakingParty Party;
+			for (auto Member : Response.PartyMember)
+			{
+				FAccelByteModelsMatchmakingPartyMember PartyMember;
+				PartyMember.user_id = Member;
+				Party.party_members.Add(PartyMember);
+			}
+
+			Party.party_id = CurrentPartyID;
+			MatchmakingInfo.matching_parties.Add(Party);
+
+			FAccelByteModelsMatchmakingParty CounterParty;
+			for (auto Member : Response.CounterPartyMember)
+			{
+				FAccelByteModelsMatchmakingPartyMember PartyMember;
+				PartyMember.user_id = Member;
+				CounterParty.party_members.Add(PartyMember);
+			}
+			MatchmakingInfo.matching_parties.Add(CounterParty);
+
+			FJsonObjectConverter::UStructToJsonObjectString(MatchmakingInfo, Content, 0, 0);
+			FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+			Request->SetURL(Url);
+			Request->SetVerb(Verb);
+			Request->SetHeader(TEXT("Content-Type"), ContentType);
+			Request->SetHeader(TEXT("Accept"), Accept);
+			Request->SetContentAsString(Content);
+			Request->OnProcessRequestComplete().BindLambda([&, MatchId](FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful) {
+				if (Successful && Request.IsValid())
+				{
+					UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
+					StartMatch(MatchId, CurrentPartyID);
+				}
+				else
+				{
+					FString ErrorMessage = FString::Printf(TEXT("Can't setup matchmaking to %s"), *DedicatedServerBaseUrl);
+					UE_LOG(LogOnlineGame, Log, TEXT("%s"), *ErrorMessage);
+					if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, *ErrorMessage);
+				}
+				bMatchmakingStarted = false;
+			});
+			UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking..."));
+			Request->ProcessRequest();
+#else
+			StartMatch(Response.MatchId, CurrentPartyID);
+#endif
 		}
 		else
 		{
@@ -371,10 +490,11 @@ int32 SLobby::GetLobbyWidth() const
     return ScreenRes.X * 0.8;
 }
 
-void SLobby::StartMatch(const FString& MatchId)
+void SLobby::StartMatch(const FString& MatchId, const FString& PartyId)
 {
 	OnStartMatch.ExecuteIfBound();
-	UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName("127.0.0.1"), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *CurrentPartyID, *MatchId, *GetCurrentUserID()));
+	UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
+	UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *GetCurrentUserID()));
 }
 
 void SLobby::InputReceived()

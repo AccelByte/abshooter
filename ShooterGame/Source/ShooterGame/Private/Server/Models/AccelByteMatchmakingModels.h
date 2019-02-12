@@ -7,6 +7,9 @@
 #include "CoreMinimal.h"
 #include "AccelByteMatchmakingModels.generated.h"
 
+// Client send matchmaking info to dedicated server (for testing purpose would be removed in the future)
+#define SIMULATE_SETUP_MATCHMAKING 1
+
 USTRUCT(BlueprintType)
 struct FAccelByteModelsMatchmakingMember
 {
@@ -46,6 +49,8 @@ struct FAccelByteModelsMatchmakingPartyMember
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | PartyMember")
 		FString user_id;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | PartyMember")
+		bool joined{false};
 };
 
 USTRUCT(BlueprintType)
@@ -59,7 +64,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | Party")
 		FString leader_id;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | Party")
-		TArray<FAccelByteModelsMatchmakingPartyMember> party_member;
+		TArray<FAccelByteModelsMatchmakingPartyMember> party_members;
 };
 
 USTRUCT(BlueprintType)

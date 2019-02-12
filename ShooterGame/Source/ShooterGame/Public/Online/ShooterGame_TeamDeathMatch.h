@@ -53,4 +53,9 @@ protected:
 	virtual void InitBot(AShooterAIController* AIC, int32 BotNum) override;	
 
 	FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+
+public:
+	void SetupMatch(const FAccelByteModelsMatchmakingInfo& Info);
+	bool SetupSecondParty(const FAccelByteModelsMatchmakingInfo& Info);
+	bool IsMatchStarted();
 };
