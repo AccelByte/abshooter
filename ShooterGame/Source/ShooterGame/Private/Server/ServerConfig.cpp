@@ -8,6 +8,7 @@
 
 #include "AccelByteOauth2Api.h"
 #include "AccelByteOauth2Models.h"
+#include "Core/AccelByteRegistry.h"
 
 //#define SERVER_CLIENT_ID "<PUT_SERVER_CLIENT_ID_HERE>"
 //#define SERVER_CLIENT_SECRET "<PUT_SERVER_CLIENT_SECRET_HERE>"
@@ -39,7 +40,17 @@ FServerConfig::FServerConfig()
 	, ClientSecret{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_SERVER_CLIENT_SECRET")), SERVER_CLIENT_SECRET) }
 	, MatchmakingServerUrl{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_MATCHMAKING_SERVER_URL")), MATCHMAKING_SERVER_URL) }
 {
+	FString IamServerUrl = FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_IAM_SERVER_URL"));
+	if (!IamServerUrl.IsEmpty())
+	{
+		FRegistry::Settings.IamServerUrl = IamServerUrl;
+	}
 	Credentials.SetClientCredentials(ClientId, ClientSecret);
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER_CLIENT_ID = %s...%s"), *ClientId.Left(4), *ClientId.Right(4));
+	UE_LOG(LogTemp, Log, TEXT("SERVER_CLIENT_SECRET = %s...%s"), *ClientSecret.Left(4), *ClientSecret.Right(4));
+	UE_LOG(LogTemp, Log, TEXT("MATCHMAKING_SERVER_URL = %s"), *MatchmakingServerUrl);
+	UE_LOG(LogTemp, Log, TEXT("IAM_SERVER_URL = %s"), *FRegistry::Settings.IamServerUrl);
 }
 
 void FServerConfig::GetClientAccessToken(const FGetClientAccessTokenSuccess& OnSuccess, const AccelByte::FErrorHandler& OnError)

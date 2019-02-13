@@ -426,6 +426,7 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 	
 	if (MatchmakingInfo.matching_parties.Num() == 2)
 	{
+		UE_LOG(LogOnlineGame, Log, TEXT("[MATCH] Get client access token..."));
 		FServerConfig::Get().GetClientAccessToken(FServerConfig::FGetClientAccessTokenSuccess::CreateLambda([Results](const AccelByte::Credentials& Credentials)
 		{
 			FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetClientAccessToken());
@@ -448,7 +449,12 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 				{
 					UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameSession::OnSendMatchmakingResultResponse : [%d] %s"), Response->GetResponseCode(),  *Response->GetContentAsString());
 				}
+				else
+				{
+					UE_LOG(LogOnlineGame, Log, TEXT("[ERROR] Sending match result failed!!!"));
+				}
 			});
+			UE_LOG(LogOnlineGame, Log, TEXT("[MATCH] Sending match result..."));
 			Request->ProcessRequest();
 		}), AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) {
 			UE_LOG(LogOnlineGame, Log, TEXT("[ERROR] SendMatchmakingResultResponse GetClientAccessToken : [%d] %s"), ErrorCode, *ErrorMessage);
