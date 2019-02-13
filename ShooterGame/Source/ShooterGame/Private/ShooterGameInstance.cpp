@@ -175,7 +175,7 @@ void UShooterGameInstance::Init()
     });
 
     AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%s"), StatusCode, *Reason, WasClean);
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%d"), StatusCode, *Reason, WasClean);
     });
 
     AccelByte::FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);

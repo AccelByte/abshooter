@@ -618,10 +618,12 @@ protected:
 #pragma endregion FRIENDS_SERVICE
 
 #pragma region Matchmaking
-	void StartMatch(const FString&);
+	void StartMatch(const FString&, const FString& PartyId);
 	bool bMatchmakingStarted{ false };
 	FString GameMode { "test" };
 	FOnStartMatch OnStartMatch;
+	FString DedicatedServerBaseUrl;
+	FString DedicatedServerAddress;
 #pragma endregion Matchmaking
 
 #pragma region CHAT

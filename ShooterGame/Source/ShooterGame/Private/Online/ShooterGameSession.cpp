@@ -100,25 +100,6 @@ void AShooterGameSession::HandleMatchHasEnded()
 
 			// server is handled here
 			UE_LOG(LogOnlineGame, Log, TEXT("Ending session %s on server"), *FName(NAME_GameSession).ToString() );
-            // call match making service, tell that session is end
-            
-            
-            FString Url = FString::Printf(TEXT("http://127.0.0.1:8081"));
-            FString Verb = TEXT("POST");
-            FString ContentType = TEXT("application/json");
-            FString Accept = TEXT("application/json");
-            FString Content = TEXT("{something}");
-
-            FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-            Request->SetURL(Url);            
-            Request->SetVerb(Verb);
-            Request->SetHeader(TEXT("Content-Type"), ContentType);
-            Request->SetHeader(TEXT("Accept"), Accept);
-            Request->SetContentAsString(Content);
-            Request->OnProcessRequestComplete().BindStatic(&AShooterGameSession::OnSendMatchmakingResultResponse);
-            Request->ProcessRequest();
-
-			Sessions->EndSession(NAME_GameSession);
 		}
 	}
 }

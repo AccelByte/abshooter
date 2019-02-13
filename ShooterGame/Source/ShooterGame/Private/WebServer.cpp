@@ -92,8 +92,49 @@ bool RecvMessage(FSocket *Socket, uint32 DataSize, FString& Message)
 	return false;
 }
 
+static FString DefaultResponseCode = "200";
+static TMap<FString, FString> HttpCodesMap =
+{
+	{"200", "OK"},
+	{"201", "Created"},
+	{"202", "Accepted"},
+	{"203", "Non-Authoritative Information"},
+	{"204", "No Content"},
+	{"205", "Reset Content"},
+	{"206", "Partial Content"},
+	{"207", "Multi-Status"},
+	{"208", "Already Reported"},
+	{"300", "Multiple Choices"},
+	{"301", "Moved Permanently"},
+	{"302", "Found"},
+	{"303", "See Other"},
+	{"304", "Not Modified"},
+	{"305", "Use Proxy"},
+	{"306", "Switch Proxy"},
+	{"307", "Temporary Redirect"},
+	{"308", "Permanent Redirect"},
+	{"400", "Bad Request"},
+	{"401", "Unauthorized"},
+	{"402", "Payment Required"},
+	{"403", "Forbidden"},
+	{"404", "Not Found"},
+	{"405", "Method Not Allowed"},
+	{"406", "Not Acceptable"},
+	{"407", "Proxy Authentication Required"},
+	{"408", "Request Timeout"},
+	{"409", "Conflict"},
+	{"410", "Gone"},
+	{"500", "Internal Server Error"},
+	{"501", "Not Implemented"},
+	{"502", "Bad Gateway"},
+	{"503", "Service Unavailable"},
+	{"504", "Gateway Timeout"},
+	{"505", "HTTP Version Not Supported"},
+};
+
 uint32 FWebServer::Run()
 {
+	
 	while (!Stopping)
 	{
 		if (!PendingClients.IsEmpty())
@@ -131,25 +172,67 @@ uint32 FWebServer::Run()
 
             if (!Request.IsEmpty())
             {
-                TArray<FString> Out;
-                Request.ParseIntoArray(Out, TEXT("\n"));
-                FString URL = TEXT("");
-                for (int i = 0; i < Out.Num(); i++)
-                {   
-                    FString currentHeader = Out[i];
-                    if (currentHeader.Contains("GET /"))
-                    {
-                        currentHeader = currentHeader.Replace(TEXT("GET /"), TEXT("/"));
-                        int32 stop = currentHeader.Find(TEXT("HTTP/"))-1;
-                        currentHeader = currentHeader.Left(stop);
-                        URL = currentHeader;
-                        break;
-                    }
-                }
+				FString URL = TEXT("/");
+				FString Action;
+				TMap<FString, FString> Params;
+				FString Header;
 
+				int32 pos = Request.Find("\r\n\r\n");
+				if (pos > 0)
+				{
+					Header = Request.Left(pos);
+					Params.Add("Body", Request.RightChop(pos + 4));
+				}
+				else
+				{
+					Header = Request;
+				}
+
+                TArray<FString> Out;
+				Header.ParseIntoArray(Out, TEXT("\r\n"));
+
+				FString currentLine = Out[0];
+				pos = currentLine.Find(" ");
+				Action = currentLine.Left(pos);
+
+				int32 start = pos + 1;
+				pos = currentLine.Find(" ", ESearchCase::CaseSensitive, ESearchDir::FromStart, start);
+				URL = currentLine.Mid(start, pos - start);
+
+                for (int i = 1; i < Out.Num(); i++)
+                {   
+					if (currentLine.Len() == 0) break;
+
+					currentLine = Out[i];
+					pos = currentLine.Find(":") + 1;
+					while (currentLine[pos] == L' ') ++pos;
+					Params.Add(currentLine.Left(pos), currentLine.RightChop(pos));
+                }
                 TMap<FString, FString> Response;
-                FGameDelegates::Get().GetWebServerActionDelegate().ExecuteIfBound(0, TEXT("GET"), URL, TMap<FString, FString>(), Response);
-                FString ResponseString = FString::Printf(TEXT("HTTP/1.0 200 OK\r\nContent-Type: %s\r\n\r\n%s"), *Response[TEXT("Content-Type")], *Response[TEXT("Body")]);
+                FGameDelegates::Get().GetWebServerActionDelegate().ExecuteIfBound(0, Action, URL, Params, Response);
+				FString ResponseCode;
+				Response.RemoveAndCopyValue(TEXT("Code"), ResponseCode);
+				FString* ResponseCodeName = nullptr;
+				if (ResponseCode.IsEmpty())
+				{
+					ResponseCode = DefaultResponseCode;
+				}
+				ResponseCodeName = HttpCodesMap.Find(ResponseCode);
+
+				FString StringHeaders = "";
+				FString ContentBody;
+				Response.RemoveAndCopyValue(TEXT("Body"), ContentBody);
+				for (const TPair<FString, FString>& KeyValue : Response)
+				{
+					StringHeaders.Append(FString::Printf(TEXT("%s: %s\r\n"), *KeyValue.Key, *KeyValue.Value));
+				}
+				StringHeaders.RemoveFromEnd(TEXT("\r\n"));
+
+                FString ResponseString = FString::Printf(TEXT("HTTP/1.0 %s %s\r\n%s\r\n\r\n%s"), 
+					*ResponseCode,
+					**ResponseCodeName,
+					*StringHeaders,
+					*ContentBody);
                 SendMessage(Client, ResponseString);
             }
             Client->Close();

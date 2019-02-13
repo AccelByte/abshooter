@@ -8,20 +8,26 @@
 
 #include "AccelByteOauth2Api.h"
 #include "AccelByteOauth2Models.h"
+#include "Core/AccelByteRegistry.h"
 
-//#define CLIENT_ID "<PUT_CLIENT_ID_HERE>"
-//#define CLIENT_SECRET "<PUT_CLIENT_SECRET_HERE>"
+//#define SERVER_CLIENT_ID "<PUT_SERVER_CLIENT_ID_HERE>"
+//#define SERVER_CLIENT_SECRET "<PUT_SERVER_CLIENT_SECRET_HERE>"
 #define MATCHMAKING_SERVER_URL "https://alpha.justice.accelbyte.net/matchmaking"
 
-#ifndef CLIENT_ID
+#ifndef SERVER_CLIENT_ID
 #error Server Client Id is undefined
 #endif
 
-#ifndef CLIENT_SECRET
+#ifndef SERVER_CLIENT_SECRET
 #error Server Client Secret is undefined
 #endif
 
 using AccelByte::Api::Oauth2;
+
+const FString& Coalesce(const FString& Value, const FString& DefaultValue)
+{
+	return Value.IsEmpty() ? DefaultValue : Value;
+}
 
 FServerConfig& FServerConfig::Get()
 {
@@ -30,11 +36,21 @@ FServerConfig& FServerConfig::Get()
 }
 
 FServerConfig::FServerConfig()
-	: ClientId{ CLIENT_ID }
-	, ClientSecret{ CLIENT_SECRET }
-	, MatchmakingServerUrl{ MATCHMAKING_SERVER_URL }
+	: ClientId{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_SERVER_CLIENT_ID")), SERVER_CLIENT_ID) }
+	, ClientSecret{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_SERVER_CLIENT_SECRET")), SERVER_CLIENT_SECRET) }
+	, MatchmakingServerUrl{ Coalesce( FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_MATCHMAKING_SERVER_URL")), MATCHMAKING_SERVER_URL) }
 {
+	FString IamServerUrl = FPlatformMisc::GetEnvironmentVariable(TEXT("SHOOTERGAME_IAM_SERVER_URL"));
+	if (!IamServerUrl.IsEmpty())
+	{
+		FRegistry::Settings.IamServerUrl = IamServerUrl;
+	}
 	Credentials.SetClientCredentials(ClientId, ClientSecret);
+
+	UE_LOG(LogTemp, Log, TEXT("SERVER_CLIENT_ID = %s...%s"), *ClientId.Left(4), *ClientId.Right(4));
+	UE_LOG(LogTemp, Log, TEXT("SERVER_CLIENT_SECRET = %s...%s"), *ClientSecret.Left(4), *ClientSecret.Right(4));
+	UE_LOG(LogTemp, Log, TEXT("MATCHMAKING_SERVER_URL = %s"), *MatchmakingServerUrl);
+	UE_LOG(LogTemp, Log, TEXT("IAM_SERVER_URL = %s"), *FRegistry::Settings.IamServerUrl);
 }
 
 void FServerConfig::GetClientAccessToken(const FGetClientAccessTokenSuccess& OnSuccess, const AccelByte::FErrorHandler& OnError)
@@ -58,7 +74,7 @@ void FServerConfig::GetClientAccessToken(const FGetClientAccessTokenSuccess& OnS
 	
 }
 
-#undef CLIENT_ID
-#undef CLIENT_SECRET
+#undef SERVER_CLIENT_ID
+#undef SERVER_CLIENT_SECRET
 
 #endif
