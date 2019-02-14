@@ -1687,7 +1687,7 @@ void SLobby::AddChatTab(FString UserId, FString DisplayName, FString PartyId)
     // find existing
     for (int i = 0; i < LobbyChatPages.Num(); i++)
     {
-        if (LobbyChatPages[i]->UserId == UserId || LobbyChatPages[i]->PartyId == PartyId)
+        if ((LobbyChatPages[i]->UserId == UserId && !UserId.IsEmpty()) || (LobbyChatPages[i]->PartyId == PartyId && !PartyId.IsEmpty()))
         {
             // chat tab already existed;
             return;
