@@ -118,7 +118,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 				[
 					SNew(STextBlock)
 					.TextStyle(&InventoryStyle->AmountTextStyle)
-					.Text(FText::AsNumber(item->Quantity))					
+					.Text((item->Type != EInventoryItemType::COIN)? FText::AsNumber(item->Quantity): FText::FromString(TEXT("")))
 				]
 			]
 			+ SVerticalBox::Slot()
@@ -155,7 +155,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 		];
 
 		TSharedRef<SWidget> ChildContent = TileContent;
-		if (!item->Consumable && !item->Owned)
+		if (!item->Purchasable && !item->Owned)
 		{
 			ChildContent = SNew(SOverlay)
 			+ SOverlay::Slot()
@@ -191,20 +191,29 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 
 TSharedRef<SWidget> SShooterInventoryItem::GetPriceWidget(const FInventoryEntry* item) const
 {
-	if (!item->Consumable && item->Owned)
+	if (!item->Purchasable && item->Owned)
 	{
 		return SNew(SBox);
 	}
 	else
 	{
+		// construct the price in string format, different format for REAL and VIRTUAL currency
+		float Price = (item->CurrencyType == TEXT("REAL") ? item->Price / 100.00f : item->Price / 1.f);
+		FString PriceString;
+		PriceString.Append(item->CurrencyType == TEXT("REAL") ? item->CurrencyCode + TEXT("\n") : TEXT(""));
+		PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == TEXT("REAL") ? 2 : 0));
+
 		return SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
 		.AutoWidth()
 		[
-			SNew(SImage)
-			.Image(&InventoryStyle->CoinImage)
+			item->CurrencyType != TEXT("REAL") // if VIRTUAL currency then show the coin image
+			?
+			SNew(SImage).Image(&InventoryStyle->CoinImage)
+			:
+			SNew(SImage).Visibility(EVisibility::Collapsed)
 		]
 		+ SHorizontalBox::Slot()
 		.VAlign(VAlign_Center)
@@ -214,7 +223,7 @@ TSharedRef<SWidget> SShooterInventoryItem::GetPriceWidget(const FInventoryEntry*
 			SNew(STextBlock)
 			.Margin(FMargin(5, 0))
 			.TextStyle(&InventoryStyle->PriceTextStyle)
-			.Text(FText::AsNumber(item->Price))
+			.Text(FText::FromString(PriceString))
 		];
 	}
 }
@@ -330,7 +339,7 @@ EVisibility SShooterInventoryItem::GetCartIconVisibility() const
 {
 	if (Item.IsValid())
 	{
-		if (IsSelected() && Item.Pin()->Consumable)
+		if (IsSelected() && Item.Pin()->Purchasable)
 		{
 			return EVisibility::Visible;
 		}

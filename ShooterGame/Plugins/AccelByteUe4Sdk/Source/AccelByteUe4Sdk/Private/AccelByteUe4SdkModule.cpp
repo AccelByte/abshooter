@@ -29,7 +29,7 @@ void FAccelByteUe4SdkModule::StartupModule()
 {
 	RegisterSettings();
 	LoadSettingsFromConfigUobject();
-	auto Ticker = FTicker::GetCoreTicker();
+	auto& Ticker = FTicker::GetCoreTicker();
 
 	Ticker.AddTicker(
 		FTickerDelegate::CreateLambda([](float DeltaTime)

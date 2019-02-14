@@ -20,6 +20,7 @@
 // accelbyte
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
+#include "Api/AccelByteWalletApi.h"
 #include "Core/AccelByteCredentials.h"
 #include "Core/AccelByteRegistry.h"
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
@@ -75,6 +76,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 	OnMatchmakingCompleteDelegate = FOnMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnMatchmakingComplete);
     OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &FShooterMainMenu::OnFriendOnlineResponse);
     AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+	RefreshWallet();
 
 	// read user settings
 #if SHOOTER_CONSOLE_UI
@@ -404,7 +406,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		// Inventory
 		{
 			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Inventory", "INVENTORY"), this, &FShooterMainMenu::OnShowInventory);
-			MenuHelper::AddCustomMenuItem(InventoryItem, SAssignNew(InventoryWidget, SShooterInventory).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+			MenuHelper::AddCustomMenuItem(InventoryItem, SAssignNew(InventoryWidget, SShooterInventory).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()).OnBuyItemFinished(FSimpleDelegate::CreateSP(this, &FShooterMainMenu::RefreshWallet)));
 		}
 #endif
 
@@ -1448,6 +1450,23 @@ void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUse
     MenuWidget->EnterSubMenu();
 
 
+}
+
+void FShooterMainMenu::RefreshWallet()
+{
+	AccelByte::Api::Wallet::GetWalletInfoByCurrencyCode(TEXT("ShooterGameCoin"),
+		AccelByte::Api::Wallet::FGetWalletByCurrencyCodeSuccess::CreateSP(this, &FShooterMainMenu::OnGetWalletSuccess),
+		FErrorHandler::CreateSP(this, &FShooterMainMenu::OnGetWalletError));
+}
+
+void FShooterMainMenu::OnGetWalletSuccess(const FAccelByteModelsWalletInfo& Response)
+{
+	CoinsWidgetContainer->Balance = Response.Balance;
+}
+
+void FShooterMainMenu::OnGetWalletError(int32 Code, const FString& Message)
+{
+	CoinsWidgetContainer->Balance = -1;
 }
 
 

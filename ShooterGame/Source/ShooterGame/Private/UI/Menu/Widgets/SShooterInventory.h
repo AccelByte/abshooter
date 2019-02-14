@@ -11,7 +11,8 @@ UENUM()
 enum class EInventoryItemType : uint8
 {
 	WEAPON UMETA(DisplayName = "Weapon"),
-	AMMO UMETA(DisplayName = "Ammo")
+	AMMO UMETA(DisplayName = "Ammo"),
+	COIN UMETA(DisplayName = "Coin")
 };
 
 /** inventory display information */
@@ -29,6 +30,9 @@ struct FInventoryEntry
 	/** currency code*/
 	FString CurrencyCode;
 
+	/** currency type*/
+	FString CurrencyType;
+
 	/** item price*/
 	int32 Price;
 
@@ -36,10 +40,10 @@ struct FInventoryEntry
 	int32 DiscountedPrice;
 
 	/** item consumable flag*/
-	bool Consumable;
+	bool Purchasable;
 
 	/** item owned flag*/
-	bool Owned;
+	bool Owned = false;
 
 	/** item type*/
 	EInventoryItemType Type;
@@ -59,6 +63,7 @@ public:
 
 	SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer >, PlayerOwner)
 	SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
+	SLATE_ARGUMENT(FSimpleDelegate, OnBuyItemFinished)
 
 	SLATE_END_ARGS()
 
@@ -106,6 +111,8 @@ protected:
 
 	FThreadSafeCounter GetItemRequestCount = FThreadSafeCounter(0);
 
+	FSimpleDelegate OnBuyItemFinished;
+
 	void GetUserEntitlements();
 
 	void ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem);
@@ -124,6 +131,8 @@ protected:
 
 	void ShowMessageDialog(FString Message);
 	void CloseMessageDialog();
+
+	void OnBackFromPaymentBrowser(FString PaymentUrl);
 
 	void OnFocusLost(const FFocusEvent& InFocusEvent);
 	FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent);

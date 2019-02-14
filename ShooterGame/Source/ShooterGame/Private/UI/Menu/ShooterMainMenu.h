@@ -15,6 +15,7 @@
 #include "Widgets/SShooterScreenshot.h"
 #include "ShooterOptions.h"
 
+#include "Api/AccelByteWalletApi.h"
 
 class FShooterMainMenu : public TSharedFromThis<FShooterMainMenu>, public FTickableGameObject
 {
@@ -327,8 +328,12 @@ protected:
 	/** Delegate executed when matchmaking completes */
 	FOnMatchmakingCompleteDelegate OnMatchmakingCompleteDelegate;
 
+	// ACCELBYTE
     AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
     void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
+	void RefreshWallet();
+	void OnGetWalletSuccess(const FAccelByteModelsWalletInfo& Response);
+	void OnGetWalletError(int32 Code, const FString& Message);
 
 	/** number of bots in game */
 	int32 BotsCountOpt;

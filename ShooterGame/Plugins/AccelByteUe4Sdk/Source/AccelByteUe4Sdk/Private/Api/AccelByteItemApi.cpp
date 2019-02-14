@@ -66,16 +66,16 @@ void Item::GetItemById(const FString& ItemId, const FString& Language, const FSt
 void Item::GetItemsByCriteria(const FString& Language, const FString& Region, const FString& CategoryPath, const EAccelByteItemType& ItemType, const EAccelByteItemStatus& Status, int32 Page, int32 Size, const FGetItemsByCriteriaSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetUserAccessToken());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/byCriteria?categoryPath=%s&language=%s&region=%s"), *FRegistry::Settings.PlatformServerUrl, *FRegistry::Credentials.GetUserNamespace(), *FGenericPlatformHttp::UrlEncode(CategoryPath), *Language, *Region);
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/items/byCriteria?categoryPath=%s&region=%s"), *FRegistry::Settings.PlatformServerUrl, *FRegistry::Settings.Namespace, *FGenericPlatformHttp::UrlEncode(CategoryPath), *Region);
+	if (!Language.IsEmpty())
+	{
+		Url.Append(FString::Printf(TEXT("&language=%s"), *Language));
+	}	
 	if (ItemType != EAccelByteItemType::NONE)
 	{
 		Url.Append(FString::Printf(TEXT("&itemType=%s"), *EAccelByteItemTypeToString(ItemType)));
 	}
-	if (Status != EAccelByteItemStatus::NONE)
-	{
-		Url.Append(FString::Printf(TEXT("&status=%"), *EAccelByteItemStatusToString(Status)));
-	}
-	Url.Append(FString::Printf(TEXT("&status=%d"), Page));
+	Url.Append(FString::Printf(TEXT("&page=%d"), Page));
 	if (Size > 0)
 	{
 		Url.Append(FString::Printf(TEXT("&size=%d"), Size));
