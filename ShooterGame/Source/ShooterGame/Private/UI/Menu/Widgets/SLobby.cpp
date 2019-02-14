@@ -431,7 +431,7 @@ void SLobby::Construct(const FArguments& InArgs)
 						else
 						{
 							bMatchmakingStarted = true;
-							FString GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
+							GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
 							AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
 							return FReply::Handled();
 						}
@@ -1606,7 +1606,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 	void SLobby::OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response)
 	{
-		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendId, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&](const FAccelByteModelsOauth2UserInfo& User)
+		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendId, AccelByte::Api::Oauth2::FGetPublicUserInfoDelegate::CreateLambda([&, Response](const FAccelByteModelsOauth2UserInfo& User)
 		{
 			RefreshFriendList();
 			FSlateBrush* FriendAvatar = CheckAvatar(Response.friendId) ? GetAvatar(Response.friendId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
