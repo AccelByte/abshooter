@@ -56,6 +56,13 @@ struct FShooterScoreboardStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Sound)
 	FSlateSound PlayerChangeSound;
 	FShooterScoreboardStyle& SetPlayerChangeSound(const FSlateSound& InPlayerChangeSound) { PlayerChangeSound = InPlayerChangeSound; return *this; }
+
+	/**
+	 * The button to back to main menu from a finished game
+	*/
+	UPROPERTY(EditAnywhere, Category = Sound)
+	FButtonStyle BackToMainMenuButton;
+	FShooterScoreboardStyle& SetButtonToMainMenu(const FButtonStyle& InBackToMainMenuButton) { BackToMainMenuButton = InBackToMainMenuButton; return *this; }
 };
 
 

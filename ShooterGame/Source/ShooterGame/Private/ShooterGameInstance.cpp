@@ -19,6 +19,7 @@
 #include "Online/ShooterGameSession.h"
 #include "Online/ShooterOnlineSessionClient.h"
 // accelbyte
+#include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Core/AccelByteCredentials.h"

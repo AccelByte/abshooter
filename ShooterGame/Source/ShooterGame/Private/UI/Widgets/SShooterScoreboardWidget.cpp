@@ -6,6 +6,7 @@
 #include "ShooterScoreboardWidgetStyle.h"
 #include "ShooterUIHelpers.h"
 #include "Online/ShooterPlayerState.h"
+#include "ShooterGameInstance.h"
 
 #define LOCTEXT_NAMESPACE "ShooterScoreboard"
 
@@ -231,21 +232,6 @@ void SShooterScoreboardWidget::UpdateScoreboardGrid()
 		ScoreboardData->AddSlot() .AutoHeight() .Padding(NORM_PADDING)
 			[
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot() .HAlign(HAlign_Fill)
-				[
-					SNew(SBox)
-					.HAlign(HAlign_Center)
-					[
-						SNew(STextBlock)
-						.Text(this, &SShooterScoreboardWidget::GetMatchRestartText)
-						.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
-					]
-				]
-			];
-
-		ScoreboardData->AddSlot() .AutoHeight() .Padding(NORM_PADDING)
-			[
-				SNew(SHorizontalBox)
 				+SHorizontalBox::Slot() .HAlign(HAlign_Right)
 				[
 					SNew(SBox)
@@ -256,6 +242,30 @@ void SShooterScoreboardWidget::UpdateScoreboardGrid()
 						.TextStyle(FShooterStyle::Get(), "ShooterGame.DefaultScoreboard.Row.StatTextStyle")
 						.Visibility(this, &SShooterScoreboardWidget::GetProfileUIVisibility)
 					]
+				]
+			];
+
+		ScoreboardData->AddSlot() .AutoHeight() .Padding(NORM_PADDING) .HAlign(HAlign_Center)
+			[
+				SNew(SButton)
+				.HAlign(HAlign_Center)
+				.ButtonStyle(&ScoreboardStyle->BackToMainMenuButton)
+				.OnClicked(FOnClicked::CreateLambda([&]()
+				{	
+					if (AShooterPlayerController* const PC = Cast<AShooterPlayerController>(PCOwner.Get()))
+					{
+						UShooterGameInstance* const GameInstance = Cast<UShooterGameInstance>(PC->GetGameInstance());
+						if (GameInstance)
+						{
+							GameInstance->GotoState(ShooterGameInstanceState::MainMenu);
+						}
+					}
+					return FReply::Handled();
+				}))
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString(TEXT("Back to Menu")))
+					.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
 				]
 			];
 	}
@@ -312,7 +322,7 @@ bool SShooterScoreboardWidget::SupportsKeyboardFocus() const
 		return true;
 	}
 #endif
-	return false;
+	return true;
 }
 
 FReply SShooterScoreboardWidget::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )

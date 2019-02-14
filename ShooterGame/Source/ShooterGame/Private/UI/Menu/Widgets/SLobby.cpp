@@ -18,6 +18,10 @@
 #include "Core/AccelByteRegistry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
+#define SIMULATE_SETUP_MATCHMAKING 1
+#if SIMULATE_SETUP_MATCHMAKING
+#include "Server/Models/AccelByteMatchmakingModels.h"
+#endif
 
 SLobby::SLobby()
     : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
@@ -419,9 +423,18 @@ void SLobby::Construct(const FArguments& InArgs)
 					]
 					.OnClicked(FOnClicked::CreateLambda([&] 
 					{
-						bMatchmakingStarted = true;
-						AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
-						return FReply::Handled();
+						if (PartyWidget->GetCurrentPartySize() < 2)
+						{
+							GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Minimum party size is 2!"), true, FVector2D(2.0f, 2.0f));
+							return FReply::Handled();
+						}
+						else
+						{
+							bMatchmakingStarted = true;
+							FString GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
+							AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
+							return FReply::Handled();
+						}
 					}))
 				]
 				+ SOverlay::Slot()
