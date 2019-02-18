@@ -158,6 +158,7 @@ void SLobby::Construct(const FArguments& InArgs)
 
 			FString Content;
 
+			GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
 			FAccelByteModelsMatchmakingInfo MatchmakingInfo;
 			MatchmakingInfo.channel = GameMode;
 			MatchmakingInfo.match_id = Response.MatchId;
@@ -199,7 +200,7 @@ void SLobby::Construct(const FArguments& InArgs)
 				{
 					FString ErrorMessage = FString::Printf(TEXT("Can't setup matchmaking to %s"), *DedicatedServerBaseUrl);
 					UE_LOG(LogOnlineGame, Log, TEXT("%s"), *ErrorMessage);
-					if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, *ErrorMessage);
+					if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, *ErrorMessage);
 				}
 				bMatchmakingStarted = false;
 			});

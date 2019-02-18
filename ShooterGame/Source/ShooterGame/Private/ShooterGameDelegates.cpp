@@ -161,6 +161,77 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 			Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
 		}
 	}
+	else if (Action == "GET" && URL == "/match/status")
+	{
+		Code = "500";
+		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+		if (GameEngine)
+		{
+			UWorld* World = GameEngine->GetGameWorld();
+			if (World)
+			{
+				AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
+				if (GameMode)
+				{
+					FAccelByteModelsMatchInfo Info = GameMode->GetMatchInfo();
+					FJsonObjectConverter::UStructToJsonObjectString(Info, Body, 0, 0, 0);
+					Code = "200";
+				}
+				else
+				{
+					Body = FString::Printf(MessageFormat, 1002, TEXT("Wrong game mode"));
+				}
+			}
+			else
+			{
+				Body = FString::Printf(MessageFormat, 1001, TEXT("Server not ready: World not found!"));
+			}
+		}
+		else
+		{
+			Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
+		}
+	}
+	else if (Action == "GET" && URL == "/match/reset/?force=false")
+	{
+		bool Force = URL.EndsWith("true") ? true : false;
+		Code = "500";
+		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+		if (GameEngine)
+		{
+			UWorld* World = GameEngine->GetGameWorld();
+			if (World)
+			{
+				AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
+				if (GameMode)
+				{
+					bool Success = GameMode->ResetMatch();
+					if (Success)
+					{
+						Code = "200";
+						Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
+					}
+					else
+					{
+						Code = "409";
+						Body = FString::Printf(MessageFormat, 1003, TEXT("Can't reset match, the match still has active player(s)"));
+					}
+				}
+				else
+				{
+					Body = FString::Printf(MessageFormat, 1002, TEXT("Wrong game mode"));
+				}
+			}
+			else
+			{
+				Body = FString::Printf(MessageFormat, 1001, TEXT("Server not ready: World not found!"));
+			}
+		}
+		else
+		{
+			Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
+		}
+	}
 
 	Response.Add(TEXT("Content-Type"), ContentType);
 	Response.Add(TEXT("Content-Length"), FString::FromInt(Body.Len()));

@@ -80,3 +80,31 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | Info")
 		TArray<FAccelByteModelsMatchmakingParty> matching_parties;
 };
+
+USTRUCT(BlueprintType)
+struct FAccelByteModelsMatchPlayer
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
+		FString user_id;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
+		FString name;
+};
+
+USTRUCT(BlueprintType)
+struct FAccelByteModelsMatchInfo
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
+		FAccelByteModelsMatchmakingInfo matchmaking_info;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
+		int32 remaining_time;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
+		FName match_state;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
+		TArray<FAccelByteModelsMatchPlayer> players;
+};
