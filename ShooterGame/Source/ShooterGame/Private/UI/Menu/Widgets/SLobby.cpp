@@ -210,8 +210,30 @@ void SLobby::Construct(const FArguments& InArgs)
 			StartMatch(Response.MatchId, CurrentPartyID);
 #endif
 		}
-		else
+		// show loading for non leader party member
+		else if(Response.Status == EAccelByteMatchmakingStatus::Start)
 		{
+			bMatchmakingStarted = true;
+		}
+		else 
+		{
+			if (Response.Status == EAccelByteMatchmakingStatus::Cancel)
+			{
+				GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Matchmaking canceled by party leader"), true, FVector2D(2.0f, 2.0f));
+			}
+			else if (Response.Status == EAccelByteMatchmakingStatus::Timeout)
+			{
+				GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Matchmaking failed: Timeout"), true, FVector2D(2.0f, 2.0f));
+			}
+			else if (Response.Status == EAccelByteMatchmakingStatus::Unavailable)
+			{
+				GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Matchmaking failed: Dedicated server unavailable"), true, FVector2D(2.0f, 2.0f));
+			}
+			else
+			{
+				GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, FString::Printf(TEXT("Matchmaking failed: %d"), (int32)Response.Status), true, FVector2D(2.0f, 2.0f));
+			}
+
 			bMatchmakingStarted = false;
 		}
 	}));
