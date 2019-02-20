@@ -247,19 +247,32 @@ const std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> ErrorM
 
 void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage)
 {
-	int32 Code = 0;
-	FAccelByteModelsErrorEntity Error;
-	FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0);
-	Code = Error.NumericErrorCode;
-	auto it = ErrorMessages::Default.find(Code);
-	if (it != ErrorMessages::Default.cend())
+	// no response when connection failed
+	if (!Response)
 	{
-		OutMessage += ErrorMessages::Default.at(Code);
-		OutMessage += " " + Error.ErrorMessage;
+		OutCode = -1;
+		OutMessage = "Failed to connect";
+		return;
 	}
-	Code = Response->GetResponseCode();
+
+	int32 Code = 0;
+	FErrorInfo Error;
+	if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0))
+	{
+		Code = Error.NumericErrorCode;
+		auto it = ErrorMessages::Default.find(Code);
+		if (it != ErrorMessages::Default.cend())
+		{
+			OutMessage += ErrorMessages::Default.at(Code);
+			OutMessage += " " + Error.ErrorMessage;
+		}
+	}
+	else
+	{
+		Code = Response->GetResponseCode();
+	}
 	// Debug message. Delete this code section for production
-	#if 1
+#if 0
 	OutMessage += "\n\nResponse";
 	OutMessage += "\nCode: " + FString::FromInt(Response->GetResponseCode());
 	OutMessage += "\nContent: \n" + Response->GetContentAsString();

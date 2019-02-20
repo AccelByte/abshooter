@@ -6,6 +6,7 @@
 #include "AccelByteOauth2Api.h"
 #include "JsonUtilities.h"
 #include "AccelByteRegistry.h"
+#include "AccelByteHttpRetryScheduler.h"
 
 namespace AccelByte
 {
@@ -29,7 +30,8 @@ void UserProfile::GetUserProfile(const FGetUserProfileSuccess& OnSuccess, const 
 	Request->SetHeader(TEXT("Accept"), Accept);
 	Request->SetContentAsString(Content);
 	Request->OnProcessRequestComplete().BindStatic(GetUserProfileResponse, OnSuccess, OnError);
-	Request->ProcessRequest();
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, FHttpRequestCompleteDelegate::CreateStatic(GetUserProfileResponse, OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
 void UserProfile::GetPublicUserProfileInfo(FString UserID, const FGetPublicUserProfileInfoSuccess& OnSuccess, const FErrorHandler& OnError)
@@ -56,7 +58,7 @@ void UserProfile::GetPublicUserProfileInfo(FString UserID, const FGetPublicUserP
 void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FUpdateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetUserAccessToken());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *FRegistry::Settings.BasicServerUrl, *FRegistry::Credentials.GetUserNamespace(), *FRegistry::Credentials.GetUserId());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/me/profiles"), *FRegistry::Settings.BasicServerUrl, *FRegistry::Credentials.GetUserNamespace());
 	FString Verb = TEXT("PUT");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -70,14 +72,14 @@ void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateReque
 	Request->SetHeader(TEXT("Content-Type"), ContentType);
 	Request->SetHeader(TEXT("Accept"), Accept);
 	Request->SetContentAsString(Content);
-	Request->OnProcessRequestComplete().BindStatic(UpdateUserProfileResponse, OnSuccess, OnError);
-	Request->ProcessRequest();
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, FHttpRequestCompleteDelegate::CreateStatic(UpdateUserProfileResponse, OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
 void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetUserAccessToken());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *FRegistry::Settings.BasicServerUrl, *FRegistry::Credentials.GetUserNamespace(), *FRegistry::Credentials.GetUserId());
+	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/me/profiles"), *FRegistry::Settings.BasicServerUrl, *FRegistry::Credentials.GetUserNamespace());
 	FString Verb = TEXT("POST");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -91,8 +93,8 @@ void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateReque
 	Request->SetHeader(TEXT("Content-Type"), ContentType);
 	Request->SetHeader(TEXT("Accept"), Accept);
 	Request->SetContentAsString(Content);
-	Request->OnProcessRequestComplete().BindStatic(CreateUserProfileResponse, OnSuccess, OnError);
-	Request->ProcessRequest();
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, FHttpRequestCompleteDelegate::CreateStatic(CreateUserProfileResponse, OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
 void UserProfile::CreateDefaultUserProfile(FString DisplayName, const FCreateUserProfileSuccess& OnSuccess, const FErrorHandler& OnError)

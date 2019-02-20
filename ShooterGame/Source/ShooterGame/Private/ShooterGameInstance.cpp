@@ -26,6 +26,8 @@
 #include "HttpModule.h"
 #include "HttpManager.h"
 
+#include "Core/AccelByteRegistry.h"
+
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
 void SShooterWaitDialog::Construct(const FArguments& InArgs)
@@ -184,20 +186,21 @@ void UShooterGameInstance::Init()
     AccelByte::FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
     AccelByte::FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
 
-#if !UE_SERVER   
 	if (!IsRunningDedicatedServer())
 	{
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
 		bool bHasDone = false;
-		AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess OnLoginSuccess = AccelByte::Api::Oauth2::FGetAccessTokenWithAuthorizationCodeGrantSuccess::CreateLambda([&](const FAccelByteModelsOauth2Token& token) {
-			UserToken = token;
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Success, UserID: %s"), *token.User_id);
+		FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&] {
+			UserToken.User_id = AccelByte::FRegistry::Credentials.GetUserId();
+			UserToken.Display_name = AccelByte::FRegistry::Credentials.GetUserDisplayName();
+
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login With username password success"));
 			bHasDone = true;
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
 			AccelByte::FRegistry::Lobby.Connect();
 
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
-			AccelByte::Api::UserProfile::CreateEntitlementReceiver(token.User_id,
+			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
 				TEXT("ext-userid-001"),
 				TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
 				AccelByte::Api::UserProfile::FCreateEntitlementReceiverSuccess::CreateLambda([](FString Result) {
@@ -215,7 +218,7 @@ void UShooterGameInstance::Init()
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Error: %s"), *Message);
 		});
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
-		AccelByte::Api::UserAuthentication::LoginFromLauncher(FString(AuthorizationCode), OnLoginSuccess, OnLoginError);
+		AccelByte::Api::User::LoginWithLauncher(OnLoginSuccess, OnLoginError);
 
 		// Blocking here
 		double LastTime = FPlatformTime::Seconds();
@@ -227,7 +230,6 @@ void UShooterGameInstance::Init()
 			FPlatformProcess::Sleep(0.5f);
 		}
 	}
-#endif
 }
 
 void UShooterGameInstance::Shutdown()
