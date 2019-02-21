@@ -58,4 +58,7 @@ public:
 	void SetupMatch(const FAccelByteModelsMatchmakingInfo& Info);
 	bool SetupSecondParty(const FAccelByteModelsMatchmakingInfo& Info);
 	bool IsMatchStarted();
+	FAccelByteModelsMatchInfo GetMatchInfo();
+
+	bool ResetMatch(bool Force = false);
 };

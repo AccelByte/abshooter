@@ -162,8 +162,16 @@ void AShooterGame_TeamDeathMatch::PreLogin(const FString& Options, const FString
 
 	if (!this->MatchmakingInfo.match_id.IsEmpty() && this->MatchmakingInfo.match_id != MatchIdOpt)
 	{
-		ErrorMessage = TEXT("[ERROR] Incorrect matchId");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
+		AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
+		if (MyGameState)
+		{
+			ErrorMessage = FString::Printf(TEXT("No dedicated server are available at a moment,\nplease try again in %d seconds"), MyGameState->RemainingTime);
+		}
+		else
+		{
+			ErrorMessage = TEXT("No dedicated server are available at a moment,\nplease try again later");
+		}
+		UE_LOG(LogOnlineGame, Display, TEXT("[ERROR] %s"), *ErrorMessage);
 		return;
 	}
 
@@ -183,8 +191,16 @@ void AShooterGame_TeamDeathMatch::PreLogin(const FString& Options, const FString
 
 	if(this->MatchmakingInfo.match_id != MatchIdOpt)
 	{
-		ErrorMessage = TEXT("[ERROR] Incorrect matchId");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
+		AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
+		if (MyGameState)
+		{
+			ErrorMessage = FString::Printf(TEXT("No dedicated server are available at a moment,\nplease try again in %d seconds"), MyGameState->RemainingTime);
+		}
+		else
+		{
+			ErrorMessage = TEXT("No dedicated server are available at a moment,\nplease try again later");
+		}
+		UE_LOG(LogOnlineGame, Display, TEXT("[ERROR] %s"), *ErrorMessage);
 		return;
 	};
 
@@ -521,4 +537,47 @@ bool AShooterGame_TeamDeathMatch::SetupSecondParty(const FAccelByteModelsMatchma
 bool AShooterGame_TeamDeathMatch::IsMatchStarted()
 {
 	return !MatchmakingInfo.match_id.IsEmpty();
+}
+
+FAccelByteModelsMatchInfo AShooterGame_TeamDeathMatch::GetMatchInfo()
+{
+	FAccelByteModelsMatchInfo MatchInfo;
+	MatchInfo.matchmaking_info = MatchmakingInfo;
+	MatchInfo.remaining_time = -1;
+	AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
+	if (MyGameState) MatchInfo.remaining_time = MyGameState->RemainingTime;
+	MatchInfo.match_state = GetMatchState();
+	for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
+	{
+		const AShooterPlayerState* const PlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
+		if (PlayerState)
+		{
+			FAccelByteModelsMatchPlayer Player;
+			Player.name = PlayerState->GetPlayerName();
+			Player.user_id = PlayerState->GetUserId();
+			MatchInfo.players.Add(Player);
+		}
+	}
+
+	return MatchInfo;
+}
+
+bool AShooterGame_TeamDeathMatch::ResetMatch(bool Force)
+{
+	AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
+	if (MyGameState)
+	{
+		if (GameState->PlayerArray.Num() == 0)
+		{
+			if (IsMatchStarted())
+			{
+				// clear previous match
+				RequestFinishAndExitToMainMenu();
+				MatchmakingInfo.match_id = "";
+				MatchmakingInfo.matching_parties.Empty();
+			}
+			return true;
+		}
+	}
+	return false;
 }
