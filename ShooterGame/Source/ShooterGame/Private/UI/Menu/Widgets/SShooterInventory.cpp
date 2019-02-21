@@ -77,11 +77,11 @@ void SShooterInventory::BuildInventoryItem()
 
 	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
 		"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20, 
-		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
+		AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
 		"/coin", EAccelByteItemType::COINS, EAccelByteItemStatus::ACTIVE, 0, 20, 
-		Item::FGetItemsByCriteriaSuccess::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
+		AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
 		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 }
 
@@ -151,7 +151,7 @@ FReply SShooterInventory::OnBuyConfirm()
 	CloseConfirmationDialog();
 	ShowLoadingDialog();
 
-	AccelByte::Api::Order::CreateNewOrder(OrderCreate, Order::FCreateNewOrderSuccess::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
+	AccelByte::Api::Order::CreateNewOrder(OrderCreate, AccelByte::THandler<FAccelByteModelsOrderInfo>::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
 		CloseLoadingDialog(); 
 		if (!OrderInfo.PaymentStationUrl.IsEmpty())
 		{
@@ -242,7 +242,7 @@ void SShooterInventory::OnGetItemsByCriteriaError(int32 Code, const FString& Mes
 
 void SShooterInventory::GetUserEntitlements() 
 {
-	Entitlement::QueryUserEntitlement("", "", 0, 100, Entitlement::FQueryUserEntitlementSuccess::CreateLambda([&](FAccelByteModelsEntitlementPagingSlicedResult Result)
+	Entitlement::QueryUserEntitlement("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
 	{
 		TMap<FString, int> Quantities;
 		for (int i = 0; i < Result.Data.Num(); i++)

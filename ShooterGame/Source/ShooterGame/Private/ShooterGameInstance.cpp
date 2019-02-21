@@ -203,7 +203,7 @@ void UShooterGameInstance::Init()
 			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
 				TEXT("ext-userid-001"),
 				TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
-				AccelByte::Api::UserProfile::FCreateEntitlementReceiverSuccess::CreateLambda([](FString Result) {
+				AccelByte::THandler<FString>::CreateLambda([](FString Result) {
 
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
 
@@ -830,7 +830,7 @@ void UShooterGameInstance::BeginMainMenuState()
     }
     else
     {
-        AccelByte::Api::UserProfile::GetUserProfile(AccelByte::Api::UserProfile::FGetUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
+        AccelByte::Api::UserProfile::GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.FirstName);
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId);
             MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
@@ -844,7 +844,7 @@ void UShooterGameInstance::BeginMainMenuState()
 
 
             AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
-                AccelByte::Api::UserProfile::FCreateUserProfileSuccess::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
+                AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
                 UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
                 UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *Result.FirstName);

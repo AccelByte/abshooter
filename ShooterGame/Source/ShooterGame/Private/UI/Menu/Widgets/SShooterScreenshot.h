@@ -79,11 +79,11 @@ public:
 
     TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, const TArray<uint8>& ImageData);
 
-    void LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotIndex);
+    void LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 SlotIndex);
 
     void RefreshFromCloud();
 
-    void OnReceiveSlotImage(const TArray<uint8>& Result, FAccelByteModelsSlot Slot, int32 SlotIndex);
+    void OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex);
     void OnDeleteSlot(const FString& SlotID);
 	void OnResolveSlot(int32 SlotIndex);
 

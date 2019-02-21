@@ -240,6 +240,7 @@ const std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> ErrorM
 		
 	{ static_cast<int32>(ErrorCodes::UnknownError), TEXT("Unknown error.") },
 	{ static_cast<int32>(ErrorCodes::JsonDeserializationFailed), TEXT("JSON deserialization failed.") },
+	{ static_cast<int32>(ErrorCodes::EmptyResponse), TEXT("Empty response.") },
 	{ static_cast<int32>(ErrorCodes::WebSocketConnectFailed), TEXT("WebSocket connect failed.") },
 
 
@@ -247,30 +248,36 @@ const std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> ErrorM
 
 void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage)
 {
-	// no response when connection failed
-	if (!Response)
-	{
-		OutCode = -1;
-		OutMessage = "Failed to connect";
-		return;
-	}
-
-	int32 Code = 0;
 	FErrorInfo Error;
-	if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0))
+	int32 Code = 0;
+	OutMessage = "";
+	if (Response)
 	{
-		Code = Error.NumericErrorCode;
-		auto it = ErrorMessages::Default.find(Code);
-		if (it != ErrorMessages::Default.cend())
+		if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0))
 		{
-			OutMessage += ErrorMessages::Default.at(Code);
-			OutMessage += " " + Error.ErrorMessage;
+			Code = Error.NumericErrorCode;
+		}
+		else
+		{
+			Code = Response->GetResponseCode();
 		}
 	}
 	else
 	{
-		Code = Response->GetResponseCode();
+		Code = (int32)ErrorCodes::EmptyResponse;
 	}
+
+	auto it = ErrorMessages::Default.find(Code);
+	if (it != ErrorMessages::Default.cend())
+	{
+		OutMessage += ErrorMessages::Default.at(Code);
+	}
+
+	if (!Error.ErrorMessage.IsEmpty())
+	{
+		OutMessage += " " + Error.ErrorMessage;
+	}
+	
 	// Debug message. Delete this code section for production
 #if 0
 	OutMessage += "\n\nResponse";
