@@ -137,22 +137,5 @@ void Oauth2::GetAccessTokenWithPlatformGrant(const FString& ClientId, const FStr
 	Request->ProcessRequest();
 }
 
-void Oauth2::GetPublicUserInfo(const FString& UserID, const THandler<FAccelByteModelsOauth2UserInfo>& OnSuccess, const FErrorHandler& OnError)
-{
-    FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetUserAccessToken());
-    FString Url = FString::Printf(TEXT("%s/namespaces/%s/users/%s"), *FRegistry::Settings.IamServerUrl, *FRegistry::Credentials.GetUserNamespace(), *UserID);
-    FString Verb = TEXT("GET");
-    FString ContentType = TEXT("application/json");
-    FString Accept = TEXT("application/json");
-    
-    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(Url);
-    Request->SetHeader(TEXT("Authorization"), Authorization);
-    Request->SetVerb(Verb);
-    Request->SetHeader(TEXT("Content-Type"), ContentType);
-    Request->SetHeader(TEXT("Accept"), Accept);
-    Request->OnProcessRequestComplete() = CreateHttpResultHandler(OnSuccess, OnError);
-    Request->ProcessRequest();
-}
 } // Namespace Api
 } // Namespace AccelByte

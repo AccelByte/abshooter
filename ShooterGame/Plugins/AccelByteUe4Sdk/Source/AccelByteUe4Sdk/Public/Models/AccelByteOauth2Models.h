@@ -57,29 +57,3 @@ struct ACCELBYTEUE4SDK_API FOauth2Token
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
 		FString Namespace;
 };
-
-USTRUCT(BlueprintType)
-struct ACCELBYTEUE4SDK_API FAccelByteModelsOauth2UserInfo
-{
-    // UE4 JSON parser is case-insensitive and we have to match the variable names against the backend's model.
-    // But "namespace" is a reserved keyword so we capitalize the first character.
-    GENERATED_BODY()
-    
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
-        FString Namespace;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
-        FString UserId;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
-        FString DisplayName;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
-        FString AuthType;
-   
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
-        FString LoginId;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Oauth2 | Models | Oauth2Token")
-        FString EmailAddress;
-};

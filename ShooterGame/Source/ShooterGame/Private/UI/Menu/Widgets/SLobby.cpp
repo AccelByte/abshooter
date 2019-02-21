@@ -14,7 +14,7 @@
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
-#include "Api/AccelByteOauth2Api.h"
+#include "Api/AccelByteUserApi.h"
 #include "Core/AccelByteRegistry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
@@ -980,7 +980,7 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar)
                 if (!DiplayNameListCache->Contains(UserID))
                 {
                     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
-                    AccelByte::Api::Oauth2::GetPublicUserInfo(UserID, THandler<FAccelByteModelsOauth2UserInfo>::CreateLambda([this, UserID, UserProfileInfo](const FAccelByteModelsOauth2UserInfo& UserInfo) {
+                    AccelByte::Api::User::GetPublicUserInfo(UserID, THandler<FPublicUserInfo>::CreateLambda([this, UserID, UserProfileInfo](const FPublicUserInfo& UserInfo) {
                         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
                         DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
 
@@ -1541,7 +1541,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			return;
 		} 
 
-		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendsId[0], THandler<FAccelByteModelsOauth2UserInfo>::CreateLambda([&, Response](const FAccelByteModelsOauth2UserInfo& User)
+		AccelByte::Api::User::GetPublicUserInfo(Response.friendsId[0], THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
 
 		FString DisplayedRequestName = (User.EmailAddress != TEXT("")) ? User.EmailAddress : User.DisplayName;
@@ -1621,7 +1621,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 	void SLobby::OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response)
 	{
-		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendId, THandler<FAccelByteModelsOauth2UserInfo>::CreateLambda([&, Response](const FAccelByteModelsOauth2UserInfo& User)
+		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
 			RefreshFriendList();
 			FSlateBrush* FriendAvatar = CheckAvatar(Response.friendId) ? GetAvatar(Response.friendId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
@@ -1644,7 +1644,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 	{
 		FString DisplayName = CheckDisplayName(Response.friendId) ? GetDisplayName(Response.friendId) : Response.friendId;
 
-		AccelByte::Api::Oauth2::GetPublicUserInfo(Response.friendId, THandler<FAccelByteModelsOauth2UserInfo>::CreateLambda([&, Response](const FAccelByteModelsOauth2UserInfo& User)
+		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
 
 		SAssignNew(NotificationOverlay, SOverlay)

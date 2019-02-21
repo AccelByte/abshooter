@@ -101,9 +101,6 @@ public:
 	*/
 	static void GetAccessTokenWithPlatformGrant(const FString& ClientId, const FString& ClientSecret, const FString& PlatformId, const FString& PlatformToken, const THandler<FOauth2Token>& OnSuccess, const FErrorHandler& OnError);
 
-    // New for jagex
-    static void GetPublicUserInfo(const FString& UserID, const THandler<FAccelByteModelsOauth2UserInfo>& OnSuccess, const FErrorHandler& OnError);
-
 private:
 	Oauth2() = delete; // static class can't have instance
 	Oauth2(Oauth2 const&) = delete;
