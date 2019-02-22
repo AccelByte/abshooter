@@ -10,65 +10,47 @@ void SShooterCoinsWidget::Construct(const FArguments& InArgs)
 {
 	ChildSlot
 	.HAlign(HAlign_Right)
-	.VAlign(VAlign_Top)
-	.Padding(0, 53, 0, 0)
+	.VAlign(VAlign_Fill)
 	[
-		SNew(SBox)
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		.HeightOverride(84.0f)
-		.WidthOverride(560.0f)
+		SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.FillHeight(0.063f)
+		+ SVerticalBox::Slot()
+		.FillHeight(0.937f)
+		.VAlign(VAlign_Top)
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Left)
+			SNew(SBox)
+			.HAlign(HAlign_Fill)
 			.VAlign(VAlign_Fill)
+			.HeightOverride(56.0f)
+			.WidthOverride(560.0f)
 			[
-				SNew(SBox)
-				.HAlign(HAlign_Fill)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Fill)
-				.WidthOverride(84.0f)
-				.HeightOverride(84.0f)
 				[
-					SNew(SOverlay)
-					+ SOverlay::Slot()
+					SNew(SBox)
 					.HAlign(HAlign_Fill)
 					.VAlign(VAlign_Fill)
+					.WidthOverride(56.0f)
+					.HeightOverride(56.0f)
 					[
-						SNew(SBox)
-						.HAlign(HAlign_Fill)
-						.VAlign(VAlign_Fill)
-						[
-							SNew(SImage)
-							.Image(FShooterStyle::Get().GetBrush("ShooterGame.ProfileBorder"))
-						]
-					]
-					+ SOverlay::Slot()
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SBox)
-						.HAlign(HAlign_Fill)
-						.VAlign(VAlign_Fill)
-						.WidthOverride(56.0f)
-						.HeightOverride(56.0f)
-						[
-							SNew(SImage) // Coins Icon	
-							.Image(FShooterStyle::Get().GetBrush("ShooterGame.Coins"))
-						]
+						SNew(SImage) // Coins Icon	
+						.Image(FShooterStyle::Get().GetBrush("ShooterGame.VirtualCoin"))
 					]
 				]
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Margin(FMargin(-8.0f, 0, 0, 0))
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")
-				.Text(this, &SShooterCoinsWidget::GetBalanceText)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Margin(FMargin(8.0f, 0, 0, 0))
+					.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")
+					.Text(this, &SShooterCoinsWidget::GetBalanceText)
+				]
 			]
 		]
 	];

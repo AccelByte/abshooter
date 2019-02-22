@@ -80,6 +80,10 @@ struct FShooterMenuStyle : public FSlateWidgetStyle
 	UMaterialInterface* LobbyBackground;
 	UPROPERTY(EditAnywhere, Category=Background)
 	UMaterialInterface* OptionBackground;
+	UPROPERTY(EditAnywhere, Category = Background)
+	UMaterialInterface* InventoryBackground;
+	UPROPERTY(EditAnywhere, Category = Background)
+	UMaterialInterface* StoreBackground;
 };
 
 

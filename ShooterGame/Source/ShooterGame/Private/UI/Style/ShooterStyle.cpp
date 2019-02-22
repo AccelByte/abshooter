@@ -45,6 +45,8 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 
 	// Load the coins icon
 	Style.Set("ShooterGame.Coins", new IMAGE_BRUSH("Images/CoinsIcon", FVector2D(32, 32)));
+	Style.Set("ShooterGame.VirtualCoin", new IMAGE_BRUSH("Images/VirtualCoinIcon", FVector2D(32, 32)));
+	Style.Set("ShooterGame.Avatar", new IMAGE_BRUSH("Images/avatar", FVector2D(64, 64)));
 
 	// Load the image icon to be used for displaying when a image loading
 	Style.Set("ShooterGame.Image", new IMAGE_BRUSH("Images/ImageIcon", FVector2D(32, 32)));

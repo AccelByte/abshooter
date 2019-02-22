@@ -90,24 +90,26 @@ public:
     float GetLobbyHeight(float DivideBy) const;
 	float GetLobbyWidth(float DivideBy) const;
 
-    bool CheckDisplayName(FString UserID) 
+    bool CheckDisplayName(const FString& UserID) const
     {
         return DiplayNameListCache->Contains(UserID);
     }
-    FString GetDisplayName(FString UserID)
+    FString GetDisplayName(const FString& UserID) const
     {
         return (*DiplayNameListCache)[UserID];
     }
 
-    bool CheckAvatar(FString UserID)
+    bool CheckAvatar(const FString& UserID) const
     {
         return ThumbnailBrushCache.Contains(UserID);
     }
 
-    TSharedPtr<FSlateDynamicImageBrush> GetAvatar(FString UserID)
+    TSharedPtr<FSlateDynamicImageBrush> GetAvatar(const FString& UserID) const
     {
         return ThumbnailBrushCache[UserID];
     }
+
+	FSlateBrush* GetAvatarOrDefault(const FString& UserId) const;
 
     void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID);
     TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);

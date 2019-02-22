@@ -581,7 +581,7 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
 	bIsPartyLeader = (PartyInfo.LeaderId == GetCurrentUserID());
 
     FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;
-    FSlateBrush* LeaderAvatar = CheckAvatar(PartyInfo.LeaderId) ? GetAvatar(PartyInfo.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+    FSlateBrush* LeaderAvatar = GetAvatarOrDefault(PartyInfo.LeaderId);
 
     PartyWidget->InsertLeader(PartyInfo.LeaderId, LeaderDisplayName, LeaderAvatar);
     for (FString MemberId : PartyInfo.Members)
@@ -589,7 +589,7 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
         if (MemberId != PartyInfo.LeaderId)
         {
             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
-            FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+            FSlateBrush* MemberAvatar = GetAvatarOrDefault(MemberId);
             PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
         }
     }
@@ -603,7 +603,7 @@ void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Not
 {   
     // show popup
     FString DisplayName = CheckDisplayName(Notification.UserId) ? GetDisplayName(Notification.UserId) : Notification.UserId;
-    FSlateBrush* MemberAvatar = CheckAvatar(Notification.UserId) ? GetAvatar(Notification.UserId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+	FSlateBrush* MemberAvatar = GetAvatarOrDefault(Notification.UserId);
     FString NotificationMessage = FString::Printf(TEXT("%s has join the party"), *DisplayName);
     TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
         .NotificationMessage(NotificationMessage)
@@ -656,7 +656,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                     PartyWidget->ResetAll();
                 
                     FString LeaderDisplayName = CheckDisplayName(Response.LeaderId) ? GetDisplayName(Response.LeaderId) : Response.LeaderId;
-                    FSlateBrush* LeaderAvatar = CheckAvatar(Response.LeaderId) ? GetAvatar(Response.LeaderId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+					FSlateBrush* LeaderAvatar = GetAvatarOrDefault(Response.LeaderId);
 
                     PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar);
                     for (FString MemberId : Response.Members)
@@ -664,7 +664,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                         if (MemberId != Response.LeaderId)
                         {
                             FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
-                            FSlateBrush* MemberAvatar = CheckAvatar(MemberId) ? GetAvatar(MemberId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+							FSlateBrush* MemberAvatar = GetAvatarOrDefault(MemberId);
 
                             PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
                         }
@@ -703,7 +703,7 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 		LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
         CurrentPartyID = TEXT("");
 
-        FSlateBrush* MemberAvatar = CheckAvatar(CurrentUserID) ? GetAvatar(CurrentUserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+		FSlateBrush* MemberAvatar = GetAvatarOrDefault(CurrentUserID);
         // show popup
         FString NotificationMessage = FString::Printf(TEXT("You has been kicked from party"));
         TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
@@ -728,7 +728,7 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 
         // show popup
         FString DisplayName = CheckDisplayName(KickInfo.UserId) ? GetDisplayName(KickInfo.UserId) : KickInfo.UserId;
-        FSlateBrush* MemberAvatar = CheckAvatar(KickInfo.UserId) ? GetAvatar(KickInfo.UserId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+		FSlateBrush* MemberAvatar = GetAvatarOrDefault(KickInfo.UserId);
 
         FString NotificationMessage = FString::Printf(TEXT("%s has been kicked from party"), *DisplayName);
         TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
@@ -760,7 +760,7 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 
     // show popup
     FString DisplayName = CheckDisplayName(LeaveInfo.UserID) ? GetDisplayName(LeaveInfo.UserID) : LeaveInfo.UserID;
-    FSlateBrush* MemberAvatar = CheckAvatar(LeaveInfo.UserID) ? GetAvatar(LeaveInfo.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+	FSlateBrush* MemberAvatar = GetAvatarOrDefault(LeaveInfo.UserID);
     FString NotificationMessage = FString::Printf(TEXT("%s has left party"), *DisplayName);
     TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
         .NotificationMessage(NotificationMessage)
@@ -827,7 +827,7 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
         }
 
         FString DisplayName = CheckDisplayName(Response.UserID) ? GetDisplayName(Response.UserID) : Response.UserID;
-        FSlateBrush* MemberAvatar = CheckAvatar(Response.UserID) ? GetAvatar(Response.UserID).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+		FSlateBrush* MemberAvatar = GetAvatarOrDefault(Response.UserID);
 
 		// show popup
 		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *DisplayName);
@@ -1178,6 +1178,18 @@ FReply SLobby::OnRequestFriend()
 	return FReply::Handled();
 }
 
+FSlateBrush* SLobby::GetAvatarOrDefault(const FString& UserId) const
+{
+	//if (CheckAvatar(UserId))
+	//{
+	//	return GetAvatar(UserId).Get();
+	//}
+	//else
+	//{
+		return (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Avatar");
+	//}
+}
+
 void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID)
 {
     if (bWasSuccessful && Response.IsValid())
@@ -1413,14 +1425,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		}
 
 		const FSlateBrush* GetProfileAvatar() const {
-			if (ParentClass.Pin()->CheckAvatar(Item->Name))
-			{
-				return ParentClass.Pin()->GetAvatar(Item->Name).Get();
-			}
-			else
-			{
-                return FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
-			}
+			return ParentClass.Pin()->GetAvatarOrDefault(Item->Name);
 		}
 
 		FText GetName() const 
@@ -1604,7 +1609,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
 			RefreshFriendList();
-			FSlateBrush* FriendAvatar = CheckAvatar(Response.friendId) ? GetAvatar(Response.friendId).Get() : (FSlateBrush*)FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+			FSlateBrush* FriendAvatar = GetAvatarOrDefault(Response.friendId);
 
 			FString NotificationMessage = FString::Printf(TEXT("%s accept your friend request!"), (User.EmailAddress == TEXT(""))? *User.EmailAddress : *User.DisplayName);
 			TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)

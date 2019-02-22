@@ -48,65 +48,63 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 	MenuHeaderHeight = 62.0f;
 	MenuHeaderWidth = 287.0f;
 
-
 	ChildSlot
-	[	
-		SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.HAlign(HAlign_Right)
-		.VAlign(VAlign_Top)
-		.Padding(TAttribute<FMargin>(this, &SShooterUserProfileWidget::GetMenuOffset))
+	.HAlign(HAlign_Right)
+	.VAlign(VAlign_Fill)
+	[
+		SNew(SOverlay)
+		+ SOverlay::Slot()
 		[
-			SNew(SOverlay)
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Left)
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.FillHeight(0.063f)
+			+ SVerticalBox::Slot()
+			.FillHeight(0.937f)
 			.VAlign(VAlign_Top)
 			[
-				SNew(SBox) // box kiri, buat border image
-				.WidthOverride(84.0f)
-				.HeightOverride(84.0f)
-				[
-					SNew(SImage) // gambar avatar, klo bisa dari URL				
-					.Image(FShooterStyle::Get().GetBrush("ShooterGame.ProfileBorder"))
-				]
-			]
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Center)
-			.VAlign(VAlign_Center)
-			[
-				SNew(SBox) // box kiri, buat gambar profile			
-				.WidthOverride(56.0f)
+				SNew(SBox)
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
 				.HeightOverride(56.0f)
 				[
-					SNew(SImage) // gambar avatar, klo bisa dari URL				
-					.Image(this, &SShooterUserProfileWidget::GetProfileAvatar)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Fill)
+					[
+						SNew(SBox)
+						.HAlign(HAlign_Fill)
+						.VAlign(VAlign_Fill)
+						.WidthOverride(56.0f)
+						.HeightOverride(56.0f)
+						[
+							SNew(SImage)
+							.Image(this, &SShooterUserProfileWidget::GetProfileAvatar)
+						]
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Center)
+					.Padding(0, 0, 200, 0)
+					[
+						SNew(STextBlock)
+						.Margin(FMargin(8.0f, 0, 0, 0))
+						.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")
+						.Text(this, &SShooterUserProfileWidget::GetProfileName)
+					]
 				]
 			]
 		]
-
-		+ SHorizontalBox::Slot()
-		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Fill)
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Bottom)
+		.Padding(0, 0, 40, 40)
 		[
-			SNew(SVerticalBox)
-			
-			+SVerticalBox::Slot()
-			.VAlign(VAlign_Top)
-			.Padding(15.f, 85.f, 0.f, 0.f)
-			[
-				SNew(STextBlock)
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")				
-				.Text(this, &SShooterUserProfileWidget::GetProfileName)
-			]
-
-			+SVerticalBox::Slot()
-			.VAlign(VAlign_Bottom)
-			.Padding(0, 0, 0, 30.f)
-			[
-				SAssignNew(EscapeMainMenuInfo, SImage)
-				.Image(&MenuStyle->EscapeMainMenuInfo)
-				.Visibility(EVisibility::Hidden)
-			]
+			SAssignNew(EscapeMainMenuInfo, SImage)
+			.Image(&MenuStyle->EscapeMainMenuInfo)
+			.Visibility(EVisibility::Hidden)
 		]
 	];
 }
@@ -143,10 +141,10 @@ EVisibility SShooterUserProfileWidget::GetProfileSwapVisibility() const
 
 const FSlateBrush* SShooterUserProfileWidget::GetProfileAvatar() const
 {
-	if(ThumbnailBrush.IsValid())
-		return ThumbnailBrush.Get();
+	/*if(ThumbnailBrush.IsValid())
+		return ThumbnailBrush.Get();*/
 
-	return FShooterStyle::Get().GetBrush("ShooterGame.Speaker");
+	return FShooterStyle::Get().GetBrush("ShooterGame.Avatar");
 }
 
 FText SShooterUserProfileWidget::GetProfileName() const

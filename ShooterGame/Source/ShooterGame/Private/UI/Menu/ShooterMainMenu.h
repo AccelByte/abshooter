@@ -9,6 +9,7 @@
 #include "Widgets/SShooterServerList.h"
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
+#include "Widgets/SShooterStore.h"
 #include "Widgets/SShooterLeaderboard.h"
 #include "Widgets/SLobby.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
@@ -112,6 +113,9 @@ protected:
 	/** inventory widget */
 	TSharedPtr<class SShooterInventory> InventoryWidget;
 
+	/** store widget */
+	TSharedPtr<class SShooterStore> StoreWidget;
+
     /** Screenshot widget */
     TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
     /** yet another custom menu */
@@ -132,6 +136,9 @@ protected:
 
 	/** Custom inventory menu */
 	TSharedPtr<class FShooterMenuItem> InventoryItem;
+
+	/** Store menu */
+	TSharedPtr<class FShooterMenuItem> StoreItem;
 
 	/** LAN Options */
 	TSharedPtr<class FShooterMenuItem> HostLANItem;
@@ -255,6 +262,9 @@ protected:
 
 	/** Show inventory */
 	void OnShowInventory();
+
+	/** Show store */
+	void OnShowStore();
 
     /** Show screenshot */
     void OnShowScreenshot();

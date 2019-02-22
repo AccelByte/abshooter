@@ -6,14 +6,20 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Http.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
+#include "Utils/ImageUtils.h"
+
+DECLARE_DELEGATE_OneParam(FOnBuyItem, TSharedPtr<FInventoryEntry>);
 
 //class declare
-class SShooterInventoryItem : public STableRow< TSharedPtr<FInventoryEntry> >
+class SShooterStoreItem : public STableRow< TSharedPtr<FInventoryEntry> >
 {
 public:
-	SLATE_BEGIN_ARGS(SShooterInventoryItem){}
+	SLATE_BEGIN_ARGS(SShooterStoreItem){}
 	/** end of slate attributes definition */
+	SLATE_EVENT(FOnBuyItem, OnBuyItem)
 	SLATE_END_ARGS()
+
+	~SShooterStoreItem();
 
 	/** needed for every widget */
 	void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakObjectPtr<class ULocalPlayer> PlayerOwner, TSharedPtr<FInventoryEntry> InItem);
@@ -33,8 +39,13 @@ private:
 
 	/** style for the inventory */
 	const struct FShooterInventoryStyle *InventoryStyle;
+	const struct FShooterStoreStyle *StoreStyle;
 
 	TSharedRef<SWidget> GetPriceWidget(const FInventoryEntry * item) const;
+
+	TSharedRef<SWidget> GetLeftWidget(const FInventoryEntry * item) const;
+
+	FString GetPriceString(const FInventoryEntry * item) const;
 
 	/** get content image*/
 	const FSlateBrush* GetImage() const;
@@ -54,4 +65,10 @@ private:
 
 	/** getter for cart icon visibility */
 	EVisibility GetCartIconVisibility() const;
+
+	FOnBuyItem OnBuyItem;
+
+	FReply OnBuyItemClick() const;
+
+	void OnReceivedImage(TSharedPtr<const FSlateBrush> Image);
 };
