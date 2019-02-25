@@ -1179,7 +1179,7 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 
 	SavedScreenshotList[Index]->State = UPLOADING;
 
-	auto OnSuccess = AccelByte::Api::CloudStorage::FCreateSlotSuccess::CreateLambda([&, Index](const FAccelByteModelsSlot& Output) {
+	auto OnSuccess = AccelByte::THandler<FAccelByteModelsSlot>::CreateLambda([&, Index](const FAccelByteModelsSlot& Output) {
 		if (Output.Checksum == LocalSlots[Index].Checksum)
 		{
 			UE_LOG(LogTemp, Log, TEXT("File successfully saved, Index: %d, SlotID :%s"), Index, *Output.SlotId);
@@ -1434,17 +1434,19 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString Cont
     return Brush;
 }
 
-void SShooterScreenshot::LoadSingleSlot(FAccelByteModelsSlot Slot, int32 SlotIndex)
+void SShooterScreenshot::LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 SlotIndex)
 {
     SavedScreenshotList[SlotIndex]->State = DOWNLOADING;
-    auto OnSuccess = AccelByte::Api::CloudStorage::FGetSlotSuccess::CreateSP(this, &SShooterScreenshot::OnReceiveSlotImage, Slot, SlotIndex);
+	auto OnSuccess = AccelByte::THandler<TArray<uint8>>::CreateLambda([&, Slot, SlotIndex](const TArray<uint8>& Result) {
+		OnReceiveSlotImage(Result, Slot, SlotIndex);
+	});
     AccelByte::Api::CloudStorage::GetSlot(Slot.SlotId, OnSuccess,
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
     }));
 }
 
-void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, FAccelByteModelsSlot Slot, int32 SlotIndex)
+void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex)
 {
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
 	auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
@@ -1483,7 +1485,7 @@ void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s"), *SlotID);
 
     AccelByte::Api::CloudStorage::DeleteSlot(SlotID, 
-        AccelByte::Api::CloudStorage::FDeleteSlotSuccess::CreateLambda([&, SlotID]() {
+        AccelByte::FVoidHandler::CreateLambda([&, SlotID]() {
             
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s SUCCESS, updating the slot tile..."), *SlotID);
         for (int i = 0; i < SavedScreenshotList.Num(); i++)
@@ -1587,7 +1589,7 @@ void SShooterScreenshot::RefreshFromCloud()
 		}
 	}
 
-    AccelByte::Api::CloudStorage::GetAllSlots(AccelByte::Api::CloudStorage::FGetAllSlotsSuccess::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
+    AccelByte::Api::CloudStorage::GetAllSlots(AccelByte::THandler<TArray<FAccelByteModelsSlot>>::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
         for (int i = 0; i < Result.Num(); i++)
         {
             FAccelByteModelsSlot Slot = Result[i];

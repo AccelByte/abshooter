@@ -7,13 +7,18 @@
 #include "CoreMinimal.h"
 #include "Http.h"
 #include "JsonUtilities.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "UnrealTypeTraits.h"
 
 #include <unordered_map>
 
 #include "AccelByteError.generated.h"
 
+DECLARE_DYNAMIC_DELEGATE(FDHandler);
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FDErrorHandler, int32, ErrorCode, const FString&, ErrorMessage);
+
 USTRUCT(BlueprintType)
-struct ACCELBYTEUE4SDK_API FAccelByteModelsErrorEntity
+struct ACCELBYTEUE4SDK_API FErrorInfo
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
@@ -27,7 +32,9 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsErrorEntity
 namespace AccelByte
 {
 
-DECLARE_DELEGATE_TwoParams(FErrorHandler, int32 /* ErrorCode */, const FString& /* ErrorMessage */);
+template <class T> using THandler = TBaseDelegate<void, const T&>;
+using FVoidHandler = TBaseDelegate<void>;
+using FErrorHandler = TBaseDelegate<void, int32 /*ErrorCode*/, const FString& /* ErrorMessage */>;
 
 UENUM(BlueprintType)
 enum class ErrorCodes : int32
@@ -260,8 +267,11 @@ enum class ErrorCodes : int32
 		
 	UnknownError = 14000,
 	JsonDeserializationFailed = 14001,
+	EmptyResponse = 14002,
 	WebSocketConnectFailed = 14201,
 };
+
+
 
 class ErrorMessages
 {
@@ -272,7 +282,63 @@ public:
 	const static std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> Default;
 };
 
+
+
 ACCELBYTEUE4SDK_API void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage);
 
-} // Namespace AccelByte
+inline void HandleHttpResultOk(FHttpResponsePtr Response, const FVoidHandler& OnSuccess)
+{
+	OnSuccess.ExecuteIfBound();
+}
 
+template<class T>
+inline void HandleHttpResultOk(FHttpResponsePtr Response, const THandler<TArray<T>>& OnSuccess)
+{
+	TArray<T> Result;
+	FJsonObjectConverter::JsonArrayStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
+
+	OnSuccess.ExecuteIfBound(Result);
+}
+
+template<>
+inline void HandleHttpResultOk<uint8>(FHttpResponsePtr Response, const THandler<TArray<uint8>>& OnSuccess)
+{
+	OnSuccess.ExecuteIfBound(Response->GetContent());
+}
+
+template<class T>
+inline void HandleHttpResultOk(FHttpResponsePtr Response, const THandler<T>& OnSuccess)
+{
+	std::remove_const<std::remove_reference<T>::type>::type Result;
+	FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
+
+	OnSuccess.ExecuteIfBound(Result);
+}
+
+template<>
+inline void HandleHttpResultOk<FString>(FHttpResponsePtr Response, const THandler<FString>& OnSuccess)
+{
+	OnSuccess.ExecuteIfBound(Response->GetContentAsString());
+}
+
+template<class T>
+FHttpRequestCompleteDelegate CreateHttpResultHandler(const T& OnSuccess, const FErrorHandler& OnError)
+{
+	return FHttpRequestCompleteDelegate::CreateLambda(
+		[OnSuccess, OnError]
+		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
+		{
+			if (Response && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+			{
+				HandleHttpResultOk(Response, OnSuccess);
+				return;
+			}
+
+			int32 Code;
+			FString Message;
+			HandleHttpError(Request, Response, Code, Message);
+			OnError.ExecuteIfBound(Code, Message);
+		});
+}
+
+} // Namespace AccelByte

@@ -1455,7 +1455,7 @@ void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUse
 void FShooterMainMenu::RefreshWallet()
 {
 	AccelByte::Api::Wallet::GetWalletInfoByCurrencyCode(TEXT("ShooterGameCoin"),
-		AccelByte::Api::Wallet::FGetWalletByCurrencyCodeSuccess::CreateSP(this, &FShooterMainMenu::OnGetWalletSuccess),
+		AccelByte::THandler<FAccelByteModelsWalletInfo>::CreateSP(this, &FShooterMainMenu::OnGetWalletSuccess),
 		FErrorHandler::CreateSP(this, &FShooterMainMenu::OnGetWalletError));
 }
 

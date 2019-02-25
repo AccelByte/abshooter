@@ -214,7 +214,7 @@ public:
 	void ResetPlayTogetherInfo() { PlayTogetherInfo = FShooterPlayTogetherInfo(); }
 
 	FAccelByteModelsUserProfileInfo UserProfileInfo;
-    FAccelByteModelsOauth2Token UserToken;
+	FOauth2Token UserToken;
 
 private:
 
