@@ -4,6 +4,7 @@
 #include "ShooterMainMenu.h"
 #include "ShooterGameLoadingScreen.h"
 #include "ShooterStyle.h"
+#include "ShooterMenuWidgetStyle.h"
 #include "ShooterMenuSoundsWidgetStyle.h"
 #include "ShooterGameInstance.h"
 #include "SlateBasics.h"
@@ -17,6 +18,8 @@
 #include "ShooterGameViewportClient.h"
 #include "ShooterPersistentUser.h"
 #include "Player/ShooterLocalPlayer.h"
+#include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "Engine/World.h"
 // accelbyte
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
@@ -74,8 +77,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 	OnCancelMatchmakingCompleteDelegate = FOnCancelMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnCancelMatchmakingComplete);
 	OnMatchmakingCompleteDelegate = FOnMatchmakingCompleteDelegate::CreateSP(this, &FShooterMainMenu::OnMatchmakingComplete);
-    OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &FShooterMainMenu::OnFriendOnlineResponse);
-    AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+    
 	RefreshWallet();
 
 	// read user settings
@@ -353,42 +355,42 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		}
 
 #else
-		TSharedPtr<FShooterMenuItem> MenuItem;
-		// HOST menu option
-		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Host", "HOST"));
+		//TSharedPtr<FShooterMenuItem> MenuItem;
+		//// HOST menu option
+		//MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Host", "HOST"));
 
-		// submenu under "host"
-		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "FREE FOR ALL"), this, &FShooterMainMenu::OnUIHostFreeForAll);
-		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("TDMLong", "TEAM DEATHMATCH"), this, &FShooterMainMenu::OnUIHostTeamDeathMatch);
+		//// submenu under "host"
+		//MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "FREE FOR ALL"), this, &FShooterMainMenu::OnUIHostFreeForAll);
+		//MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("TDMLong", "TEAM DEATHMATCH"), this, &FShooterMainMenu::OnUIHostTeamDeathMatch);
 
-		TSharedPtr<FShooterMenuItem> NumberOfBotsOption = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("NumberOfBots", "NUMBER OF BOTS"), BotsCountList, this, &FShooterMainMenu::BotCountOptionChanged);
-		NumberOfBotsOption->SelectedMultiChoice = BotsCountOpt;
+		//TSharedPtr<FShooterMenuItem> NumberOfBotsOption = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("NumberOfBots", "NUMBER OF BOTS"), BotsCountList, this, &FShooterMainMenu::BotCountOptionChanged);
+		//NumberOfBotsOption->SelectedMultiChoice = BotsCountOpt;
 
-		HostOnlineMapOption = MenuHelper::AddMenuOption(MenuItem, LOCTEXT("SELECTED_LEVEL", "Map"), MapList);
+		//HostOnlineMapOption = MenuHelper::AddMenuOption(MenuItem, LOCTEXT("SELECTED_LEVEL", "Map"), MapList);
 
-		HostLANItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("LanMatch", "LAN"), OnOffList, this, &FShooterMainMenu::LanMatchChanged);
-		HostLANItem->SelectedMultiChoice = bIsLanMatch;
+		//HostLANItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("LanMatch", "LAN"), OnOffList, this, &FShooterMainMenu::LanMatchChanged);
+		//HostLANItem->SelectedMultiChoice = bIsLanMatch;
 
-		RecordDemoItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("RecordDemo", "Record Demo"), OnOffList, this, &FShooterMainMenu::RecordDemoChanged);
-		RecordDemoItem->SelectedMultiChoice = bIsRecordingDemo;
+		//RecordDemoItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("RecordDemo", "Record Demo"), OnOffList, this, &FShooterMainMenu::RecordDemoChanged);
+		//RecordDemoItem->SelectedMultiChoice = bIsRecordingDemo;
 
-		// JOIN menu option
-		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Join", "JOIN"));
+		//// JOIN menu option
+		//MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Join", "JOIN"));
 
-		// submenu under "join"
-		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("Server", "SERVER"), this, &FShooterMainMenu::OnJoinServer);
-		JoinLANItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("LanMatch", "LAN"), OnOffList, this, &FShooterMainMenu::LanMatchChanged);
-		JoinLANItem->SelectedMultiChoice = bIsLanMatch;
+		//// submenu under "join"
+		//MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("Server", "SERVER"), this, &FShooterMainMenu::OnJoinServer);
+		//JoinLANItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("LanMatch", "LAN"), OnOffList, this, &FShooterMainMenu::LanMatchChanged);
+		//JoinLANItem->SelectedMultiChoice = bIsLanMatch;
 
-		DedicatedItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("Dedicated", "Dedicated"), OnOffList, this, &FShooterMainMenu::DedicatedServerChanged);
-		DedicatedItem->SelectedMultiChoice = bIsDedicatedServer;
+		//DedicatedItem = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("Dedicated", "Dedicated"), OnOffList, this, &FShooterMainMenu::DedicatedServerChanged);
+		//DedicatedItem->SelectedMultiChoice = bIsDedicatedServer;
 
-		// Server list widget that will be called up if appropriate
-		MenuHelper::AddCustomMenuItem(JoinServerItem,SAssignNew(ServerListWidget,SShooterServerList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+		//// Server list widget that will be called up if appropriate
+		//MenuHelper::AddCustomMenuItem(JoinServerItem,SAssignNew(ServerListWidget,SShooterServerList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 #endif
 		// Lobby
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Lobby", "LOBBY"), this, &FShooterMainMenu::OnShowLobby);
-		MenuHelper::AddCustomMenuItem(FriendItem, SAssignNew(FriendListWidget, SLobby)
+		MenuHelper::AddCustomMenuItem(LobbyMenuItem, SAssignNew(LobbyWidget, SLobby)
 			.OwnerWidget(MenuWidget)
 			.PlayerOwner(GetPlayerOwner())
 			.OnStartMatch_Lambda([&] {
@@ -398,8 +400,8 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			}));
 
 		// Leaderboards
-		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Leaderboards", "LEADERBOARDS"), this, &FShooterMainMenu::OnShowLeaderboard);
-		MenuHelper::AddCustomMenuItem(LeaderboardItem,SAssignNew(LeaderboardWidget,SShooterLeaderboard).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+		//MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Leaderboards", "LEADERBOARDS"), this, &FShooterMainMenu::OnShowLeaderboard);
+		//MenuHelper::AddCustomMenuItem(LeaderboardItem,SAssignNew(LeaderboardWidget,SShooterLeaderboard).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 
 #if !SHOOTER_CONSOLE_UI
 
@@ -418,7 +420,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		// Options
 		MenuHelper::AddExistingMenuItem(RootMenuItem, ShooterOptions->OptionsItem.ToSharedRef());
-
+		ShooterOptions->OptionsItem->OnConfirmMenuItem.BindSP(this, &FShooterMainMenu::OnShowOption);
 		if(FSlateApplication::Get().SupportsSystemHelp())
 		{
 			TSharedPtr<FShooterMenuItem> HelpSubMenu = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Help", "HELP"));
@@ -465,13 +467,13 @@ void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FStri
 	UserProfileWidget->UserName = FText::FromString(Username);
 	UserProfileWidget->UserID = FText::FromString(UserID);
 	UserProfileWidget->UpdateAvatar(AvatarURL);
-    FriendListWidget->SetCurrentUser(UserID, Username, AvatarURL);
+    LobbyWidget->SetCurrentUser(UserID, Username, AvatarURL);
 }
 
 void FShooterMainMenu::UpdateUserProfileFromCache(FString Username, FString UserID, FString AvatarPath)
 {
     UserProfileWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
-    FriendListWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
+    LobbyWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
 }
 
 void FShooterMainMenu::RemoveMenuFromGameViewport()
@@ -571,7 +573,6 @@ void FShooterMainMenu::OnMenuHidden()
 	RemoveMenuFromGameViewport();
 #endif
 }
-
 
 void FShooterMainMenu::OnQuickMatchSelectedLoginRequired()
 {
@@ -1107,6 +1108,7 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	if (ShooterOptions->OptionsItem->SubMenu == Menu)
 	{
 		ShooterOptions->RevertChanges();
+		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
 	}
 
 	// In case a Play Together event was received, don't act on it
@@ -1125,6 +1127,18 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	if (InventoryItem->SubMenu == Menu)
 	{
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
+		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
+	}
+
+	if (LobbyMenuItem->SubMenu == Menu)
+	{
+		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
+	}
+
+	if (ScreenshotItem->SubMenu == Menu)
+	{
+		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
+
 	}
 }
 
@@ -1427,28 +1441,51 @@ void FShooterMainMenu::OnShowLeaderboard()
 
 void FShooterMainMenu::OnShowLobby()
 {
-	AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
+	if (!AccelByte::FRegistry::Lobby.IsConnected())
+	{
+		AccelByte::FRegistry::Lobby.Connect();
+		return;
+	}
+
+	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
+	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+	ChangeBackground(MenuStyle->LobbyBackground);
+
 	AccelByte::FRegistry::Lobby.LoadFriendsList();
 	AccelByte::FRegistry::Lobby.ListIncomingFriends();
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+	MenuWidget->NextMenu = LobbyMenuItem->SubMenu;
+	MenuWidget->EnterSubMenu();
 }
 
-void FShooterMainMenu::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
+void FShooterMainMenu::OnShowOption()
 {
-    UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu::OnFriendOnlineResponse] Found Online friends"));
-    MenuWidget->NextMenu = FriendItem->SubMenu;    
-    FriendListWidget->InitializeFriends();
-    for (int i = 0; i < Response.friendsId.Num(); i++)
-    {
-        if (Response.activity[i] == "Shooter Game")
-        {
-            FString UserID = Response.friendsId[i];
-            FriendListWidget->AddFriend(UserID, UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"));
-        }
-    }
-    FriendListWidget->RefreshFriendList();
-    FriendListWidget->UpdateSearchStatus();
-    MenuWidget->EnterSubMenu();
+	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
+	MenuWidget->NextMenu = ShooterOptions->OptionsItem->SubMenu;
+	MenuWidget->EnterSubMenu();
 
+	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+	ChangeBackground(MenuStyle->OptionBackground);
+}
+
+void FShooterMainMenu::ChangeBackground(UMaterialInterface* Material)
+{
+	UWorld* const World = GameInstance.IsValid() ? GameInstance->GetWorld() : nullptr;
+	for (TActorIterator<AStaticMeshActor> Iterator(World); Iterator; ++Iterator)
+	{
+		AStaticMeshActor *Current = *Iterator;
+		if (Current->GetName().Contains(TEXT("EditorPlane")))
+		{
+			if (Material)
+			{
+				UMaterialInterface* Mat = Iterator->GetStaticMeshComponent()->CreateDynamicMaterialInstance(0, Material);
+				if (Mat)
+				{
+					Current->GetStaticMeshComponent()->CreateAndSetMaterialInstanceDynamicFromMaterial(0, Mat);
+				}
+			}
+		}
+	}
 
 }
 
@@ -1476,6 +1513,7 @@ void FShooterMainMenu::OnShowInventory()
 	InventoryWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
+	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::OnShowScreenshot()
@@ -1484,6 +1522,7 @@ void FShooterMainMenu::OnShowScreenshot()
     ScreenshotWidget->MainMenuMode();
     ScreenshotWidget->RefreshFromCloud();
     MenuWidget->EnterSubMenu();    
+	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::OnUIQuit()

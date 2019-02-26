@@ -1,3 +1,7 @@
+// Copyright (c) 2019 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
 #pragma once
 
 #include "SlateBasics.h"
@@ -17,6 +21,11 @@
 #include "Api/AccelByteLobbyApi.h"
 #include "Core/AccelByteRegistry.h"
 
+#include "SLobbyParty.h"
+#include "SLobbyChat.h"
+#include "SLobbyChatPage.h"
+#include "SLobbyChatTabButton.h"
+
 struct FFriendEntry
 {
 	FString UserId;
@@ -25,506 +34,13 @@ struct FFriendEntry
 	FString AvatarSmallUrl;
 };
 
-DECLARE_DELEGATE_OneParam(FOnClickedChatTabButton, int32);
-
-class SChatTabButton : public SButton
-{
-public:
-	SLATE_BEGIN_ARGS(SChatTabButton)
-	{}
-	SLATE_DEFAULT_SLOT(FArguments, Content)
-		SLATE_ARGUMENT(int32, TabIndex)
-		SLATE_ARGUMENT(FString, UserId)
-        SLATE_ARGUMENT(FString, PartyId)
-        SLATE_ARGUMENT(FString, DisplayName)
-		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-		SLATE_EVENT(FOnClickedChatTabButton, OnClicked)
-
-		SLATE_END_ARGS()
-
-	int32 TabIndex = 0;
-	FString UserId = TEXT("");
-    FString PartyId = TEXT("");
-    FString DisplayName = TEXT("");
-	FOnClickedChatTabButton OnChatTabClicked;
-	FTextBlockStyle ActiveTextStyle;
-	FTextBlockStyle PassiveTextStyle;
-	TSharedPtr<FTextBlockStyle> CurrentTextStyle = MakeShareable(new FTextBlockStyle());
-	TSharedPtr<STextBlock> TextWidget;
-
-	void Construct(const FArguments& InArgs)
-	{		
-		OnChatTabClicked = InArgs._OnClicked;
-		TabIndex = InArgs._TabIndex;
-		ActiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextStyle;
-		PassiveTextStyle = (InArgs._LobbyStyle)->ChatTabTextDisabledStyle;
-		UserId = InArgs._UserId;
-        PartyId = InArgs._PartyId;
-        DisplayName = InArgs._DisplayName;
-
-		SButton::Construct(
-			SButton::FArguments()
-			.ButtonStyle(&(InArgs._LobbyStyle)->ChatTabButtonStyle)
-			.OnClicked(this, &SChatTabButton::InternalOnClicked)
-			.IsEnabled(true)
-			[
-				SAssignNew(TextWidget, STextBlock)
-				.TextStyle(&ActiveTextStyle)
-				.Text(FText::FromString(DisplayName))
-			]
-		);
-	}
-
-	void Selected() 
-	{
-		UE_LOG(LogTemp, Log, TEXT("Button %s is selected"), *UserId);
-		this->SetEnabled(false);
-		TextWidget->SetTextStyle(&PassiveTextStyle);
-	};
-
-	void NotSelected()
-	{
-		UE_LOG(LogTemp, Log, TEXT("Button %s is deselected"), *UserId);
-		this->SetEnabled(true);
-		TextWidget->SetTextStyle(&ActiveTextStyle);
-	};
-
-	FReply InternalOnClicked()
-	{
-		OnChatTabClicked.ExecuteIfBound(TabIndex);
-		return FReply::Handled();
-	}
-	
-};
-
-DECLARE_DELEGATE_TwoParams(FOnTextCommited, FString, FString);
-DECLARE_DELEGATE_TwoParams(FOnSendButtonPressed, FString, FString);
-
-class SChatPage : public SVerticalBox 
-{
-public:
-	SLATE_BEGIN_ARGS(SChatPage)
-	{}
-	SLATE_DEFAULT_SLOT(FArguments, Content)
-		SLATE_ARGUMENT(FString, UserId)
-        SLATE_ARGUMENT(FString, PartyId)
-        SLATE_ARGUMENT(FString, DisplayName)
-		SLATE_ARGUMENT(int32, ChatPageIndex)
-		SLATE_EVENT(FOnTextCommited, OnTextComitted)
-		SLATE_EVENT(FOnSendButtonPressed, OnSendButtonPressed)
-		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-	SLATE_END_ARGS()
-
-	TSharedPtr<SScrollBox> ConversationScrollBox;
-	FTextBlockStyle ConversationTextStyle;
-	int32 ChatPageIndex;
-	FString UserId;
-    FString PartyId;
-    FString DisplayName;
-	FOnTextCommited OnTextCommited;
-	FOnSendButtonPressed OnSendButtonPressed;
-	TSharedPtr<SEditableTextBox> InputTextBox;
-
-	void Construct(const FArguments& InArgs)
-	{
-		ChatPageIndex = InArgs._ChatPageIndex;
-		UserId = InArgs._UserId;
-        PartyId = InArgs._PartyId;
-        DisplayName = InArgs._DisplayName;
-		ConversationTextStyle = InArgs._LobbyStyle->ConversationTextStyle;
-		OnTextCommited = InArgs._OnTextComitted;
-		OnSendButtonPressed = InArgs._OnSendButtonPressed;
-
-		SVerticalBox::Construct(
-			SVerticalBox::FArguments()		
-			+ SVerticalBox::Slot()	//ChatScrollBox conversation
-			.FillHeight(1.0f)
-			.VAlign(VAlign_Fill)
-			[
-				SAssignNew(ConversationScrollBox, SScrollBox)
-				.Style(&(InArgs._LobbyStyle)->ConversationScrollBoxStyle)
-				.Orientation(EOrientation::Orient_Vertical)
-				.ScrollBarAlwaysVisible(true)
-				.ScrollBarStyle(&(InArgs._LobbyStyle)->ConversationScrollBarStyle)
-			]
-
-			+ SVerticalBox::Slot()	//ChatInputArea
-			.AutoHeight()
-			[
-				SNew(SHorizontalBox)
-
-				+ SHorizontalBox::Slot()	//ChatInput
-				.FillWidth(1.0f)
-				[
-					SNew(SOverlay)
-
-					+ SOverlay::Slot()		//ChatInput TypeBackGround
-					[
-						SNew(SImage)
-						.Image(&InArgs._LobbyStyle->ConversationInputBackgroundBrush)
-					]
-
-					+ SOverlay::Slot()		//ChatInput Input
-					.VAlign(VAlign_Center)
-					[
-						SAssignNew(InputTextBox, SEditableTextBox)
-						.Style(&InArgs._LobbyStyle->ConversationInputTextStyle)
-						.OnTextCommitted(this, &SChatPage::OnEditableTextBoxCommit)
-						.ClearKeyboardFocusOnCommit(false)
-					]
-				]
-
-				+ SHorizontalBox::Slot()	//SendButton
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.ButtonStyle(&InArgs._LobbyStyle->ConversationInputSendButtonStyle)
-					.OnClicked(this, &SChatPage::OnButtonPressed)
-				]
-
-			]
-		);
-	}
-
-	void AppendConversation(FString UserName, FString Message)
-	{
-		TSharedPtr<SMultiLineEditableText> Text;
-		FString FormatText = FString::Printf(TEXT("[%s] : %s"), *UserName, *Message);
-		ConversationScrollBox->AddSlot()
-			.VAlign(VAlign_Top)
-			.AttachWidget
-			(
-				SAssignNew (Text, SMultiLineEditableText)
-				.Justification(ETextJustify::Left)
-				.TextStyle(&ConversationTextStyle)
-				.Text(FText::FromString(FormatText))
-				.AutoWrapText(true)
-			);
-		ConversationScrollBox->ScrollDescendantIntoView(Text);
-	}
-
-	void ResetConversation()
-	{
-
-	}
-
-	void OnEditableTextBoxCommit(const FText& Text, ETextCommit::Type Type)
-	{
-		if (Type == ETextCommit::Type::OnEnter)
-		{
-			OnTextCommited.ExecuteIfBound(!this->UserId.IsEmpty() ? this->UserId : this->PartyId, Text.ToString());
-			this->InputTextBox->SetText(FText::FromString(TEXT("")));
-		}
-	}
-
-	FReply OnButtonPressed()
-	{
-		this->OnSendButtonPressed.ExecuteIfBound(!this->UserId.IsEmpty() ? this->UserId : this->PartyId, InputTextBox->GetText().ToString());
-		this->InputTextBox->SetText(FText::FromString(TEXT("")));
-		return FReply::Handled();
-	}
-};
-
-class SPartyMember : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS(SPartyMember)
-	{}
-	SLATE_DEFAULT_SLOT(FArguments, Content)
-	SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-	SLATE_END_ARGS()
-
-	TSharedPtr<SImage> LeaderBadge;
-    TSharedPtr<SImage> ProfilePicture;
-	TSharedPtr<STextBlock> Name;
-	TSharedPtr<SButton> KickButton;
-	TSharedPtr<SImage> NoMemberImage;
-	FString UserId;
-	FButtonStyle LeavePartyMemberButton;
-	FButtonStyle KickPartyMemberButton;
-
-	bool bMySelf = false;
-	bool bIsOccupied = false;
-
-	void Construct(const FArguments& InArgs)
-	{
-		LeavePartyMemberButton = InArgs._LobbyStyle->LeavePartyMemberButton;
-		KickPartyMemberButton = InArgs._LobbyStyle->KickPartyMemberButton;
-
-		ChildSlot
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
-			[
-
-				SNew(SOverlay)
-
-				+ SOverlay::Slot()			//MainInfo
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					SNew(SHorizontalBox)
-
-					+ SHorizontalBox::Slot()			//LeaderBadge
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Top)
-					.AutoWidth()
-					[
-						SAssignNew(LeaderBadge, SImage)
-						.Image(&InArgs._LobbyStyle->PartyLeaderIcon)
-						
-					]
-
-					+ SHorizontalBox::Slot()			//Profile
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Center)
-					.FillWidth(1.0f)
-					[
-						SNew(SHorizontalBox)
-
-						+ SHorizontalBox::Slot()			//Picture
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)                        
-						.AutoWidth()
-						[
-                            SNew(SBox)
-                            .HeightOverride(56)
-                            .WidthOverride(56)
-                            [
-                                SAssignNew(ProfilePicture, SImage)
-                            ]                            
-						]
-
-						+ SHorizontalBox::Slot()			//Name
-						.HAlign(HAlign_Fill)
-						.VAlign(VAlign_Center)
-						.FillWidth(1.0f)
-						[
-							SAssignNew(Name, STextBlock)
-						]
-					]
-
-					+ SHorizontalBox::Slot()			//Kick
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Top)
-					.AutoWidth()
-					[
-						SAssignNew(KickButton, SButton)
-						.HAlign(HAlign_Center)
-						.VAlign(VAlign_Center)
-						.OnClicked(this, &SPartyMember::OnKickButtonClicked)
-						.ButtonStyle(&InArgs._LobbyStyle->LeavePartyMemberButton)
-					]
-				]
-
-				+ SOverlay::Slot()			//NoMemberYet
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					SAssignNew(NoMemberImage, SImage)
-					.Image(&InArgs._LobbyStyle->UnoccupiedPartySlot)
-				]
-			
-			];
-	}
-
-	void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush)
-	{
-		UserId = ID;
-		Name->SetText(FText::FromString(DisplayName));
-        ProfilePicture->SetImage(AvatarBrush);
-
-		LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
-		KickButton->SetVisibility(!IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
-		NoMemberImage->SetVisibility(EVisibility::Collapsed);
-		bIsOccupied = true;
-	}
-
-	void Release()
-	{
-		bIsOccupied = false;
-		Name->SetText(FString::Printf(TEXT("")));
-		NoMemberImage->SetVisibility(EVisibility::Visible);
-	}
-
-	FReply OnKickButtonClicked()
-	{
-		if (bMySelf)
-		{
-			AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
-		}
-		else
-		{
-			AccelByte::FRegistry::Lobby.SendKickPartyMemberRequest(UserId);
-			AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-		}
-		return FReply::Handled();
-	}
-
-	void UpdateButtonStyleMode()
-	{
-		if (bMySelf)
-		{
-			KickButton->SetButtonStyle(&LeavePartyMemberButton);
-		}
-		else
-		{
-			KickButton->SetButtonStyle(&KickPartyMemberButton);
-		}
-	}
-};
-
-class SParty: public SOverlay
-{
-public:
-	SLATE_BEGIN_ARGS(SParty)
-	{}
-	SLATE_DEFAULT_SLOT(FArguments, Content)
-		SLATE_STYLE_ARGUMENT(FLobbyStyle, LobbyStyle)
-		SLATE_END_ARGS()
-
-	TSharedPtr<SPartyMember> Leader;
-	TSharedPtr<SPartyMember> Member1;
-	TSharedPtr<SPartyMember> Member2;
-	TSharedPtr<SPartyMember> Member3;
-	TSharedPtr<SButton> ButtonCreateParty;
-	TArray<TSharedPtr<SPartyMember>> PartyMembers;
-
-	void Construct(const FArguments& InArgs)
-	{
-		SOverlay::Construct(
-			SOverlay::FArguments()
-			+SOverlay::Slot()	//hold party members
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()		
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				.FillHeight(1.0f)
-				[
-					SNew(SHorizontalBox)		//member 0 (lead) + member 1
-
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Fill)
-					.FillWidth(1.0f)
-					[
-						SAssignNew(Leader, SPartyMember)
-						.LobbyStyle(InArgs._LobbyStyle)
-					]
-
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Fill)
-					.FillWidth(1.0f)
-					[
-						SAssignNew(Member1, SPartyMember)
-						.LobbyStyle(InArgs._LobbyStyle)
-					]
-				]
-
-				+ SVerticalBox::Slot()		
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				.FillHeight(1.0f)
-				[
-					SNew(SHorizontalBox)		//member 2 + member 3
-
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Fill)
-					.FillWidth(1.0f)
-					[
-						SAssignNew(Member2, SPartyMember)
-						.LobbyStyle(InArgs._LobbyStyle)
-					]
-
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Fill)
-					.FillWidth(1.0f)
-					[
-						SAssignNew(Member3, SPartyMember)
-						.LobbyStyle(InArgs._LobbyStyle)
-					]
-				]
-			]
-
-			+SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SAssignNew(ButtonCreateParty, SButton)
-				.HAlign(HAlign_Center)
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString(TEXT("CREATE PARTY")))
-					.Justification(ETextJustify::Center)
-					.TextStyle(&((InArgs._LobbyStyle)->UserNameTextStyle))
-				]
-			]
-		);
-		PartyMembers.Add(Leader);
-		PartyMembers.Add(Member1);
-		PartyMembers.Add(Member2);
-		PartyMembers.Add(Member3);
-		ButtonCreateParty->SetOnClicked(FOnClicked::CreateLambda([&]()
-		{
-			AccelByte::FRegistry::Lobby.SendCreatePartyRequest();
-			ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
-			return FReply::Handled();
-		}));
-	}
-
-	void InsertMember(FString ID, FString DisplayName, FSlateBrush* AvatarBrush, bool bMyself)
-	{
-		for(int i = 1; i < 4; i++)
-		{
-			if (!PartyMembers[i]->bIsOccupied)
-			{
-				PartyMembers[i]->Set(ID, false, DisplayName, AvatarBrush);
-				PartyMembers[i]->bMySelf = bMyself;
-				PartyMembers[i]->UpdateButtonStyleMode();
-				break;
-			}
-		}
-	}
-
-	void InsertLeader(FString ID, FString DisplayName, FSlateBrush* AvatarBrush)
-	{
-		PartyMembers[0]->Set(ID, true, DisplayName, AvatarBrush);
-	}
-
-	void ResetAll()
-	{
-		for (auto a : PartyMembers)
-		{
-			a->Release();
-		}
-		ButtonCreateParty->SetVisibility(EVisibility::Visible);
-
-	}
-
-	int32 GetCurrentPartySize()
-	{
-		int32 Counter = 0;
-		for (int i = 0; i < 4; i++)
-		{
-			Counter += (PartyMembers[i]->bIsOccupied);
-		}
-		return Counter;
-	}
-};
-
 //class declare
 class SLobby : public SCompoundWidget
 {
 public:
 	DECLARE_DELEGATE(FOnStartMatch)
 
-    SLobby();
+	SLobby();
 
 	SLATE_BEGIN_ARGS(SLobby)
 	{}
@@ -545,17 +61,11 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-	// Searchbar text commit / change
-	void OnTextSearchChanged(const FText& Text);
 	FReply OnRequestFriend();
 
 	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
 	void EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo);
-    void OnListItemDoubleClicked();
-
-	void InputReceived();
-
 	void UpdateSearchStatus();
     void InitializeFriends();
     void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
@@ -563,30 +73,22 @@ public:
     FString GetCurrentUserID();
     void AddFriend(FString UserID, FString DisplayName, FString Avatar);
     void RefreshFriendList();
-	void BeginFriendSearch();
-	void OnFriendSearchFinished();
 	void UpdateFriendList();
 
 	void MoveSelection(int32 MoveBy);
 
 	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+	
+	TSharedPtr<SLobbyChat> LobbyChatWidget;
 
-    void AddChatTab(FString UserId, FString DisplayName, FString PartyId);
-    void RemovePartyChatTab(FString PartyId);
-
-    void InviteToParty(FString UserId);
     typedef TMap<FString, FString> ProfileCache;
 
     TSharedPtr < ProfileCache, ESPMode::ThreadSafe > AvatarListCache;
     TSharedPtr < ProfileCache, ESPMode::ThreadSafe > DiplayNameListCache;
     TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  ThumbnailBrushCache;
-    /** screen resolution */
     FIntPoint ScreenRes;
-
-    FOptionalSize GetLobbyHeight() const;
-    int32 GetLobbyWidth() const;
-
-
+    float GetLobbyHeight(float DivideBy) const;
+	float GetLobbyWidth(float DivideBy) const;
 
     bool CheckDisplayName(FString UserID) 
     {
@@ -622,12 +124,11 @@ protected:
 	TSharedPtr<SEditableTextBox> FriendSearchBar;
 	TArray< TSharedPtr<FFriendEntry> > FriendList;
 	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
-	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > FriendListWidget;
+	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > LobbyWidget;
 	TSharedPtr<FFriendEntry> SelectedItem;
-	FText GetBottomText() const;
-	FText StatusText;
+	
 	FString MapFilterName;
-	int32 BoxWidth;
+	
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
 	TSharedPtr<class SWidget> OwnerWidget;
 	TSharedPtr<SScrollBar> FriendScrollBar;
@@ -650,28 +151,7 @@ protected:
 	FString DedicatedServerAddress;
 #pragma endregion Matchmaking
 
-#pragma region CHAT
-
-	int32 ActiveTabIndex;
-	int32 ScrollBoxTabCount = 0;
-	TSharedPtr<SButton> ButtonChatTabScrollRight;
-	TSharedPtr<SButton> ButtonChatTabScrollLeft;
-	TSharedPtr<SScrollBox> ScrollBoxChatTabs;
-	TSharedPtr<SWidgetSwitcher> ChatPageSwitcher;
-	TArray<TSharedPtr<SChatPage>> LobbyChatPages;
-	TArray<TSharedPtr<SChatTabButton>> LobbyChatTabButtons;
-	TSharedPtr<SWidget> GetActiveChatTabWidget();
-	FReply OnChatTabScrollRightClicked();
-	FReply OnChatTabScrollLeftClicked();
-	void SelectTab(int32 TabIndex);
-	void SendPrivateChat(FString UserId, FString Message);
-    void SendPartyChat(FString PartyId, FString Message);
-
-	void OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response);
-    void OnReceivePartyChat(const FAccelByteModelsPartyMessageNotice& Response);
     void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
-
-#pragma endregion CHAT
 
 public:
 #pragma region PARTY
@@ -689,4 +169,5 @@ public:
 
 	TSharedPtr<SOverlay> NotificationOverlay;
 	void OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification);
+	void OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 };

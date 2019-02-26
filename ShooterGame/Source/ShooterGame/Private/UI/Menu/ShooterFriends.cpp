@@ -110,10 +110,10 @@ void FShooterFriends::OnFriendsUpdated(int32 /*unused*/, bool bWasSuccessful, co
 	{
 		for (const TSharedRef<FOnlineFriend> Friend : Friends)
 		{
-			TSharedRef<FShooterMenuItem> FriendItem = MenuHelper::AddMenuItem(FriendsItem, FText::FromString(Friend->GetDisplayName()));
-			FriendItem->OnControllerFacebuttonDownPressed.BindSP(this, &FShooterFriends::ViewSelectedFriendProfile);
-			FriendItem->OnControllerDownInputPressed.BindSP(this, &FShooterFriends::IncrementFriendsCounter);
-			FriendItem->OnControllerUpInputPressed.BindSP(this, &FShooterFriends::DecrementFriendsCounter);
+			TSharedRef<FShooterMenuItem> LobbyMenuItem = MenuHelper::AddMenuItem(FriendsItem, FText::FromString(Friend->GetDisplayName()));
+			LobbyMenuItem->OnControllerFacebuttonDownPressed.BindSP(this, &FShooterFriends::ViewSelectedFriendProfile);
+			LobbyMenuItem->OnControllerDownInputPressed.BindSP(this, &FShooterFriends::IncrementFriendsCounter);
+			LobbyMenuItem->OnControllerUpInputPressed.BindSP(this, &FShooterFriends::DecrementFriendsCounter);
 		}
 
 		MaxFriendIndex = Friends.Num() - 1;

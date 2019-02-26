@@ -2,6 +2,7 @@
 
 #include "ShooterGame.h"
 #include "Engine/Console.h"
+#include "ShooterGameInstance.h"
 #include "SShooterMenuWidget.h"
 #include "ShooterMenuItem.h"
 #include "SShooterMenuItem.h"
@@ -12,6 +13,7 @@
 #include "Player/ShooterLocalPlayer.h"
 #include "ShooterGameUserSettings.h"
 #include "Slate/SceneViewport.h"
+#include "LobbyStyle.h"
 
 #define LOCTEXT_NAMESPACE "SShooterMenuWidget"
 
@@ -62,27 +64,6 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SOverlay)
-					+ SOverlay::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Fill)
-					[
-						SNew(SBox)
-						.WidthOverride(MenuHeaderWidth)
-						.HeightOverride(MenuHeaderHeight)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						[
-							SNew(STextBlock)
-							.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
-							.ColorAndOpacity(MenuTitleTextColor)
-							.Text(this,&SShooterMenuWidget::GetMenuTitle)
-						]
-					]
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
 					SNew(SBorder)
 					.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 					.ColorAndOpacity(this, &SShooterMenuWidget::GetBottomColor)
@@ -95,15 +76,13 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 						[
 							SNew(SVerticalBox)
 							.Clipping(EWidgetClipping::ClipToBounds)
-
 							+ SVerticalBox::Slot()
 							.AutoHeight()
 							.Padding(TAttribute<FMargin>(this,&SShooterMenuWidget::GetLeftMenuOffset))
 							[
 								SNew(SBorder)
-								.BorderImage(&MenuStyle->LeftBackgroundBrush)								 
-								.Padding(FMargin(OutlineWidth))
 								.DesiredSizeScale(this, &SShooterMenuWidget::GetBottomScale)
+								.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 								.VAlign(VAlign_Top)
 								.HAlign(HAlign_Left)
 								[
@@ -458,6 +437,25 @@ void SShooterMenuWidget::EnterSubMenu()
 
 void SShooterMenuWidget::MenuGoBack(bool bSilent)
 {
+	TWeakObjectPtr<UShooterGameInstance> GameInstance = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
+	UWorld* const World = GameInstance.IsValid() ? GameInstance->GetWorld() : nullptr;
+	for (TActorIterator<AStaticMeshActor> Iterator(World); Iterator; ++Iterator)
+	{
+		AStaticMeshActor *Current = *Iterator;
+		if (Current->GetName().Contains(TEXT("EditorPlane")))
+		{
+			const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+			if (LobbyStyle->LobbyMaterial)
+			{
+				UMaterialInterface* Mat = Iterator->GetStaticMeshComponent()->CreateDynamicMaterialInstance(0, LobbyStyle->MainMenuMaterial);
+				if (Mat)
+				{
+					Current->GetStaticMeshComponent()->CreateAndSetMaterialInstanceDynamicFromMaterial(0, Mat);
+				}
+			}
+		}
+	}
+
 	if (MenuHistory.Num() > 0)
 	{
 		if (!bSilent)
@@ -633,7 +631,7 @@ void SShooterMenuWidget::Tick( const FGeometry& AllottedGeometry, const double I
 FMargin SShooterMenuWidget::GetMenuOffset() const
 {
 	const float WidgetWidth = LeftBox->GetDesiredSize().X;// +RightBox->GetDesiredSize().X;
-	const float WidgetHeight = LeftBox->GetDesiredSize().Y + MenuHeaderHeight;
+	const float WidgetHeight = LeftBox->GetDesiredSize().Y;// + MenuHeaderHeight;
 	const float OffsetX = (ScreenRes.X - WidgetWidth - OutlineWidth*2)/2;
 	const float AnimProgress = ButtonsPosXCurve.GetLerp();
 	FMargin Result;

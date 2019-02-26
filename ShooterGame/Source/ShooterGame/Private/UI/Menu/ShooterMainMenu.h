@@ -102,9 +102,9 @@ protected:
 	TSharedPtr<class SShooterServerList> ServerListWidget;
 
 	/** lobby friend list widget */
-	TSharedPtr<class SLobby> FriendListWidget;
+	TSharedPtr<class SLobby> LobbyWidget;
 	/** yet another custom menu */
-	TSharedPtr<class FShooterMenuItem> FriendItem;
+	TSharedPtr<class FShooterMenuItem> LobbyMenuItem;
 
 	/** demo list widget */
 	TSharedPtr<class SShooterDemoList> DemoListWidget;
@@ -248,6 +248,8 @@ protected:
 
 	void OnShowLobby();
 
+	void OnShowOption();
+
 	/** Show leaderboard */
 	void OnShowLeaderboard();
 
@@ -256,6 +258,8 @@ protected:
 
     /** Show screenshot */
     void OnShowScreenshot();
+
+	void ChangeBackground(UMaterialInterface* Material);
 
 	/** Plays sound and calls Quit */
 	void OnUIQuit();
@@ -329,8 +333,6 @@ protected:
 	FOnMatchmakingCompleteDelegate OnMatchmakingCompleteDelegate;
 
 	// ACCELBYTE
-    AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
-    void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 	void RefreshWallet();
 	void OnGetWalletSuccess(const FAccelByteModelsWalletInfo& Response);
 	void OnGetWalletError(int32 Code, const FString& Message);

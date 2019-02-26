@@ -70,6 +70,16 @@ struct FShooterMenuStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Sound)
 	FSlateSound MenuItemChangeSound;
 	FShooterMenuStyle& SetMenuItemChangeSound(const FSlateSound& InMenuItemChangeSound) { MenuItemChangeSound = InMenuItemChangeSound; return *this; }
+
+	UPROPERTY(EditAnywhere, Category=Misc)
+	FSlateBrush EscapeMainMenuInfo;
+
+	UPROPERTY(EditAnywhere, Category=Background)
+	UMaterialInterface* MainBackground;
+	UPROPERTY(EditAnywhere, Category=Background)
+	UMaterialInterface* LobbyBackground;
+	UPROPERTY(EditAnywhere, Category=Background)
+	UMaterialInterface* OptionBackground;
 };
 
 

@@ -141,6 +141,7 @@ public:
 
 	FText UserName;
 	FText UserID;
+	TSharedPtr<SImage> EscapeMainMenuInfo;
 
 	void UpdateAvatar(FString Url);
     void SetCurrentUserFromCache(FString _UserID, FString DisplayName, FString AvatarPath);
