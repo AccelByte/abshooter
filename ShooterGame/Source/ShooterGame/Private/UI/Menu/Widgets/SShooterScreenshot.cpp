@@ -1169,7 +1169,7 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 	LoadScreenshotImage(Index, ImageData);
 
 	FString Label = SavedScreenshotList[Index]->Title;
-	FString Tags = FString::Printf(TEXT("SaveIndex=%d"), Index);
+	FString Tags = FString::Printf(TEXT("SlotIndex=%d"), Index);
 	FString SlotId = LocalSlots[Index].SlotId;
 
 	LocalSlots[Index].Status = STATUS_PENDING;
@@ -1556,7 +1556,7 @@ void SShooterScreenshot::RefreshFromCloud()
 {
 	if (!IsScreenshotMetadataExists())
 	{
-		for (int i = 0; i < SAVE_SLOT_SIZE; i++)
+		for (int i = LocalSlots.Num(); i < SAVE_SLOT_SIZE; i++)
 		{
 			FAccelByteModelsSlot EmptySlot;
 			EmptySlot.Tags.Add(FString::Printf(TEXT("SlotIndex=%d"), i));
@@ -1571,19 +1571,29 @@ void SShooterScreenshot::RefreshFromCloud()
 	for (int i = 0; i < LocalSlots.Num(); i++)
 	{
 		FAccelByteModelsSlot LocalSlot = LocalSlots[i];
-		if (!LocalSlot.SlotId.IsEmpty())
+		bool Pending = LocalSlot.Status == STATUS_PENDING;
+		if (!LocalSlot.SlotId.IsEmpty() || Pending)
 		{
 			SavedScreenshotList[i]->Checksum = LocalSlot.Checksum;
 			SavedScreenshotList[i]->SlotID = LocalSlot.SlotId;
 			SavedScreenshotList[i]->Title = LocalSlot.Label;
-			SavedScreenshotList[i]->State = NONE;
+			SavedScreenshotList[i]->State = Pending ? ERROR_UPLOAD : NONE;
 			TArray<uint8> ImageData;
 			if (LoadScreenshotImage(i, ImageData))
 			{
-				SavedScreenshotList[i]->Image = CreateBrush(TEXT("png"), FName(*LocalSlot.SlotId), ImageData);
+				FString Name;
+				if (Name.IsEmpty())
+				{
+					Name = FString::Printf(TEXT("Screenshot-%d-%d"), i, FMath::Rand());
+				}
+				else
+				{
+					Name = FString::Printf(TEXT("%s-%d"), *LocalSlot.SlotId, FMath::Rand());
+				}
+				SavedScreenshotList[i]->Image = CreateBrush(TEXT("png"), FName(*Name), ImageData);
 				if (SavedScreenshotList[i]->Image.IsValid())
 				{
-					SavedScreenshotList[i]->State = NONE;
+					SavedScreenshotList[i]->State = Pending ? ERROR_UPLOAD : NONE;
 				}
 			}
 		}
@@ -1638,7 +1648,7 @@ void SShooterScreenshot::RefreshFromCloud()
 						// load to empty slot
 						if (SavedSlot->SlotID.IsEmpty() && SavedSlot->State == NONE)
 						{
-							LocalSlots[j] = Result[j];
+							LocalSlots[j] = Result[i];
 							LoadSingleSlot(Slot, j);
 							break;
 						}

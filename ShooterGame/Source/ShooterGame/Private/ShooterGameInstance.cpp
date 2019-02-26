@@ -806,7 +806,7 @@ void UShooterGameInstance::BeginMainMenuState()
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Started"));
     
     // check cache first
-    FString CurrentUserID = UserToken.User_id;
+    FString CurrentUserID = UserProfileInfo.UserId = UserToken.User_id;
     IFileManager& FileManager = IFileManager::Get();
     FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *CurrentUserID);
     if (FileManager.FileExists(*CacheTextDir))
