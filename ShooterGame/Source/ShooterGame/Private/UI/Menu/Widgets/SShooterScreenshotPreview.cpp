@@ -1,5 +1,10 @@
+// Copyright (c) 2018-2019 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
 #include "SShooterScreenshotPreview.h"
 #include "ShooterStyle.h"
+#include "GalleryStyle.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "SShooterScreenshotPreview.h"
 
@@ -11,6 +16,8 @@ void SShooterScreenshotPreview::Construct(const FArguments& InArgs)
 	OwnerWidget = InArgs._OwnerWidget;
 	Image = InArgs._Image;
 
+	GalleryStyle = &FShooterStyle::Get().GetWidgetStyle<FGalleryStyle>("DefaultGalleryMenuStyle");
+
 	ChildSlot
 	.VAlign(VAlign_Fill)
 	.HAlign(HAlign_Fill)
@@ -21,15 +28,15 @@ void SShooterScreenshotPreview::Construct(const FArguments& InArgs)
 		.HAlign(HAlign_Fill)
 		[
 			SNew(SImage)
-			.Image(&SShooterScreenshotPreview_BackgroundImage)
+			.Image(&GalleryStyle->PreviewImageBackground)
 		]
 		+ SOverlay::Slot()
 		.VAlign(VAlign_Top)
 		.HAlign(HAlign_Right)
 		[
 			SNew(SBox)
-			.WidthOverride(32)
-			.HeightOverride(32)
+			.WidthOverride(48)
+			.HeightOverride(48)
 			[
 				SNew(SButton) // close button
 				.VAlign(VAlign_Fill)
@@ -38,10 +45,7 @@ void SShooterScreenshotPreview::Construct(const FArguments& InArgs)
 					GEngine->GameViewport->RemoveViewportWidgetContent(AsShared());
 					return FReply::Handled();
 				}))
-				[
-					SNew(SImage)
-					.Image(FShooterStyle::Get().GetBrush("ShooterGame.Close"))
-				]
+				.ButtonStyle(&GalleryStyle->ClosePreviewButtonStyle)
 			]
 		]
 		+ SOverlay::Slot()

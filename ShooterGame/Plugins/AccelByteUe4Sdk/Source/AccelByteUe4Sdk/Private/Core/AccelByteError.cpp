@@ -237,10 +237,12 @@ const std::unordered_map<std::underlying_type<ErrorCodes>::type, FString> ErrorM
 	{ static_cast<int32>(ErrorCodes::OffenseTypeNotFoundException), TEXT("errors.net.accelbyte.platform.offensereport.offense_type_not_found") },
 	{ static_cast<int32>(ErrorCodes::OffenseTypeAlreadyExistsException), TEXT("errors.net.accelbyte.platform.offensereport.offense_type_already_exists") },
 	{ static_cast<int32>(ErrorCodes::OffenseReportAssociatedException), TEXT("errors.net.accelbyte.platform.offensereport.offense_report_associated") },
-		
+	//
+	//Client side Error Code List
+	//
 	{ static_cast<int32>(ErrorCodes::UnknownError), TEXT("Unknown error.") },
 	{ static_cast<int32>(ErrorCodes::JsonDeserializationFailed), TEXT("JSON deserialization failed.") },
-	{ static_cast<int32>(ErrorCodes::EmptyResponse), TEXT("Empty response.") },
+	{ static_cast<int32>(ErrorCodes::NetworkError), TEXT("There is no response.") },
 	{ static_cast<int32>(ErrorCodes::WebSocketConnectFailed), TEXT("WebSocket connect failed.") },
 
 
@@ -251,7 +253,7 @@ void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& Ou
 	FErrorInfo Error;
 	int32 Code = 0;
 	OutMessage = "";
-	if (Response)
+	if (Response.IsValid())
 	{
 		if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0))
 		{
@@ -264,7 +266,7 @@ void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& Ou
 	}
 	else
 	{
-		Code = (int32)ErrorCodes::EmptyResponse;
+		Code = (int32)ErrorCodes::NetworkError;
 	}
 
 	auto it = ErrorMessages::Default.find(Code);

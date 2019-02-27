@@ -86,6 +86,8 @@ struct FShooterMenuStyle : public FSlateWidgetStyle
 	UMaterialInterface* StoreBackground;
 	UPROPERTY(EditAnywhere, Category=Background)
 	UMaterialInterface* CrashTestBackground;
+	UPROPERTY(EditAnywhere, Category=Background)
+	UMaterialInterface* GalleryBackground;
 };
 
 
