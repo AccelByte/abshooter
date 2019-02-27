@@ -20,6 +20,19 @@ struct FLobbyStyle : public FSlateWidgetStyle
 
 	static const FLobbyStyle& GetDefault();
 
+	UPROPERTY(EditAnywhere, Category = Background)
+	FSlateBrush LobbyBackground;
+	UPROPERTY(EditAnywhere, Category = Background)
+	UMaterialInterface* LobbyMaterial;
+	UPROPERTY(EditAnywhere, Category = Background)
+	UMaterialInterface* MainMenuMaterial;
+
+	UPROPERTY(EditAnywhere, Category = FriendList)
+	FSlateBrush FriendListBackground;
+
+	UPROPERTY(EditAnywhere, Category = FriendList)
+	FSlateBrush SearchBarBackground;
+
 	UPROPERTY(EditAnywhere, Category = FriendList)
 	FEditableTextBoxStyle SearchBarStyle;
 	FLobbyStyle& SetSearchBarStyle(const FEditableTextBoxStyle& InSearchBarStyle) { SearchBarStyle = InSearchBarStyle; return *this; }
@@ -43,12 +56,20 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category = FriendEntry)
 	FButtonStyle InviteButtonStyle;
 	UPROPERTY(EditAnywhere, Category = FriendEntry)
+	FButtonStyle ChatButtonStyle;
+	UPROPERTY(EditAnywhere, Category = FriendEntry)
+	FButtonStyle UnfriendButtonStyle;
+	UPROPERTY(EditAnywhere, Category = FriendList)
+	FButtonStyle AddFriendButtonStyle;
+	UPROPERTY(EditAnywhere, Category = FriendEntry)
 	FTableRowStyle FriendRowStyle;
 
 	UPROPERTY(EditAnywhere, Category = Chat)
-	FSlateBrush ChatTabLeftButtonStyle;
+	FSlateBrush ChatAreaBackground;
 	UPROPERTY(EditAnywhere, Category = Chat)
-	FSlateBrush ChatTabRightButtonStyle;
+	FButtonStyle ChatTabLeftButtonStyle;
+	UPROPERTY(EditAnywhere, Category = Chat)
+	FButtonStyle ChatTabRightButtonStyle;
 	UPROPERTY(EditAnywhere, Category = Chat)
 	FButtonStyle ChatTabButtonStyle;
 	UPROPERTY(EditAnywhere, Category = Chat)
@@ -76,6 +97,10 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category = Party)
 	FSlateBrush UnoccupiedPartySlot;
 	UPROPERTY(EditAnywhere, Category = Party)
+	FSlateBrush MemberBoxPartySlot;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FSlateBrush LeaderBoxPartySlot;
+	UPROPERTY(EditAnywhere, Category = Party)
 	FSlateBrush PartyInvitationBackground;
 	UPROPERTY(EditAnywhere, Category = Party)
 	FButtonStyle KickPartyMemberButton;
@@ -83,6 +108,10 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	FButtonStyle LeavePartyMemberButton;
 	UPROPERTY(EditAnywhere, Category = Party)
 	FButtonStyle CreatePartyMemberButton;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FButtonStyle StartMatchButton;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FSlateBrush WarningMatchImage;
 
 };
 

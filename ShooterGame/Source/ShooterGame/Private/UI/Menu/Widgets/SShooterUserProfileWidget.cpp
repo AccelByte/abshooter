@@ -82,34 +82,31 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 					.Image(this, &SShooterUserProfileWidget::GetProfileAvatar)
 				]
 			]
-
 		]
+
 		+ SHorizontalBox::Slot()
 		.HAlign(HAlign_Left)
-		.VAlign(VAlign_Top)
+		.VAlign(VAlign_Fill)
 		[
-			SNew(SVerticalBox)					
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Bottom)
-			.Padding(15.0f, 70.0f, 0.0f, 0.0f)
+			SNew(SVerticalBox)
+			
+			+SVerticalBox::Slot()
+			.VAlign(VAlign_Top)
+			.Padding(15.f, 85.f, 0.f, 0.f)
 			[
 				SNew(STextBlock)
 				.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")				
 				.Text(this, &SShooterUserProfileWidget::GetProfileName)
 			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Top)			
-			.Padding(15.0f, 0.0f, 0.0f, 0.0f)
-			[
-				SNew(STextBlock)
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.UserIDTextStyle")				
-				.Text(this, &SShooterUserProfileWidget::GetProfileUserID)
-			]
 
+			+SVerticalBox::Slot()
+			.VAlign(VAlign_Bottom)
+			.Padding(0, 0, 0, 30.f)
+			[
+				SAssignNew(EscapeMainMenuInfo, SImage)
+				.Image(&MenuStyle->EscapeMainMenuInfo)
+				.Visibility(EVisibility::Hidden)
+			]
 		]
 	];
 }
