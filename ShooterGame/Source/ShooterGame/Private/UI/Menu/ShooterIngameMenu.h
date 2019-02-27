@@ -83,4 +83,12 @@ protected:
 
 	/** Shows the system UI to invite friends to the game */
 	void OnShowInviteUI();
+
+	/** Crash Test Menu*/
+	TSharedPtr<class FShooterMenuItem> CrashTestMenuItem;
+	/** Crash Menu */
+	void OnCrashNullPointer();
+	void OnCrashIndexOOB();
+	void OnCrashDivideByZero();
+	void OnCrashWrongPlaceholder();
 };

@@ -113,8 +113,20 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 
 
 	Style.Set("ShooterGame.MenuTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 36))
+		.SetColorAndOpacity(FSlateColor(FLinearColor(80.0 / 255.0f, 246.0 / 255.0f, 255 / 255.0f)))
+		.SetShadowOffset(FIntPoint(-1,1))
+		);
+	
+	Style.Set("ShooterGame.MenuOptionTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 24))
+		.SetColorAndOpacity(FSlateColor(FLinearColor(80.0 / 255.0f, 246.0 / 255.0f, 255 / 255.0f)))
+		.SetShadowOffset(FIntPoint(-1,1))
+		);
+
+	Style.Set("ShooterGame.MenuOptionChoiceTextStyle", FTextBlockStyle()
 		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 24))
-		.SetColorAndOpacity(FLinearColor::White)
+		.SetColorAndOpacity(FSlateColor(FLinearColor::White))
 		.SetShadowOffset(FIntPoint(-1,1))
 		);
 

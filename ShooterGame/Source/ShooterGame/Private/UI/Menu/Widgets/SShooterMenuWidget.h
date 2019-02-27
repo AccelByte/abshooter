@@ -137,6 +137,9 @@ public:
 	/** if console is currently opened */
 	bool bConsoleVisible;	
 
+	/** append additional margin for each item */
+	FMargin MenuItemPadding;
+
 private:
 
 	/** sets hit test invisibility when console is up */
@@ -274,10 +277,11 @@ namespace MenuHelper
 	}
 
 	//Helper functions for creating menu items
-	FORCEINLINE TSharedRef<FShooterMenuItem> AddMenuItem(TSharedPtr<FShooterMenuItem>& MenuItem, const FText& Text)
+	FORCEINLINE TSharedRef<FShooterMenuItem> AddMenuItem(TSharedPtr<FShooterMenuItem>& MenuItem, const FText& Text, FMargin AdditionalPadding = FMargin(0, 0, 0, 0))
 	{
 		EnsureValid(MenuItem);
 		TSharedPtr<FShooterMenuItem> Item = MakeShareable(new FShooterMenuItem(Text));
+		Item->ExternalPadding = AdditionalPadding;
 		MenuItem->SubMenu.Add(Item);
 		return Item.ToSharedRef();
 	}
@@ -295,10 +299,12 @@ namespace MenuHelper
 
 	/** add standard item to menu with TSharedPtr delegate */
 	template< class UserClass >	
-	FORCEINLINE TSharedRef<FShooterMenuItem> AddMenuItemSP(TSharedPtr<FShooterMenuItem>& MenuItem, const FText& Text, UserClass* inObj, typename FShooterMenuItem::FOnConfirmMenuItem::TSPMethodDelegate< UserClass >::FMethodPtr inMethod)
+	FORCEINLINE TSharedRef<FShooterMenuItem> AddMenuItemSP(TSharedPtr<FShooterMenuItem>& MenuItem, const FText& Text, UserClass* inObj, typename FShooterMenuItem::FOnConfirmMenuItem::TSPMethodDelegate< UserClass >::FMethodPtr inMethod, FMargin AdditionalPadding = FMargin(0,0,0,0))
 	{
 		EnsureValid(MenuItem);
 		TSharedPtr<FShooterMenuItem> Item = MakeShareable(new FShooterMenuItem(Text));
+		Item->ExternalPadding = FMargin(0,0,0,0);
+		Item->ExternalPadding = AdditionalPadding;
 		Item->OnConfirmMenuItem.BindSP(inObj,inMethod);
 		MenuItem->SubMenu.Add(Item);
 		return Item.ToSharedRef();
@@ -326,10 +332,11 @@ namespace MenuHelper
 
 	/** add multi-choice item to menu with TSharedPtr delegate */
 	template< class UserClass >	
-	FORCEINLINE TSharedRef<FShooterMenuItem> AddMenuOptionSP(TSharedPtr<FShooterMenuItem>& MenuItem, const FText& Text, const TArray<FText>& OptionsList, UserClass* inObj, typename FShooterMenuItem::FOnOptionChanged::TSPMethodDelegate< UserClass >::FMethodPtr inMethod)
+	FORCEINLINE TSharedRef<FShooterMenuItem> AddMenuOptionSP(TSharedPtr<FShooterMenuItem>& MenuItem, const FText& Text, const TArray<FText>& OptionsList, UserClass* inObj, typename FShooterMenuItem::FOnOptionChanged::TSPMethodDelegate< UserClass >::FMethodPtr inMethod, FMargin AdditionalPadding = FMargin(0, 0, 0, 0))
 	{
 		EnsureValid(MenuItem);
 		TSharedPtr<FShooterMenuItem> Item = MakeShareable(new FShooterMenuItem(Text, OptionsList));
+		Item->ExternalPadding = AdditionalPadding;
 		Item->OnOptionChanged.BindSP(inObj, inMethod);
 		MenuItem->SubMenu.Add(Item);
 		return MenuItem->SubMenu.Last().ToSharedRef();

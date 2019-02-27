@@ -121,7 +121,6 @@ protected:
     /** yet another custom menu */
     TSharedPtr<class FShooterMenuItem> ScreenshotItem;
 
-
 	/** leaderboard widget */
 	TSharedPtr<class SShooterLeaderboard> LeaderboardWidget;
 

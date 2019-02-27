@@ -52,6 +52,13 @@ void FShooterIngameMenu::Construct(ULocalPlayer* _PlayerOwner)
 		MenuHelper::AddMenuItemSP(MainMenuItem,LOCTEXT("No", "NO"), this, &FShooterIngameMenu::OnCancelExitToMain);
 		MenuHelper::AddMenuItemSP(MainMenuItem,LOCTEXT("Yes", "YES"), this, &FShooterIngameMenu::OnConfirmExitToMain);		
 
+		// Crash Test
+		CrashTestMenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Crash Test", "CRASH TEST"));
+		MenuHelper::AddMenuItemSP(CrashTestMenuItem, LOCTEXT("Crash1", "NULL POINTER ACCESS"), this, &FShooterIngameMenu::OnCrashNullPointer);
+		MenuHelper::AddMenuItemSP(CrashTestMenuItem, LOCTEXT("Crash2", "INDEX OUT OF BOUND"), this, &FShooterIngameMenu::OnCrashIndexOOB);
+		MenuHelper::AddMenuItemSP(CrashTestMenuItem, LOCTEXT("Crash3", "DIVIDE BY ZERO"), this, &FShooterIngameMenu::OnCrashDivideByZero);
+		MenuHelper::AddMenuItemSP(CrashTestMenuItem, LOCTEXT("Crash4", "WRONG PLACEHOLDER"), this, &FShooterIngameMenu::OnCrashWrongPlaceholder);
+
 		ShooterOptions = MakeShareable(new FShooterOptions());
 		ShooterOptions->Construct(PlayerOwner);
 		ShooterOptions->TellInputAboutKeybindings();
@@ -309,5 +316,31 @@ int32 FShooterIngameMenu::GetOwnerUserIndex() const
 	return PlayerOwner ? PlayerOwner->GetControllerId() : 0;
 }
 
+void FShooterIngameMenu::OnCrashNullPointer()
+{
+	FString *S = NULL;
+	S->Append("Crash");
+}
+
+void FShooterIngameMenu::OnCrashIndexOOB()
+{
+	TArray<int> ArrayOfInteger;
+	ArrayOfInteger.Add(0);
+	int Crash = ArrayOfInteger[50];
+}
+
+void FShooterIngameMenu::OnCrashDivideByZero()
+{
+	float Divider = FMath::RandRange(0.f, .3f);
+	int Number = 100;
+	int Result = Number / (int)Divider;
+	GEngine->AddOnScreenDebugMessage(0, 3, FColor::Red, FString::Printf(TEXT("%d"), Result));
+}
+
+void FShooterIngameMenu::OnCrashWrongPlaceholder()
+{
+	int32 Number = 50;
+	UE_LOG(LogTemp, Log, TEXT("%s"), Number)
+}
 
 #undef LOCTEXT_NAMESPACE

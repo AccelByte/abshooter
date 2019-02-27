@@ -22,6 +22,14 @@ void SLobbyPartyMember::Construct(const FArguments& InArgs)
 		[
 
 			SNew(SOverlay)
+			
+			+ SOverlay::Slot()			//NoMemberYet
+			.HAlign(HAlign_Fill)
+			.VAlign(VAlign_Fill)
+			[
+				SAssignNew(MemberImage, SImage)
+				.Image(&LobbyStyle->UnoccupiedPartySlot)
+			]
 
 			+ SOverlay::Slot()			//MainInfo
 			.HAlign(HAlign_Fill)
@@ -85,14 +93,6 @@ void SLobbyPartyMember::Construct(const FArguments& InArgs)
 				]
 			]
 
-			+ SOverlay::Slot()			//NoMemberYet
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SAssignNew(MemberImage, SImage)
-				.Image(&LobbyStyle->UnoccupiedPartySlot)
-			]
-
 		];
 }
 
@@ -111,6 +111,7 @@ void SLobbyPartyMember::Set(FString ID, bool IsPartyLeader, FString DisplayName,
 
 void SLobbyPartyMember::Release()
 {
+	this->SetVisibility(EVisibility::Hidden);
 	bIsOccupied = false;
 	Name->SetText(FString::Printf(TEXT("")));
 	MemberImage->SetImage(&LobbyStyle->UnoccupiedPartySlot);

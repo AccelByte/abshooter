@@ -15,6 +15,7 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 	OnClicked = InArgs._OnClicked;
 	OnArrowPressed = InArgs._OnArrowPressed;
 	bIsMultichoice = InArgs._bIsMultichoice;
+	ExternalPadding = InArgs._ExternalPadding;
 	bIsActiveMenuItem = false;
 	LeftArrowVisible = EVisibility::Collapsed;
 	RightArrowVisible = EVisibility::Collapsed;
@@ -31,6 +32,7 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 	ChildSlot
 	.VAlign(VAlign_Fill)
 	.HAlign(HAlign_Fill)
+	.Padding(TAttribute<FMargin>::Create([&]() { return GetExternalPadding(); }))
 	[
 		SNew(SOverlay)
 		+ SOverlay::Slot()
@@ -38,7 +40,7 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 		.VAlign(VAlign_Fill)
 		[
 			SNew(SBox)
-			.WidthOverride(374.0f)
+			.WidthOverride(500.f)
 			.HeightOverride(23.0f)
 			[
 				SNew(SImage)
@@ -52,7 +54,7 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 		.Padding(FMargin(ItemMargin,0,0,0))
 		[
 			SAssignNew(TextWidget, STextBlock)
-			.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuTextStyle")
+			.TextStyle(FShooterStyle::Get(), bIsMultichoice ? "ShooterGame.MenuOptionTextStyle" : "ShooterGame.MenuTextStyle")
 			.ColorAndOpacity(this,&SShooterMenuItem::GetButtonTextColor)
 			.Text(Text)
 		]
@@ -67,7 +69,6 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 				SNew(SBorder)
 				.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 				.Padding(FMargin(0,0,ArrowMargin,0))
-				.Visibility(this,&SShooterMenuItem::GetLeftArrowVisibility)
 				.OnMouseButtonDown(this,&SShooterMenuItem::OnLeftArrowDown)
 				[
 					SNew(SOverlay)
@@ -76,7 +77,8 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					[
 						SNew(SImage)
-						.Image(&ItemStyle->LeftArrowImage)
+						.Image(TAttribute<const FSlateBrush*>::Create([&]() { return (GetLeftArrowVisibility() == EVisibility::Visible) ? &(ItemStyle->LeftArrowImage) : &(ItemStyle->LeftArrowImageDisabled);}))
+						.Visibility(bIsMultichoice ? EVisibility::Visible : EVisibility::Collapsed)
 					]
 				]
 			]
@@ -85,9 +87,9 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 			.Padding(TAttribute<FMargin>(this, &SShooterMenuItem::GetOptionPadding))
 			[
 				SNew(STextBlock)
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuTextStyle")
+				.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuOptionChoiceTextStyle")
 				.Visibility(bIsMultichoice ? EVisibility:: Visible : EVisibility::Collapsed )
-				.ColorAndOpacity(this,&SShooterMenuItem::GetButtonTextColor)
+				//.ColorAndOpacity(this,&SShooterMenuItem::GetButtonTextColor)
 				//.ShadowColorAndOpacity(this, &SShooterMenuItem::GetButtonTextShadowColor)
 				.Text(OptionText)
 			]
@@ -97,7 +99,6 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 				SNew(SBorder)
 				.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
 				.Padding(FMargin(ArrowMargin,0,ItemMargin,0))
-				.Visibility(this,&SShooterMenuItem::GetRightArrowVisibility)
 				.OnMouseButtonDown(this,&SShooterMenuItem::OnRightArrowDown)
 				[
 					SNew(SOverlay)
@@ -106,7 +107,8 @@ void SShooterMenuItem::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Center)
 					[
 						SNew(SImage)
-						.Image(&ItemStyle->RightArrowImage)
+						.Image(TAttribute<const FSlateBrush*>::Create([&]() { return (GetRightArrowVisibility() == EVisibility::Visible) ? &(ItemStyle->RightArrowImage) : &(ItemStyle->RightArrowImageDisabled); }))
+						.Visibility(bIsMultichoice ? EVisibility::Visible : EVisibility::Collapsed)
 					]
 				]
 			]
@@ -154,16 +156,21 @@ FMargin SShooterMenuItem::GetOptionPadding() const
 	return RightArrowVisible == EVisibility::Visible ? FMargin(0) : FMargin(0,0,ItemMargin,0);
 }
 
+FMargin SShooterMenuItem::GetExternalPadding() const
+{
+	return ExternalPadding;
+}
+
 FSlateColor SShooterMenuItem::GetButtonTextColor() const
 {
 	FLinearColor Result;
 	if (bIsActiveMenuItem)
 	{
-		Result = TextColor;
+		Result = FColor::White;
 	}
 	else
 	{
-		Result = FLinearColor(TextColor.R, TextColor.G, TextColor.B, InactiveTextAlpha);
+		Result = FLinearColor(80.0 / 255.0f, 246.0 / 255.0f, 255 / 255.0f);
 	}
 	return Result;
 }

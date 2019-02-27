@@ -312,6 +312,7 @@ void SShooterMenuWidget::BuildLeftPanel(bool bInGoingBack)
 					.PlayerOwner(PlayerOwner)
 					.OnClicked(this, &SShooterMenuWidget::ButtonClicked, i)
 					.Text(CurrentMenu[i]->GetText())
+					.ExternalPadding(CurrentMenu[i]->GetPadding())
 					.bIsMultichoice(false);
 			} 
 			else if (CurrentMenu[i]->MenuItemType == EShooterMenuItemType::MultiChoice)
@@ -381,6 +382,7 @@ void SShooterMenuWidget::BuildRightPanel()
 					.PlayerOwner(PlayerOwner)
 					.Text(NextMenu[i]->GetText())
 					.InactiveTextAlpha(0.3f)
+					.ExternalPadding(NextMenu[i]->GetPadding())
 					.bIsMultichoice(false);
 			}
 			else if (NextMenu[i]->MenuItemType == EShooterMenuItemType::MultiChoice)

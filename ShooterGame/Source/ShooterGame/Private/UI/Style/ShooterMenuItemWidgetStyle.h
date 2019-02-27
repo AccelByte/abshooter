@@ -42,6 +42,11 @@ struct FShooterMenuItemStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush RightArrowImage;
 	FShooterMenuItemStyle& SetRightArrowImage(const FSlateBrush& InRightArrowImage) { RightArrowImage = InRightArrowImage; return *this; }
+
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush LeftArrowImageDisabled;
+	UPROPERTY(EditAnywhere, Category=Appearance)
+	FSlateBrush RightArrowImageDisabled;
 };
 
 

@@ -35,6 +35,9 @@ public:
 	/** menu item text transparency when item is not active, optional argument */
 	SLATE_ARGUMENT(TOptional<float>, InactiveTextAlpha)
 
+	/** outermost padding */
+	SLATE_ARGUMENT(FMargin, ExternalPadding)
+
 	/** end of slate attributes definition */
 	SLATE_END_ARGS()
 
@@ -61,6 +64,9 @@ public:
 
 	/** set in option item to enable right arrow*/
 	EVisibility RightArrowVisible;
+
+	/** outermost padding */
+	FMargin ExternalPadding;
 
 protected:
 	/** the delegate to execute when the button is clicked */
@@ -103,6 +109,9 @@ private:
 	/** getter option padding (depends on right arrow visibility) */
 	FMargin GetOptionPadding() const;
 
+	/** getter ExternalPadding*/
+	FMargin GetExternalPadding() const;
+
 	/** calls OnArrowPressed */
 	FReply OnRightArrowDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
@@ -123,6 +132,7 @@ private:
 
 	/** style for the menu item */
 	const struct FShooterMenuItemStyle *ItemStyle;
+
 };
 
 

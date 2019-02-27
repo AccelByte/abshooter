@@ -33,6 +33,7 @@
 
 # Executables
 *.exe
+!*CrashClientHelper.exe
 *.out
 *.app
 *.ipa
