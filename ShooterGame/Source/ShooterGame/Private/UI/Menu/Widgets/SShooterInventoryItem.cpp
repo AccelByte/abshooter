@@ -4,7 +4,6 @@
 #include "ShooterInventoryWidgetStyle.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
-#include "Utils/ImageUtils.h"
 
 #define LOCTEXT_NAMESPACE "SShooterInventoryItem"
 
@@ -25,13 +24,7 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 			// image placeholder
 			ImageBrush = MakeShareable(new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/ImageIcon.png", FVector2D(96, 96)));
 
-			FShooterImageUtils::GetImage(item->ImageURL, FOnImageReceived::CreateLambda([&](TSharedPtr<const FSlateBrush> Image)
-			{
-				if (Image.IsValid())
-				{
-					ImageBrush = Image;
-				}
-			}));
+			FShooterImageUtils::GetImage(item->ImageURL, FOnImageReceived::CreateSP(this, &SShooterInventoryItem::OnReceivedImage));
 		}
 		else
 		{
@@ -254,6 +247,11 @@ EVisibility SShooterInventoryItem::GetCartIconVisibility() const
 	}
 
 	return EVisibility::Collapsed;
+}
+
+void SShooterInventoryItem::OnReceivedImage(FCacheBrush Image)
+{
+	ImageBrush = Image;
 }
 
 #undef LOCTEXT_NAMESPACE

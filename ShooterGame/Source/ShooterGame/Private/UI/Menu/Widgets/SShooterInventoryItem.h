@@ -6,6 +6,7 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Http.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
+#include "Utils/ImageUtils.h"
 
 //class declare
 class SShooterInventoryItem : public STableRow< TSharedPtr<FInventoryEntry> >
@@ -27,9 +28,7 @@ private:
 	/** pointer to our owner PC */
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
 
-	TSharedPtr<const FSlateBrush> DefaultBrush;
-
-	TSharedPtr<const FSlateBrush> ImageBrush;
+	FCacheBrush ImageBrush = nullptr;
 
 	/** style for the inventory */
 	const struct FShooterInventoryStyle *InventoryStyle;
@@ -54,4 +53,6 @@ private:
 
 	/** getter for cart icon visibility */
 	EVisibility GetCartIconVisibility() const;
+
+	void OnReceivedImage(FCacheBrush Image);
 };

@@ -33,9 +33,7 @@ private:
 	/** pointer to our owner PC */
 	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
 
-	TSharedPtr<const FSlateBrush> DefaultBrush;
-
-	TSharedPtr<const FSlateBrush> ImageBrush;
+	FCacheBrush ImageBrush = nullptr;
 
 	/** style for the inventory */
 	const struct FShooterInventoryStyle *InventoryStyle;
@@ -70,5 +68,5 @@ private:
 
 	FReply OnBuyItemClick() const;
 
-	void OnReceivedImage(TSharedPtr<const FSlateBrush> Image);
+	void OnReceivedImage(FCacheBrush Image);
 };

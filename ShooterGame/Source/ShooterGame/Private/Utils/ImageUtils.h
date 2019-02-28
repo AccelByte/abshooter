@@ -5,7 +5,9 @@
 #include "Runtime/Core/Public/Containers/LruCache.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 
-DECLARE_DELEGATE_OneParam(FOnImageReceived, TSharedPtr<const FSlateBrush>);
+typedef TSharedPtr<const FSlateBrush> FCacheBrush;
+
+DECLARE_DELEGATE_OneParam(FOnImageReceived, FCacheBrush);
 
 class FShooterImageUtils
 {
@@ -19,8 +21,5 @@ public:
 	~FShooterImageUtils() = delete;
 
 	static void GetImage(const FString& Url, const FOnImageReceived& OnReceived);
-	static TSharedPtr<FSlateDynamicImageBrush> CreateBrush(const FName& ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat);
-
-private:
-	static TMap<FString, TSharedPtr<const FSlateBrush>> ImageCache;
+	static FSlateDynamicImageBrush* CreateBrush(const FName& ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat);
 };

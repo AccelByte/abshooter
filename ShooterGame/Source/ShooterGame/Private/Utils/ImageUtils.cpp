@@ -3,59 +3,90 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Http.h"
 
-TMap<FString, TSharedPtr<const FSlateBrush>> FShooterImageUtils::ImageCache;
+TLruCache<FString, FCacheBrush> ImageCache(100);
+TMap<FString, TSharedPtr<TQueue<FOnImageReceived>>> ImageReceivedQueue;
+FCriticalSection Mutex;
 
 void FShooterImageUtils::GetImage(const FString & Url, const FOnImageReceived & OnReceived)
 {
-	auto Ref = ImageCache.Find(Url);
-	if (Ref)
+	Mutex.Lock();
+	auto Ptr = ImageCache.FindAndTouch(Url);
+
+	if (Ptr)
 	{
-		OnReceived.ExecuteIfBound(*Ref);
+		OnReceived.ExecuteIfBound(*Ptr);
+		Mutex.Unlock();
 	}
 	else
 	{
-		TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-		ThumbRequest->SetVerb("GET");
-		ThumbRequest->SetURL(Url);
-		ThumbRequest->OnProcessRequestComplete().BindLambda([OnReceived](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+		auto QueuePtr = ImageReceivedQueue.Find(Url);
+		if (!QueuePtr)
 		{
-			TSharedPtr<const FSlateBrush> ImageBrush;
-			if (bWasSuccessful && Response.IsValid())
+			QueuePtr = &ImageReceivedQueue.Add(Url, MakeShareable(new TQueue<FOnImageReceived>()));
+		}
+		bool QueueEmpty = (*QueuePtr)->IsEmpty();
+		(*QueuePtr)->Enqueue(OnReceived); // queue request for same url
+		Mutex.Unlock();
+		
+		if (QueueEmpty)
+		{
+			TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+			ThumbRequest->SetVerb("GET");
+			ThumbRequest->SetURL(Url);
+			ThumbRequest->OnProcessRequestComplete().BindLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 			{
-				FString ContentType = Response->GetHeader("Content-Type");
-				EImageFormat ImageFormat = EImageFormat::Invalid;
+				FCacheBrush ImageBrush = nullptr;
+				if (bWasSuccessful && Response.IsValid())
+				{
+					FString ContentType = Response->GetHeader("Content-Type");
+					EImageFormat ImageFormat = EImageFormat::Invalid;
 
-				if (ContentType == "image/jpeg")
-				{
-					ImageFormat = EImageFormat::JPEG;
-				}
-				else if (ContentType == "image/png")
-				{
-					ImageFormat = EImageFormat::PNG;
-				}
-				else if (ContentType == "image/bmp")
-				{
-					ImageFormat = EImageFormat::BMP;
+					if (ContentType == "image/jpeg")
+					{
+						ImageFormat = EImageFormat::JPEG;
+					}
+					else if (ContentType == "image/png")
+					{
+						ImageFormat = EImageFormat::PNG;
+					}
+					else if (ContentType == "image/bmp")
+					{
+						ImageFormat = EImageFormat::BMP;
+					}
+
+					if (ImageFormat != EImageFormat::Invalid)
+					{
+						TArray<uint8> ImageData = Response->GetContent();
+						UE_LOG(LogTemp, Display, TEXT("URL: %s"), *Request->GetURL());
+						ImageBrush = MakeShareable(CreateBrush(FName(*Request->GetURL()), ImageData, ImageFormat));
+						{
+							FScopeLock Lock(&Mutex);
+							ImageCache.Add(Request->GetURL(), ImageBrush);
+						}
+					}
 				}
 
-				if (ImageFormat != EImageFormat::Invalid)
 				{
-					TArray<uint8> ImageData = Response->GetContent();
-					UE_LOG(LogTemp, Display, TEXT("URL: %s"), *Request->GetURL())
-						ImageBrush = StaticCastSharedPtr<FSlateBrush>(CreateBrush(FName(*Request->GetURL()), ImageData, ImageFormat));
-
-					ImageCache.Add(Request->GetURL(), ImageBrush);
+					FScopeLock Lock(&Mutex);
+					auto QueueRef = ImageReceivedQueue.FindRef(Request->GetURL());
+					if (QueueRef.IsValid())
+					{
+						FOnImageReceived OnImageReceived;
+						while (QueueRef->Dequeue(OnImageReceived))
+						{
+							OnImageReceived.ExecuteIfBound(ImageBrush);
+						}
+					}
 				}
-			}
-			OnReceived.ExecuteIfBound(ImageBrush);
-		});
-		ThumbRequest->ProcessRequest();
+			});
+			ThumbRequest->ProcessRequest();
+		}
 	}
 }
 
-TSharedPtr<FSlateDynamicImageBrush> FShooterImageUtils::CreateBrush(const FName & ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat)
+FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName & ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat)
 {
-	TSharedPtr<FSlateDynamicImageBrush> Brush;
+	FSlateDynamicImageBrush* Brush = nullptr;
 
 	uint32 BytesPerPixel = 4;
 	int32 Width = 0;
@@ -88,7 +119,7 @@ TSharedPtr<FSlateDynamicImageBrush> FShooterImageUtils::CreateBrush(const FName 
 
 	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
 	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+		Brush = new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()));
 	}
 
 	return Brush;

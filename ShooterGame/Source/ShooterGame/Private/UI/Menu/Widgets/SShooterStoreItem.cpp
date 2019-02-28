@@ -5,7 +5,6 @@
 #include "ShooterStoreStyle.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
-#include "Utils/ImageUtils.h"
 
 #define LOCTEXT_NAMESPACE "SShooterStoreItem"
 
@@ -89,12 +88,9 @@ void SShooterStoreItem::Construct(const FArguments& InArgs, const TSharedRef<STa
 	}
 }
 
-void SShooterStoreItem::OnReceivedImage(TSharedPtr<const FSlateBrush> Image)
+void SShooterStoreItem::OnReceivedImage(FCacheBrush Image)
 {
-	if (Image.IsValid())
-	{
-		ImageBrush = Image;
-	}
+	ImageBrush = Image;
 }
 
 TSharedRef<SWidget> SShooterStoreItem::GetPriceWidget(const FInventoryEntry* item) const
