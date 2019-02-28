@@ -21,9 +21,11 @@ const FShooterInventoryStyle& FShooterInventoryStyle::GetDefault()
 
 void FShooterInventoryStyle::GetResources(TArray<const FSlateBrush*>& OutBrushes) const
 {
+	OutBrushes.Add(&PageBackgroundBrush);
 	OutBrushes.Add(&BackgroundBrush);
 	OutBrushes.Add(&TypeBackgroundBrush);
 	OutBrushes.Add(&CoinImage);
+	OutBrushes.Add(&BoxOwnedBrush);
 }
 
 

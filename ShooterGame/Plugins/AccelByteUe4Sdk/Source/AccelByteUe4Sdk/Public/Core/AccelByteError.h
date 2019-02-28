@@ -309,7 +309,7 @@ inline void HandleHttpResultOk<uint8>(FHttpResponsePtr Response, const THandler<
 template<class T>
 inline void HandleHttpResultOk(FHttpResponsePtr Response, const THandler<T>& OnSuccess)
 {
-	std::remove_const<std::remove_reference<T>::type>::type Result;
+	typename std::remove_const<typename std::remove_reference<T>::type>::type Result;
 	FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
 
 	OnSuccess.ExecuteIfBound(Result);

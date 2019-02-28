@@ -7,20 +7,12 @@
 
 #define LOCTEXT_NAMESPACE "SShooterInventoryItem"
 
-/** item type conversion*/
-FText GetItemTypeAsText(EInventoryItemType EnumValue) {
-	const UEnum* EnumPtr = FindObject<UEnum>(ANY_PACKAGE, TEXT("EInventoryItemType"), true);
-	if (!EnumPtr) return FText::FromString("Invalid");
-
-	return FText::FromString(EnumPtr->GetNameStringByValue((int64)EnumValue));
-}
-
 void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TWeakObjectPtr<class ULocalPlayer> InPlayerOwner, TSharedPtr<FInventoryEntry> InItem)
 {
 	Item = InItem;
 	PlayerOwner = InPlayerOwner;
 
-	STableRow< TSharedPtr<FInventoryEntry> >::Construct(STableRow::FArguments().ShowSelection(false), InOwnerTable);
+	STableRow< TSharedPtr<FInventoryEntry> >::Construct(STableRow::FArguments().ShowSelection(false).Padding(FMargin(5.0f)), InOwnerTable);
 
 	if (Item.IsValid()) 
 	{
@@ -32,73 +24,65 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 			// image placeholder
 			ImageBrush = MakeShareable(new FSlateImageBrush(FPaths::ProjectContentDir() / "Slate/Images/ImageIcon.png", FVector2D(96, 96)));
 
-			// start download avatar
-			TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-			ThumbRequest->SetVerb("GET");
-			ThumbRequest->SetURL(item->ImageURL);
-			ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterInventoryItem::OnThumbImageReceived);
-			ThumbRequest->ProcessRequest();
+			FShooterImageUtils::GetImage(item->ImageURL, FOnImageReceived::CreateSP(this, &SShooterInventoryItem::OnReceivedImage));
 		}
 		else
 		{
 			ImageBrush = MakeShareable(new FSlateImageBrush(FPaths::ProjectContentDir() / item->ImageURL, FVector2D(96, 96)));
 		}
 
-		TSharedRef<SWidget> TileContent = SNew(SOverlay)
-		+ SOverlay::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill) // Background
-		[
-			SNew(SImage)
-			.Image(&InventoryStyle->BackgroundBrush)
-		]
-		+ SOverlay::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill) // Background
-		[
-			SNew(SImage)
-			.Image(this, &SShooterInventoryItem::GetBackgroundBrush)
-			.ColorAndOpacity(this, &SShooterInventoryItem::GetButtonBgColor)
-		]
-		+ SOverlay::Slot()
+		ChildSlot
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
-		.Padding(FMargin(0, 40))
 		[
-			SNew(SScaleBox)
+			SNew(SOverlay)
+			+ SOverlay::Slot()
 			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Center)
-			.Stretch(EStretch::ScaleToFit)
+			.HAlign(HAlign_Fill) // Background
 			[
 				SNew(SImage)
-				.Image(this, &SShooterInventoryItem::GetImage)
+				.Image(&InventoryStyle->BackgroundBrush)
 			]
-		]
-		+ SOverlay::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		.Padding(12.0f)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+			+ SOverlay::Slot()
 			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
+			.HAlign(HAlign_Fill) // Background
 			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Fill)
-				.HAlign(HAlign_Fill) // Top
-				.AutoWidth()
+				SNew(SImage)
+				.Image(this, &SShooterInventoryItem::GetBackgroundBrush)
+				.ColorAndOpacity(this, &SShooterInventoryItem::GetButtonBgColor)
+			]
+			+ SOverlay::Slot()
+			.Padding(FMargin(20.0f))
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				[
+					SNew(SScaleBox)
+					.VAlign(VAlign_Fill)
+					.HAlign(HAlign_Center)
+					.Stretch(EStretch::ScaleToFit)
+					[
+						SNew(SImage)
+						.Image(this, &SShooterInventoryItem::GetImage)
+					]
+				]
+				+ SVerticalBox::Slot() // Type
+				.AutoHeight()
 				[
 					SNew(SOverlay)
 					+ SOverlay::Slot()
 					.VAlign(VAlign_Top)
-					.HAlign(HAlign_Fill) // Type background
-			
+					.HAlign(HAlign_Left) // Type background
 					[
-						SNew(SImage)
-						.Image(this, &SShooterInventoryItem::GetTypeBackgroundBrush)
+						SNew(SBox)
+						.HAlign(HAlign_Fill)
+						.WidthOverride(64)
+						[
+							SNew(SImage)
+							.Image(this, &SShooterInventoryItem::GetTypeBackgroundBrush)
+							.ColorAndOpacity(this, &SShooterInventoryItem::GetTypeBackgroundColor)
+						]
 					]
 					+ SOverlay::Slot()
 					.VAlign(VAlign_Top)
@@ -111,80 +95,46 @@ void SShooterInventoryItem::Construct(const FArguments& InArgs, const TSharedRef
 						.ColorAndOpacity(this, &SShooterInventoryItem::GetTypeTextColor)
 					]
 				]
-				+ SHorizontalBox::Slot()
+				+ SVerticalBox::Slot() // Name
 				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Right) // Amount
-				.FillWidth(1)
+				.HAlign(HAlign_Left)
+				.AutoHeight()
 				[
 					SNew(STextBlock)
-					.TextStyle(&InventoryStyle->AmountTextStyle)
-					.Text((item->Type != EInventoryItemType::COIN)? FText::AsNumber(item->Quantity): FText::FromString(TEXT("")))
+					.TextStyle(&InventoryStyle->NameTextStyle)
+					.Text(FText::FromString(item->Name))
+				]
+				+ SVerticalBox::Slot() // Owned
+				.AutoHeight()
+				[
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					[
+						SNew(SImage)
+						.Image(&InventoryStyle->BoxOwnedBrush)
+					]
+					+ SOverlay::Slot()
+					.VAlign(VAlign_Center)
+					.Padding(FMargin(16.0f, 0, 0, 0))
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString(TEXT("OWNED: ")))
+							.TextStyle(&InventoryStyle->OwnedTextStyle)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(&InventoryStyle->AmountTextStyle)
+							.Text(FText::AsNumber(item->Quantity))
+						]
+					]
 				]
 			]
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left) // Name
-			.AutoHeight()
-			[
-				SNew(STextBlock)
-				.TextStyle(&InventoryStyle->NameTextStyle)
-				.Text(FText::FromString(item->Name))
-			]
-			+ SVerticalBox::Slot()
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill) // Price
-			.AutoHeight()
-			[
-				GetPriceWidget(item.Get())
-			]
-		]
-		+ SOverlay::Slot()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		[
-			SNew(SBox)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.WidthOverride(56.0f)
-			.HeightOverride(56.0f)
-			.Visibility(this, &SShooterInventoryItem::GetCartIconVisibility)
-			[
-				SNew(SImage)
-				.Image(&InventoryStyle->CartImage)
-			]
-		];
-
-		TSharedRef<SWidget> ChildContent = TileContent;
-		if (!item->Purchasable && !item->Owned)
-		{
-			ChildContent = SNew(SOverlay)
-			+ SOverlay::Slot()
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
-			[
-				TileContent
-			]
-			+ SOverlay::Slot()
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
-			[
-				SNew(SImage)
-				.ColorAndOpacity(FLinearColor(0, 0, 0, 0.75))
-			]
-			+ SOverlay::Slot()
-			.VAlign(VAlign_Fill)
-			.HAlign(HAlign_Fill)
-			[
-				SNew(SImage)
-				.Image(&InventoryStyle->LockedBackgroundBrush)
-			];
-		}
-
-		ChildSlot
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		[
-			ChildContent
 		];
 	}
 }
@@ -233,70 +183,6 @@ const FSlateBrush* SShooterInventoryItem::GetImage() const
 	return ImageBrush.Get();
 }
 
-void SShooterInventoryItem::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
-{
-	if (bWasSuccessful && Response.IsValid())
-	{
-		FString ContentType = Response->GetHeader("Content-Type");
-		EImageFormat ImageFormat = EImageFormat::Invalid;
-
-		if (ContentType == "image/jpeg")
-		{
-			ImageFormat = EImageFormat::JPEG;
-		}
-		else if (ContentType == "image/png")
-		{
-			ImageFormat = EImageFormat::PNG;
-		}
-		else if (ContentType == "image/bmp")
-		{
-			ImageFormat = EImageFormat::BMP;
-		}
-
-		if (ImageFormat != EImageFormat::Invalid)
-		{
-			TArray<uint8> ImageData = Response->GetContent();
-			ImageBrush = CreateBrush(FName(*Request->GetURL()), ImageData, ImageFormat);
-		}
-
-	}
-}
-
-TSharedPtr<FSlateDynamicImageBrush> SShooterInventoryItem::CreateBrush(FName ResourceName, TArray<uint8> ImageData, const EImageFormat InFormat)
-{
-	TSharedPtr<FSlateDynamicImageBrush> Brush;
-
-	uint32 BytesPerPixel = 4;
-	int32 Width = 0;
-	int32 Height = 0;
-
-	bool bSucceeded = false;
-	TArray<uint8> DecodedImage;
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(InFormat);
-
-	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-	{
-		Width = ImageWrapper->GetWidth();
-		Height = ImageWrapper->GetHeight();
-
-		const TArray<uint8>* RawData = NULL;
-
-		if (ImageWrapper->GetRaw(InFormat == EImageFormat::PNG ? ERGBFormat::BGRA : ERGBFormat::RGBA, 8, RawData))
-		{
-			DecodedImage = *RawData;
-			bSucceeded = true;
-		}
-	}
-
-	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-	}
-
-	return Brush;
-}
-
 FSlateColor SShooterInventoryItem::GetButtonBgColor() const
 {
 	const float MinAlpha = 0.1f;
@@ -322,7 +208,7 @@ FSlateColor SShooterInventoryItem::GetButtonBgColor() const
 
 FSlateColor SShooterInventoryItem::GetTypeTextColor() const
 {
-	return IsSelected() ? FLinearColor(0.216f, 0.486f, 0.506f) : FLinearColor(0.061f, 0.144f, 0.161f);
+	return /*IsSelected() ? FLinearColor(0.216f, 0.486f, 0.506f) : */FLinearColor(0.061f, 0.144f, 0.161f);
 }
 
 const FSlateBrush* SShooterInventoryItem::GetBackgroundBrush() const
@@ -333,6 +219,21 @@ const FSlateBrush* SShooterInventoryItem::GetBackgroundBrush() const
 const FSlateBrush* SShooterInventoryItem::GetTypeBackgroundBrush() const
 {
 	return IsSelected() ? &InventoryStyle->TypeSelectedBackgroundBrush : &InventoryStyle->TypeBackgroundBrush;
+}
+
+FSlateColor SShooterInventoryItem::GetTypeBackgroundColor() const
+{
+	if (Item.IsValid())
+	{
+		switch (Item.Pin()->Type)
+		{
+		case EInventoryItemType::AMMO:
+			return FLinearColor(1.0f, 0.706f, 0.004f);
+		case EInventoryItemType::WEAPON:
+			return FLinearColor(0.439f, 0.91f, 1.0f);
+		}
+	}
+	return FLinearColor(0.439f, 0.91f, 1.0f);
 }
 
 EVisibility SShooterInventoryItem::GetCartIconVisibility() const
@@ -346,6 +247,11 @@ EVisibility SShooterInventoryItem::GetCartIconVisibility() const
 	}
 
 	return EVisibility::Collapsed;
+}
+
+void SShooterInventoryItem::OnReceivedImage(FCacheBrush Image)
+{
+	ImageBrush = Image;
 }
 
 #undef LOCTEXT_NAMESPACE

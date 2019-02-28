@@ -412,6 +412,14 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		}
 #endif
 
+		// Store
+		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Store", "STORE"), this, &FShooterMainMenu::OnShowStore);
+		MenuHelper::AddCustomMenuItem(StoreItem, SAssignNew(StoreWidget, SShooterStore)
+			.OwnerWidget(MenuWidget)
+			.PlayerOwner(GetPlayerOwner())
+			.OnBuyItemFinished(FSimpleDelegate::CreateSP(this, &FShooterMainMenu::RefreshWallet))
+			.CoinsWidget(CoinsWidgetContainer));
+
         // Screenshot
         {
             MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Screenshot", "SCREENSHOT"), this, &FShooterMainMenu::OnShowScreenshot);
@@ -1124,7 +1132,7 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 		GameInstance->SetOnlineMode(EOnlineMode::Offline);
 	}
 
-	if (InventoryItem->SubMenu == Menu)
+	if (StoreItem->SubMenu == Menu)
 	{
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
@@ -1509,8 +1517,20 @@ void FShooterMainMenu::OnGetWalletError(int32 Code, const FString& Message)
 
 void FShooterMainMenu::OnShowInventory()
 {
+	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+	ChangeBackground(MenuStyle->InventoryBackground);
 	MenuWidget->NextMenu = InventoryItem->SubMenu;
 	InventoryWidget->BuildInventoryItem();
+	MenuWidget->EnterSubMenu();
+	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
+}
+
+void FShooterMainMenu::OnShowStore()
+{
+	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+	ChangeBackground(MenuStyle->StoreBackground);
+	MenuWidget->NextMenu = StoreItem->SubMenu;
+	StoreWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
 	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);

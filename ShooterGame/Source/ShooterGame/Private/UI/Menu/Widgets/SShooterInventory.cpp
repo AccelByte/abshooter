@@ -11,11 +11,20 @@
 #include "AccelByteItemApi.h"
 #include "AccelByteEntitlementApi.h"
 #include "AccelByteError.h"
+#include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
+#include "ShooterInventoryWidgetStyle.h"
 
 using namespace AccelByte::Api;
 
 SShooterInventory::SShooterInventory()
 	: ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	, TileWidth(388)
+	, TileHeight(200)
+	, TileColumn(2)
+	, TileRow(2)
+	, TileItemWidthRatio(0.2213f)
+	, TileItemHeightRatio(0.2546f)
+	, PaddingTopRatio(0.1944f)
 {
 }
 
@@ -24,45 +33,134 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
 	OnBuyItemFinished = InArgs._OnBuyItemFinished;
-	const int32 TileWidth = 288;
-	const int32 TileHeight = 200;
-	const int32 TileColumn = 2;
-	const int32 TileRow = 2;
+
+	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 
 	ChildSlot
-	.VAlign(VAlign_Top)
-	.HAlign(HAlign_Right)
+	.VAlign(VAlign_Fill)
+	.HAlign(HAlign_Fill)
 	[
-		SNew(SBox)
+		SNew(SOverlay)
+#pragma region Background
+		+ SOverlay::Slot()
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
-		.Padding(0)
-		.WidthOverride(TileWidth * TileColumn)
-		.HeightOverride(TileHeight * TileRow + 4 )
 		[
-			SAssignNew(InventoryListWidget, STileView< TSharedPtr<FInventoryEntry> >)
-			.ItemWidth(TileWidth)
-			.ItemHeight(TileHeight)
-			.ListItemsSource(&InventoryList)
-			.ScrollbarVisibility(EVisibility::Collapsed)
-			.OnSelectionChanged(this, &SShooterInventory::EntrySelectionChanged)
-			.OnGenerateTile(this, &SShooterInventory::OnGenerateWidgetForTileView)
-			.OnMouseButtonClick(this, &SShooterInventory::OnInventoryMouseClick)
-			.SelectionMode(ESelectionMode::Single)
+			SNew(SBox)
+			.WidthOverride(TAttribute<FOptionalSize>::Create([&]() -> FOptionalSize
+			{
+				return FOptionalSize(GetScreenWidth());
+			}))
+			.HeightOverride(TAttribute<FOptionalSize>::Create([&]() -> FOptionalSize
+			{
+				return FOptionalSize(GetScreenHeight());
+			}))
+			[
+				SNew(SBox)
+			]
+		]
+#pragma endregion Background
+#pragma region Content
+		+ SOverlay::Slot()
+		.VAlign(VAlign_Fill)
+		.HAlign(HAlign_Left)
+		.Padding(TAttribute<FMargin>::Create([&]() -> FMargin
+		{
+			return FMargin(GetScreenWidth() * 0.11f, GetScreenHeight() * PaddingTopRatio, 0, 0);
+		}))
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			[
+				SNew(SBox)
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				.Padding(0)
+				.WidthOverride(TAttribute<FOptionalSize>::Create([&]() -> FOptionalSize 
+				{
+					return GetTileViewWidth(InventoryList);
+				}))
+				.HeightOverride(this, &SShooterInventory::GetTileViewHeight)
+				[
+					SAssignNew(InventoryListWidget, STileView< TSharedPtr<FInventoryEntry> >)
+					.ItemWidth(this, &SShooterInventory::GetItemWidth)
+					.ItemHeight(this, &SShooterInventory::GetItemHeight)
+					.ListItemsSource(&InventoryList)
+					.ExternalScrollbar(ItemsScrollBar)
+					.OnSelectionChanged(this, &SShooterInventory::EntrySelectionChanged)
+					.OnGenerateTile(this, &SShooterInventory::OnGenerateWidgetForTileView)
+					.SelectionMode(ESelectionMode::Single)
+				]
+			]
+			+ SHorizontalBox::Slot()	//Scroll bar
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.HAlign(HAlign_Right)
+				.Padding(FMargin(0, 0, 0, 0))
+				[
+					SAssignNew(ItemsScrollBar, SScrollBar)
+					.IsEnabled(true)
+					.Thickness(FVector2D(2.0f, 2.0f))
+					.Orientation(EOrientation::Orient_Vertical)
+					.Visibility(EVisibility::Visible)
+					.Style(&InventoryStyle->ScrollBarStyle)
+				]
+			]
+		]
+#pragma endregion Content
+		+ SOverlay::Slot()
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(FText::FromString(TEXT("Empty")))
+			.Visibility(TAttribute<EVisibility>::Create([&]()
+			{
+				return InventoryList.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed;
+			}))
 		]
 	];
 	BuildInventoryItem();
 }
 
+float SShooterInventory::GetScreenWidth() const
+{
+	FVector2D Result = FVector2D(1, 1);
+	GEngine->GameViewport->GetViewportSize(Result);
+	return Result.X;
+}
+
+float SShooterInventory::GetScreenHeight() const
+{
+	FVector2D Result = FVector2D(1, 1);
+	GEngine->GameViewport->GetViewportSize(Result);
+	return Result.Y;
+}
+
+FOptionalSize SShooterInventory::GetTileViewWidth(const TArray<TSharedPtr<FInventoryEntry>>& List) const
+{
+	return FOptionalSize(GetItemWidth() * TileColumn + (List.Num() > TileColumn * TileRow ? 16 : 0));
+}
+
+FOptionalSize SShooterInventory::GetTileViewHeight() const
+{
+	return FOptionalSize(FMath::Max(GetScreenHeight() * (1.0f - PaddingTopRatio), GetItemHeight() * TileRow) + 4);
+}
+
+float SShooterInventory::GetItemWidth() const
+{
+	return FMath::Max(GetScreenWidth() * TileItemWidthRatio, 426.0f);
+}
+
+float SShooterInventory::GetItemHeight() const
+{
+	return FMath::Max(GetScreenHeight() * TileItemHeightRatio, 240.0f);
+}
+
 void SShooterInventory::BuildInventoryItem()
 {
-	if (GetItemRequestCount.GetValue() > 0)
-	{
-		return;
-	}
-
-	InventoryList.Empty();
-
 	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
 	
 #if PLATFORM_WINDOWS
@@ -73,16 +171,15 @@ void SShooterInventory::BuildInventoryItem()
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
 #endif
 
-	GetItemRequestCount.Set(2);
-
-	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
-		"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20, 
-		AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
-		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
-	Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale, 
-		"/coin", EAccelByteItemType::COINS, EAccelByteItemStatus::ACTIVE, 0, 20, 
-		AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria), 
-		AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
+	if (!bRequestInventoryList)
+	{
+		bRequestInventoryList = true;
+		InventoryList.Empty();
+		Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
+			"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20,
+			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
+			AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
+	}
 }
 
 TSharedRef<ITableRow> SShooterInventory::OnGenerateWidgetForTileView(TSharedPtr<FInventoryEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
@@ -95,148 +192,59 @@ void SShooterInventory::EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem
 	SelectedItem = InItem;
 }
 
-void SShooterInventory::OnInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem)
+TSharedRef< FInventoryEntry > SShooterInventory::CreateInventoryItem(const FAccelByteModelsItemInfo& ItemInfo)
 {
-	// Only able to buy when item already selected
-	if (SelectedItem == InItem && InItem->Purchasable)
+	TSharedRef< FInventoryEntry > Inventory = MakeShareable(new FInventoryEntry());
+	Inventory->ItemId = ItemInfo.ItemId;
+	Inventory->Name = ItemInfo.Title;
+	Inventory->Quantity = 0;
+	Inventory->ImageURL = ItemInfo.ThumbnailImage.ImageUrl;
+
+	for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
 	{
-		ShowBuyConfirmationDialog(InItem);
+		if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL" || ItemInfo.RegionData[j].CurrencyType == "REAL")
+		{
+			Inventory->CurrencyCode = ItemInfo.RegionData[j].CurrencyCode;
+			Inventory->Price = ItemInfo.RegionData[j].Price;
+			Inventory->DiscountedPrice = ItemInfo.RegionData[j].DiscountedPrice;
+			Inventory->CurrencyType = ItemInfo.RegionData[j].CurrencyType;
+			break;
+		}
 	}
-}
 
-void SShooterInventory::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem)
-{
-	float Price = (InItem->CurrencyType == TEXT("REAL") ? InItem->Price/100.00f : InItem->Price/1.f);
-	FString PriceString = FString::SanitizeFloat(Price, InItem->CurrencyType == TEXT("REAL")? 2 : 0);
-
-	SAssignNew(DialogWidget, SOverlay)
-	+ SOverlay::Slot()
-	[
-		SNew(SImage)
-		.Image(&ConfirmationBackgroundBrush)
-	]
-	+ SOverlay::Slot()
-	[
-		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-		.MessageText(FText::FromString(FString::Printf(TEXT("Buy %s \nusing %s %s?"), *InItem->Name, *PriceString, *InItem->CurrencyCode)))
-		.ConfirmText(FText::FromString("Yes"))
-		.CancelText(FText::FromString("No"))
-		.OnConfirmClicked(FOnClicked::CreateSP(this, &SShooterInventory::OnBuyConfirm))
-		.OnCancelClicked(FOnClicked::CreateSP(this, &SShooterInventory::OnBuyCancel))
-	];
-
-	GEngine->GameViewport->AddViewportWidgetContent(DialogWidget.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(DialogWidget);
-}
-
-void SShooterInventory::CloseConfirmationDialog()
-{
-	if (DialogWidget.IsValid())
+	for (int j = 0; j < ItemInfo.Tags.Num(); j++)
 	{
-		GEngine->GameViewport->RemoveViewportWidgetContent(DialogWidget.ToSharedRef());
-		DialogWidget.Reset();
+		if (ItemInfo.Tags[j] == "ammo")
+		{
+			Inventory->Type = EInventoryItemType::AMMO;
+			break;
+		}
+		else if (ItemInfo.Tags[j] == "weapon")
+		{
+			Inventory->Type = EInventoryItemType::WEAPON;
+			break;
+		}
+		else if (ItemInfo.Tags[j] == "coin")
+		{
+			Inventory->Type = EInventoryItemType::COIN;
+			break;
+		}
 	}
-}
 
-FReply SShooterInventory::OnBuyConfirm()
-{
-	FAccelByteModelsOrderCreate OrderCreate;
-	OrderCreate.ItemId = SelectedItem->ItemId;
-	OrderCreate.CurrencyCode = SelectedItem->CurrencyCode;
-	OrderCreate.Price = SelectedItem->Price;
-	OrderCreate.DiscountedPrice = SelectedItem->DiscountedPrice;
-	OrderCreate.Quantity = 1;
-	OrderCreate.ReturnUrl = TEXT("https://sdk.example.com");
-
-	CloseConfirmationDialog();
-	ShowLoadingDialog();
-
-	AccelByte::Api::Order::CreateNewOrder(OrderCreate, AccelByte::THandler<FAccelByteModelsOrderInfo>::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
-		CloseLoadingDialog(); 
-		if (!OrderInfo.PaymentStationUrl.IsEmpty())
-		{
-			FPlatformProcess::LaunchURL(*OrderInfo.PaymentStationUrl, nullptr, nullptr);
-			OnBackFromPaymentBrowser(OrderInfo.PaymentStationUrl);
-		}
-		else 
-		{
-			ShowMessageDialog(TEXT("Order Success"));
-			BuildInventoryItem();
-			OnBuyItemFinished.ExecuteIfBound();
-		}
-	}), AccelByte::FErrorHandler::CreateLambda([&](int ErrorCode, FString Message) {
-		CloseLoadingDialog();
-
-		OnBuyItemFinished.ExecuteIfBound();
-		ShowMessageDialog(FString::Printf(TEXT("Purchase failed %s"), *Message));
-		UE_LOG(LogTemp, Display, TEXT("Purchase failed: code: %d, message: %s"), ErrorCode, *Message)
-	}));
-	return FReply::Handled();
-}
-
-FReply SShooterInventory::OnBuyCancel()
-{
-	CloseConfirmationDialog();
-	return FReply::Handled();
+	Inventory->Purchasable = Inventory->Type != EInventoryItemType::WEAPON;
+	return Inventory;
 }
 
 void SShooterInventory::OnGetItemsByCriteria(const FAccelByteModelsItemPagingSlicedResult& Result)
 {
-	for (int i = 0; i < Result.Data.Num(); i++)
-	{
-		const FAccelByteModelsItemInfo& ItemInfo = Result.Data[i];
-		TSharedRef< FInventoryEntry > Inventory = MakeShareable(new FInventoryEntry());
-		Inventory->ItemId = ItemInfo.ItemId;
-		Inventory->Name = ItemInfo.Title;
-		Inventory->Quantity = 0;
-		Inventory->ImageURL = ItemInfo.ThumbnailImage.ImageUrl;
-
-		for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
-		{
-			if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL" || ItemInfo.RegionData[j].CurrencyType == "REAL")
-			{
-				Inventory->CurrencyCode = ItemInfo.RegionData[j].CurrencyCode;
-				Inventory->Price = ItemInfo.RegionData[j].Price;
-				Inventory->DiscountedPrice = ItemInfo.RegionData[j].DiscountedPrice;
-				Inventory->CurrencyType = ItemInfo.RegionData[j].CurrencyType;
-				break;
-			}
-		}
-
-		for (int j = 0; j < ItemInfo.Tags.Num(); j++)
-		{
-			if (ItemInfo.Tags[j] == "ammo")
-			{
-				Inventory->Type = EInventoryItemType::AMMO;
-				break;
-			}
-			else if (ItemInfo.Tags[j] == "weapon")
-			{
-				Inventory->Type = EInventoryItemType::WEAPON;
-				break;
-			}
-			else if (ItemInfo.Tags[j] == "coin")
-			{
-				Inventory->Type = EInventoryItemType::COIN;
-				break;
-			}
-		}
-
-		Inventory->Purchasable = Inventory->Type != EInventoryItemType::WEAPON;
-
-		InventoryList.Add(Inventory);
-	}
-	GetItemRequestCount.Decrement();
-
-	if (GetItemRequestCount.GetValue() == 0)
-	{
-		GetUserEntitlements();
-	}
+	ItemModelList = Result.Data;
+	GetUserEntitlements();
+	bRequestInventoryList = false;
 }
 
 void SShooterInventory::OnGetItemsByCriteriaError(int32 Code, const FString& Message)
 {
-	GetItemRequestCount.Decrement();
+	bRequestInventoryList = false;
 	UE_LOG(LogTemp, Display, TEXT("GetItem Error: code: %d, message: %s"), Code, *Message)
 }
 
@@ -257,20 +265,23 @@ void SShooterInventory::GetUserEntitlements()
             }			
 		}
 
-		for (TSharedPtr<FInventoryEntry> entry : InventoryList)
+		for (const FAccelByteModelsItemInfo& Item : ItemModelList)
 		{
-            int* Quantity = Quantities.Find(entry->ItemId);
-            if (Quantity != nullptr)
-            {                
-                entry->Quantity = (*Quantity > 0) ? *Quantity : 1;
-                entry->Owned = true;
-            }
-            else
-            {
-                entry->Quantity = 0;
-                entry->Owned = false;
-            }
+			int* Quantity = Quantities.Find(Item.ItemId);
+			int ItemQuantity = 0;
+			if (Quantity != nullptr)
+			{
+				ItemQuantity = (*Quantity > 0) ? *Quantity : 1;
+			}
+			if (ItemQuantity > 0)
+			{
+				TSharedRef< FInventoryEntry > Entry = CreateInventoryItem(Item);
+				Entry->Owned = true;
+				Entry->Quantity = ItemQuantity;
+				InventoryList.Add(Entry);
+			}
 		}
+
 		InventoryListWidget->RequestListRefresh();
 	}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 	{
