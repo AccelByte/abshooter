@@ -5,6 +5,7 @@
 #include "SShooterConfirmationDialog.h"
 #include "ShooterMenuItemWidgetStyle.h"
 #include "ShooterGameInstance.h"
+#include "PopupStyle.h"
 
 void SShooterConfirmationDialog::Construct( const FArguments& InArgs )
 {	
@@ -16,70 +17,73 @@ void SShooterConfirmationDialog::Construct( const FArguments& InArgs )
 
 	const FShooterMenuItemStyle* ItemStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuItemStyle>("DefaultShooterMenuItemStyle");
 	const FButtonStyle* ButtonStyle = &FShooterStyle::Get().GetWidgetStyle<FButtonStyle>("DefaultShooterButtonStyle");
+	const FPopupStyle* PopupStyle = &FShooterStyle::Get().GetWidgetStyle<FPopupStyle>("DefaultPopupStyle");
 	FLinearColor MenuTitleTextColor =  FLinearColor(FColor(155,164,182));
+
+
 	ChildSlot
 	.VAlign(VAlign_Center)
 	.HAlign(HAlign_Center)
 	[					
-		SNew( SVerticalBox )
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(20.0f)
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
+		SNew(SBorder)
+		.BorderImage(&PopupStyle->OuterBorder)
+		.Padding(FMargin(24, 32))
 		[
 			SNew(SBorder)
-			.Padding(50.0f)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.BorderImage(&ItemStyle->BackgroundBrush)
-			.BorderBackgroundColor(FLinearColor(1.0f, 1.0f, 1.0f, 1.0f))
+			.BorderImage(&PopupStyle->InnerBox)
+			.Padding(FMargin(30, 51))
 			[
-				SNew( STextBlock )
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
-				.ColorAndOpacity(MenuTitleTextColor)
-				.Text(InArgs._MessageText)
-				.WrapTextAt(500.0f)
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				[
+					SNew(SBox)
+					.MinDesiredWidth(570)
+					.MinDesiredHeight(100)
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					.Padding(32)
+					[
+						SNew(STextBlock)
+						.Text(InArgs._MessageText)
+						.TextStyle(&PopupStyle->MessageStyle)
+						.WrapTextAt(500.0f)
+					]
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.MaxHeight(280)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					[
+						SNew(SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.ContentPadding(16)
+						.OnClicked(InArgs._OnCancelClicked)
+						.Text(InArgs._CancelText)
+						.TextStyle(&PopupStyle->ButtonText)
+						.ButtonStyle(&PopupStyle->CancelButtonStyle)
+						.Visibility(InArgs._CancelText.IsEmpty() == false ? EVisibility::Visible : EVisibility::Collapsed)
+						.IsFocusable(false)
+					]
+					+ SHorizontalBox::Slot()
+					[
+
+						SNew(SButton)
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						.ContentPadding(16)
+						.OnClicked(this, &SShooterConfirmationDialog::OnConfirmHandler)
+						.Text(InArgs._ConfirmText)
+						.TextStyle(&PopupStyle->ButtonText)
+						.ButtonStyle(&PopupStyle->ConfirmButtonStyle)
+						.IsFocusable(false)
+					]
+				]
 			]
 		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.Padding(20.0f)
-		[
-			SNew( SHorizontalBox)
-			+SHorizontalBox::Slot()			
-			.AutoWidth()
-			.Padding(20.0f)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			[
-				SNew( SButton )
-				.ContentPadding(100)
-				.OnClicked(this, &SShooterConfirmationDialog::OnConfirmHandler)
-				.Text(InArgs._ConfirmText)			
-				.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
-				.ButtonStyle(ButtonStyle)
-				.IsFocusable(false)
-			]
-
-			+SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(20.0f)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				[
-					SNew( SButton )
-					.ContentPadding(100)
-					.OnClicked(InArgs._OnCancelClicked)
-					.Text(InArgs._CancelText)
-					.TextStyle(FShooterStyle::Get(), "ShooterGame.MenuHeaderTextStyle")
-					.ButtonStyle(ButtonStyle)
-					.Visibility(InArgs._CancelText.IsEmpty() == false ? EVisibility::Visible : EVisibility::Collapsed)
-					.IsFocusable(false)
-				]	
-		]			
 	];
 }
 

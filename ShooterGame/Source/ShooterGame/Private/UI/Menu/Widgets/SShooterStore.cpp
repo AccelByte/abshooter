@@ -254,6 +254,7 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 	SelectedItem = InItem;
 	if (InItem->CurrencyType != TEXT("REAL") && CoinsWidget.Pin()->Balance < InItem->Price)
 	{
+		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(DialogWidget, SOverlay)
 		+ SOverlay::Slot()
 		[
@@ -262,19 +263,21 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 		]
 		+ SOverlay::Slot()
 		[
-			SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 			.MessageText(FText::FromString(FString::Printf(TEXT("Insufficient coins!"))))
 			.ConfirmText(FText::FromString("OK"))
 			.OnConfirmClicked(FOnClicked::CreateSP(this, &SShooterStore::OnBuyCancel))
 		];
 
 		GEngine->GameViewport->AddViewportWidgetContent(DialogWidget.ToSharedRef());
-		FSlateApplication::Get().SetKeyboardFocus(DialogWidget);
+		FSlateApplication::Get().SetKeyboardFocus(Dialog);
 		return;
 	}
 
 	float Price = (InItem->CurrencyType == TEXT("REAL") ? InItem->Price/100.00f : InItem->Price/1.f);
 	FString PriceString = FString::SanitizeFloat(Price, InItem->CurrencyType == TEXT("REAL")? 2 : 0);
+
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
 
 	SAssignNew(DialogWidget, SOverlay)
 	+ SOverlay::Slot()
@@ -284,7 +287,7 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 	]
 	+ SOverlay::Slot()
 	[
-		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 		.MessageText(FText::FromString(FString::Printf(TEXT("Buy %s \nusing %s %s?"), *InItem->Name, *PriceString, *InItem->CurrencyCode)))
 		.ConfirmText(FText::FromString("Yes"))
 		.CancelText(FText::FromString("No"))
@@ -293,7 +296,7 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 	];
 
 	GEngine->GameViewport->AddViewportWidgetContent(DialogWidget.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(DialogWidget);
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
 void SShooterStore::CloseConfirmationDialog()
@@ -510,6 +513,7 @@ void SShooterStore::CloseLoadingDialog()
 
 void SShooterStore::ShowMessageDialog(FString Message)
 {
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
 	SAssignNew(MessageDialogWidget, SOverlay)
 	+ SOverlay::Slot()
 	[
@@ -518,7 +522,7 @@ void SShooterStore::ShowMessageDialog(FString Message)
 	]
 	+ SOverlay::Slot()
 	[
-		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 		.MessageText(FText::FromString(Message))
 		.ConfirmText(FText::FromString("OK"))
 		.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {
@@ -528,7 +532,7 @@ void SShooterStore::ShowMessageDialog(FString Message)
 	];
 
 	GEngine->GameViewport->AddViewportWidgetContent(MessageDialogWidget.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(MessageDialogWidget);
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
 void SShooterStore::CloseMessageDialog()
@@ -542,6 +546,7 @@ void SShooterStore::CloseMessageDialog()
 
 void SShooterStore::OnBackFromPaymentBrowser(FString PaymentUrl)
 {
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
 	SAssignNew(MessageDialogWidget, SOverlay)
 	+ SOverlay::Slot()
 	[
@@ -550,7 +555,7 @@ void SShooterStore::OnBackFromPaymentBrowser(FString PaymentUrl)
 	]
 	+ SOverlay::Slot()
 	[
-		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 		.MessageText(FText::FromString("Are your payment is completed already?"))
 		.ConfirmText(FText::FromString("Yes!"))
 		.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {
@@ -562,7 +567,7 @@ void SShooterStore::OnBackFromPaymentBrowser(FString PaymentUrl)
 	];
 
 	GEngine->GameViewport->AddViewportWidgetContent(MessageDialogWidget.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(MessageDialogWidget);
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
 void SShooterStore::OnFocusLost(const FFocusEvent& InFocusEvent)
