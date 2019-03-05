@@ -122,7 +122,7 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 			}))
 		]
 	];
-	BuildInventoryItem();
+	//BuildInventoryItem();
 }
 
 float SShooterInventory::GetScreenWidth() const
@@ -336,6 +336,7 @@ void SShooterInventory::CloseLoadingDialog()
 
 void SShooterInventory::ShowMessageDialog(FString Message)
 {
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
 	SAssignNew(MessageDialogWidget, SOverlay)
 	+ SOverlay::Slot()
 	[
@@ -344,7 +345,7 @@ void SShooterInventory::ShowMessageDialog(FString Message)
 	]
 	+ SOverlay::Slot()
 	[
-		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 		.MessageText(FText::FromString(Message))
 		.ConfirmText(FText::FromString("OK"))
 		.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {
@@ -354,7 +355,8 @@ void SShooterInventory::ShowMessageDialog(FString Message)
 	];
 
 	GEngine->GameViewport->AddViewportWidgetContent(MessageDialogWidget.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(MessageDialogWidget);
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
+	
 }
 
 void SShooterInventory::CloseMessageDialog()
@@ -368,6 +370,7 @@ void SShooterInventory::CloseMessageDialog()
 
 void SShooterInventory::OnBackFromPaymentBrowser(FString PaymentUrl)
 {
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
 	SAssignNew(MessageDialogWidget, SOverlay)
 	+ SOverlay::Slot()
 	[
@@ -376,7 +379,7 @@ void SShooterInventory::OnBackFromPaymentBrowser(FString PaymentUrl)
 	]
 	+ SOverlay::Slot()
 	[
-		SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+		SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 		.MessageText(FText::FromString("Are your payment is completed already?"))
 		.ConfirmText(FText::FromString("Yes!"))
 		.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {

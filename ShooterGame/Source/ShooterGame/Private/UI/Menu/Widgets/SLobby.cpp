@@ -621,6 +621,7 @@ void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Not
 void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification)
 {
     FString DisplayName = CheckDisplayName(Notification.From) ? GetDisplayName(Notification.From) : Notification.From;
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
     SAssignNew(InvitationOverlay, SOverlay)
         + SOverlay::Slot()
         [
@@ -634,7 +635,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
         ]
         + SOverlay::Slot()
         [
-            SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+            SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
             .MessageText(FText::FromString(FString::Printf(TEXT("You're invited by %s to join a party."), *DisplayName)))
             .ConfirmText(FText::FromString("Accept"))
             .CancelText(FText::FromString("Reject"))
@@ -1484,6 +1485,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			Message = FString::Printf(TEXT("Failed. Error code= %s"), *Response.Code);
 		}
 
+		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
 			[
@@ -1497,7 +1499,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			]
 		+ SOverlay::Slot()
 			[
-				SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+				SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 				.MessageText(FText::FromString(Message))
 				.ConfirmText(FText::FromString("CLOSE"))
 				.OnConfirmClicked(FOnClicked::CreateLambda([&]()
@@ -1512,7 +1514,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			];
 
 		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-		FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+		FSlateApplication::Get().SetKeyboardFocus(Dialog);
 	}
 
 	void SLobby::OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response)
@@ -1527,6 +1529,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 		FString DisplayedRequestName = (User.EmailAddress != TEXT("")) ? User.EmailAddress : User.DisplayName;
 
+		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
 			[
@@ -1540,7 +1543,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			]
 		+ SOverlay::Slot()
 			[
-				SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+				SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), *DisplayedRequestName)))
 				.ConfirmText(FText::FromString("ACCEPT"))
 				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
@@ -1576,7 +1579,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			];
 
 		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-		FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+		FSlateApplication::Get().SetKeyboardFocus(Dialog);
 
 		}),
 		FErrorHandler::CreateLambda([&](int32 Code, FString Message){}));
@@ -1631,7 +1634,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
-
+			TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
 			[
@@ -1645,7 +1648,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			]
 		+ SOverlay::Slot()
 			[
-				SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+				SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), (User.EmailAddress == TEXT(""))? *User.EmailAddress : *User.DisplayName)))
 				.ConfirmText(FText::FromString("ACCEPT"))
 				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
@@ -1673,7 +1676,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			];
 
 		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-		FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+		FSlateApplication::Get().SetKeyboardFocus(Dialog);
 
 		}), FErrorHandler::CreateLambda([&](int32 Code, FString Message) {}));
 	}
@@ -1687,6 +1690,7 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 		return;
 	}
 
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
 	SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
 		[
@@ -1700,7 +1704,7 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 		]
 		+ SOverlay::Slot()
 		[
-			SNew(SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 			.MessageText(FText::FromString(FString::Printf(TEXT("Notification!\nFrom: %s\nMessage: %s"), *MessageNotification.From, *MessageNotification.Payload)))
 			.ConfirmText(FText::FromString("CLOSE"))
 			.OnConfirmClicked(FOnClicked::CreateLambda([&]()
@@ -1715,7 +1719,7 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 		];
 
 	GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(NotificationOverlay);
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
 void SLobby::OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
