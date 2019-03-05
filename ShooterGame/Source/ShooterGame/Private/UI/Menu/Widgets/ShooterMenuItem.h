@@ -105,6 +105,9 @@ public:
 	/** selected multi-choice index for this menu item */
 	int32 SelectedMultiChoice;
 
+	/** outermost padding */
+	FMargin ExternalPadding = FMargin(0, 0, 0, 0);
+
 	/** constructor accepting menu item text */
 	FShooterMenuItem(FText _text)
 	{
@@ -144,6 +147,11 @@ public:
 		{
 			Widget->UpdateItemText(Text);
 		}
+	}
+
+	const FMargin& GetPadding() const
+	{
+		return ExternalPadding;
 	}
 
 	/** create special root item */

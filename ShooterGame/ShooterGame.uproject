@@ -73,6 +73,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "CrashTracker",
+			"Enabled": true
+		},
+		{
 			"Name": "AccelByteCustomWebBrowserWidget",
 			"Enabled": true
 		}

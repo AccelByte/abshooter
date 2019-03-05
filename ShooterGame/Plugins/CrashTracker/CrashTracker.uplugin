@@ -1,0 +1,25 @@
+{
+    "FileVersion" : 3,
+    "Version" : 1,
+    "VersionName" : "1.0",
+    "FriendlyName" : "UE4 Crash Tracker",
+    "Description" : "Captures 20 second video before crash",
+    "Category" : "CrashReporter",
+    "CreatedBy" : "Accelbyte, Inc.",
+    "CreatedByURL" : "http://accelbyte.net",
+    "DocsURL" : "",
+    "MarketplaceURL" : "",
+    "SupportURL" : "",
+    "EnabledByDefault" : true,
+    "CanContainContent" : false,
+    "IsBetaVersion" : true,
+    "Installed" : false,
+    "Modules" :
+    [
+        {
+            "Name" : "CrashTracker",
+            "Type" : "Runtime",
+            "LoadingPhase" : "Default"
+        }
+    ]
+}

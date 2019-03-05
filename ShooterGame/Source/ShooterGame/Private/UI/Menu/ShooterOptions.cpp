@@ -71,6 +71,8 @@ void FShooterOptions::Construct(ULocalPlayer* InPlayerOwner)
 	/** Cheats menu root item */
 	TSharedPtr<FShooterMenuItem> CheatsRoot = FShooterMenuItem::CreateRoot();
 
+	/** Additional padding to shift it to right */
+	FMargin RightPadding = FMargin(0, 0, 600, 0);
 	CheatsItem = MenuHelper::AddMenuItem(CheatsRoot,LOCTEXT("Cheats", "CHEATS"));
 	MenuHelper::AddMenuOptionSP(CheatsItem, LOCTEXT("InfiniteAmmo", "INFINITE AMMO"), OnOffList, this, &FShooterOptions::InfiniteAmmoOptionChanged);
 	MenuHelper::AddMenuOptionSP(CheatsItem, LOCTEXT("InfiniteClip", "INFINITE CLIP"), OnOffList, this, &FShooterOptions::InfiniteClipOptionChanged);
@@ -79,16 +81,16 @@ void FShooterOptions::Construct(ULocalPlayer* InPlayerOwner)
 
 	OptionsItem = MenuHelper::AddMenuItem(OptionsRoot,LOCTEXT("Options", "OPTIONS"));
 #if PLATFORM_DESKTOP
-	VideoResolutionOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("Resolution", "RESOLUTION"), ResolutionList, this, &FShooterOptions::VideoResolutionOptionChanged);
-	GraphicsQualityOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("Quality", "QUALITY"),LowHighList, this, &FShooterOptions::GraphicsQualityOptionChanged);
-	FullScreenOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("FullScreen", "FULL SCREEN"),OnOffList, this, &FShooterOptions::FullScreenOptionChanged);
+	VideoResolutionOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("Resolution", "RESOLUTION"), ResolutionList, this, &FShooterOptions::VideoResolutionOptionChanged, RightPadding);
+	GraphicsQualityOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("Quality", "QUALITY"),LowHighList, this, &FShooterOptions::GraphicsQualityOptionChanged, RightPadding);
+	FullScreenOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("FullScreen", "FULL SCREEN"),OnOffList, this, &FShooterOptions::FullScreenOptionChanged, RightPadding);
 #endif
-	GammaOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("Gamma", "GAMMA CORRECTION"),GammaList, this, &FShooterOptions::GammaOptionChanged);
-	AimSensitivityOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("AimSensitivity", "AIM SENSITIVITY"),SensitivityList, this, &FShooterOptions::AimSensitivityOptionChanged);
-	InvertYAxisOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("InvertYAxis", "INVERT Y AXIS"),OnOffList, this, &FShooterOptions::InvertYAxisOptionChanged);
-	VibrationOption = MenuHelper::AddMenuOptionSP(OptionsItem, LOCTEXT("Vibration", "VIBRATION"), OnOffList, this, &FShooterOptions::ToggleVibration);
+	GammaOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("Gamma", "GAMMA CORRECTION"),GammaList, this, &FShooterOptions::GammaOptionChanged, RightPadding);
+	AimSensitivityOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("AimSensitivity", "AIM SENSITIVITY"),SensitivityList, this, &FShooterOptions::AimSensitivityOptionChanged, RightPadding);
+	InvertYAxisOption = MenuHelper::AddMenuOptionSP(OptionsItem,LOCTEXT("InvertYAxis", "INVERT Y AXIS"),OnOffList, this, &FShooterOptions::InvertYAxisOptionChanged, RightPadding);
+	VibrationOption = MenuHelper::AddMenuOptionSP(OptionsItem, LOCTEXT("Vibration", "VIBRATION"), OnOffList, this, &FShooterOptions::ToggleVibration, RightPadding);
 	
-	MenuHelper::AddMenuItemSP(OptionsItem,LOCTEXT("ApplyChanges", "APPLY CHANGES"), this, &FShooterOptions::OnApplySettings);
+	MenuHelper::AddMenuItemSP(OptionsItem,LOCTEXT("ApplyChanges", "APPLY CHANGES"), this, &FShooterOptions::OnApplySettings, RightPadding);
 
 	//Do not allow to set aim sensitivity to 0
 	AimSensitivityOption->MinMultiChoiceIndex = MinSensitivity;

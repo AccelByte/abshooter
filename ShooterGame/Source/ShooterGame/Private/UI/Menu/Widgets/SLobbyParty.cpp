@@ -119,6 +119,6 @@ FReply SParty::OnCreatePartyClicked() const
 		a->SetVisibility(EVisibility::Visible);
 	}
 	AccelByte::FRegistry::Lobby.SendCreatePartyRequest();
-	ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+	ButtonCreateParty->SetVisibility(EVisibility::Hidden);
 	return FReply::Handled();
 }

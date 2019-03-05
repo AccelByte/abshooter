@@ -355,12 +355,13 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		}
 
 #else
-		//TSharedPtr<FShooterMenuItem> MenuItem;
-		//// HOST menu option
-		//MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Host", "HOST"));
+		FMargin StylizedMargin = FMargin(640, 10, 0, 10);
+		TSharedPtr<FShooterMenuItem> MenuItem;
+		// HOST menu option
+		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Offline", "OFFLINE"), StylizedMargin);
 
 		//// submenu under "host"
-		//MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "FREE FOR ALL"), this, &FShooterMainMenu::OnUIHostFreeForAll);
+		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "FREE FOR ALL"), this, &FShooterMainMenu::OnUIHostFreeForAll);
 		//MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("TDMLong", "TEAM DEATHMATCH"), this, &FShooterMainMenu::OnUIHostTeamDeathMatch);
 
 		//TSharedPtr<FShooterMenuItem> NumberOfBotsOption = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("NumberOfBots", "NUMBER OF BOTS"), BotsCountList, this, &FShooterMainMenu::BotCountOptionChanged);
@@ -389,7 +390,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		//MenuHelper::AddCustomMenuItem(JoinServerItem,SAssignNew(ServerListWidget,SShooterServerList).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
 #endif
 		// Lobby
-		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Lobby", "LOBBY"), this, &FShooterMainMenu::OnShowLobby);
+		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Lobby", "LOBBY"), this, &FShooterMainMenu::OnShowLobby, StylizedMargin);
 		MenuHelper::AddCustomMenuItem(LobbyMenuItem, SAssignNew(LobbyWidget, SLobby)
 			.OwnerWidget(MenuWidget)
 			.PlayerOwner(GetPlayerOwner())
@@ -407,13 +408,13 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		// Inventory
 		{
-			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Inventory", "INVENTORY"), this, &FShooterMainMenu::OnShowInventory);
+			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Inventory", "INVENTORY"), this, &FShooterMainMenu::OnShowInventory, StylizedMargin);
 			MenuHelper::AddCustomMenuItem(InventoryItem, SAssignNew(InventoryWidget, SShooterInventory).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()).OnBuyItemFinished(FSimpleDelegate::CreateSP(this, &FShooterMainMenu::RefreshWallet)));
 		}
 #endif
 
 		// Store
-		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Store", "STORE"), this, &FShooterMainMenu::OnShowStore);
+		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Store", "STORE"), this, &FShooterMainMenu::OnShowStore, StylizedMargin);
 		MenuHelper::AddCustomMenuItem(StoreItem, SAssignNew(StoreWidget, SShooterStore)
 			.OwnerWidget(MenuWidget)
 			.PlayerOwner(GetPlayerOwner())
@@ -422,11 +423,12 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
         // Screenshot
         {
-            MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Screenshot", "SCREENSHOT"), this, &FShooterMainMenu::OnShowScreenshot);
+            MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Gallery", "GALLERY"), this, &FShooterMainMenu::OnShowScreenshot, StylizedMargin);
             MenuHelper::AddCustomMenuItem(ScreenshotItem, SAssignNew(ScreenshotWidget, SShooterScreenshot).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
         }
 
 		// Options
+		ShooterOptions->OptionsItem->ExternalPadding = StylizedMargin;
 		MenuHelper::AddExistingMenuItem(RootMenuItem, ShooterOptions->OptionsItem.ToSharedRef());
 		ShooterOptions->OptionsItem->OnConfirmMenuItem.BindSP(this, &FShooterMainMenu::OnShowOption);
 		if(FSlateApplication::Get().SupportsSystemHelp())
@@ -437,7 +439,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 		// QUIT option (for PC)
 #if !SHOOTER_CONSOLE_UI
-		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Quit", "QUIT"), this, &FShooterMainMenu::OnUIQuit);
+		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Quit", "QUIT"), this, &FShooterMainMenu::OnUIQuit, StylizedMargin);
 #endif
 
 		MenuWidget->CurrentMenuTitle = LOCTEXT("MainMenu","MAIN MENU");
@@ -1146,7 +1148,6 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	if (ScreenshotItem->SubMenu == Menu)
 	{
 		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
-
 	}
 }
 

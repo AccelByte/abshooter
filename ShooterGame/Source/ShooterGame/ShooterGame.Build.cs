@@ -35,6 +35,7 @@ public class ShooterGame : ModuleRules
                 "InputCore",
                 "JsonUtilities",
                 "AccelByteUe4Sdk",
+                "CrashTracker"
 			}
 		);
 
@@ -82,5 +83,6 @@ public class ShooterGame : ModuleRules
 
 		// Accelbyte SDK
 		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
+        PublicIncludePaths.AddRange(new string[] { "CrashTracker" });   
 	}
 }

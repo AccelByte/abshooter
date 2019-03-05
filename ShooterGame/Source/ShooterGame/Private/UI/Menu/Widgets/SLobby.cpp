@@ -298,7 +298,7 @@ void SLobby::Construct(const FArguments& InArgs)
 							SNew(SBox)	//2.1.1 SEDITABLETEXTBOX
 							[
 								SAssignNew(FriendSearchBar, SEditableTextBox)
-								.HintText(FText::FromString(TEXT("Type username here")))
+								.HintText(FText::FromString(TEXT("Type email here")))
 								.MinDesiredWidth(300.0f)
 								.SelectAllTextWhenFocused(true)
 								.Style(&LobbyStyle->SearchBarStyle)
@@ -1526,9 +1526,6 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 		AccelByte::Api::User::GetPublicUserInfo(Response.friendsId[0], THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
-
-		FString DisplayedRequestName = (User.EmailAddress != TEXT("")) ? User.EmailAddress : User.DisplayName;
-
 		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
@@ -1544,7 +1541,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		+ SOverlay::Slot()
 			[
 				SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), *DisplayedRequestName)))
+				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), *User.DisplayName)))
 				.ConfirmText(FText::FromString("ACCEPT"))
 				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
 				{
@@ -1649,7 +1646,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		+ SOverlay::Slot()
 			[
 				SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), (User.EmailAddress == TEXT(""))? *User.EmailAddress : *User.DisplayName)))
+				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), *User.DisplayName)))
 				.ConfirmText(FText::FromString("ACCEPT"))
 				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
 				{
