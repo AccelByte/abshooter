@@ -833,6 +833,10 @@ void UShooterGameInstance::BeginMainMenuState()
         AccelByte::Api::UserProfile::GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& UserProfileInfo) {
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *UserProfileInfo.FirstName);
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserProfileInfo.UserId);
+			if (UserToken.Display_name.IsEmpty())
+			{
+				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
+			}
             MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
             this->UserProfileInfo = UserProfileInfo; // save our own
 
@@ -842,6 +846,10 @@ void UShooterGameInstance::BeginMainMenuState()
 
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
 
+			if (UserToken.Display_name.IsEmpty())
+			{
+				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
+			}
 
             AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
                 AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
