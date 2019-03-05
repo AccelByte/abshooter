@@ -1,0 +1,12 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UE4Editor-CrashTracker.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"E:\UnrealEngine\Engine\Intermediate\Build\Win64\UE4Editor\Development\Engine\SharedPCH.Engine.h.obj"
+"C:\Users\My Computer\Documents\justice-ue4-shootergame\ShooterGame\Plugins\CrashTracker\Intermediate\Build\Win64\UE4Editor\Development\CrashTracker\CrashTracker.cpp.obj"
+"E:\UnrealEngine\Engine\Intermediate\Build\Win64\UE4Editor\Development\PCLaunch.rc.res"
+/OUT:"C:\Users\My Computer\Documents\justice-ue4-shootergame\ShooterGame\Plugins\CrashTracker\Intermediate\Build\Win64\UE4Editor\Development\CrashTracker\UE4Editor-CrashTracker.lib"

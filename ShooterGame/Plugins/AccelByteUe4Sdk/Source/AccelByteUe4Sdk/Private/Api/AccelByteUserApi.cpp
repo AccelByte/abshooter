@@ -85,11 +85,14 @@ void User::LoginWithDeviceId(const FVoidHandler& OnSuccess, const FErrorHandler&
 
 void User::LoginWithLauncher(const FVoidHandler& OnSuccess, const FErrorHandler & OnError)
 {
+	TCHAR AuthorizationCode[1000];
+	AuthorizationCode[0] = 0;
 #if defined(PLATFORM_WINDOWS)
-	FString AuthorizationCode = FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
 #elif defined(PLATFORM_LINUX)
-	FString AuthorizationCode = FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
 #endif
+
 
 
 	Oauth2::GetAccessTokenWithAuthorizationCodeGrant(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret, AuthorizationCode, FRegistry::Settings.RedirectURI, THandler<FOauth2Token>::CreateLambda([OnSuccess](const FOauth2Token& Result) {

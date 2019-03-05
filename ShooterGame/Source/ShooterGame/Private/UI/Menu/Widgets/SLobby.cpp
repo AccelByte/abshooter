@@ -671,6 +671,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                         }
                     }
                     PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
+					AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
                 }));
                 if (InvitationOverlay.IsValid())
                 {

@@ -3,6 +3,7 @@
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "ShooterGame.h"
+#include "GalleryStyle.h"
 
 //class declare
 class SShooterScreenshotEdit : public SCompoundWidget
@@ -29,6 +30,7 @@ private:
 	TWeakObjectPtr<ULocalPlayer> PlayerOwner;
 	TSharedPtr<SWidget> OwnerWidget;
 	struct FScreenshotEntry* Entry;
+	const FGalleryStyle *GalleryStyle;
 
 	TSharedPtr<SEditableText> TextTitle;
 	FOnSave OnSave;

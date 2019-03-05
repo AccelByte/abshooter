@@ -264,11 +264,13 @@ enum class ErrorCodes : int32
 	OffenseTypeNotFoundException = 4242,
 	OffenseTypeAlreadyExistsException = 4271,
 	OffenseReportAssociatedException = 4272,
-		
+	//
+	//Client side Error Code List
+	//
 	UnknownError = 14000,
 	JsonDeserializationFailed = 14001,
-	EmptyResponse = 14002,
-	WebSocketConnectFailed = 14201,
+	NetworkError = 14005,
+	WebSocketConnectFailed = 14201
 };
 
 
@@ -309,7 +311,7 @@ inline void HandleHttpResultOk<uint8>(FHttpResponsePtr Response, const THandler<
 template<class T>
 inline void HandleHttpResultOk(FHttpResponsePtr Response, const THandler<T>& OnSuccess)
 {
-	typename std::remove_const<typename std::remove_reference<T>::type>::type Result;
+	std::remove_const<std::remove_reference<T>::type>::type Result;
 	FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Result, 0, 0);
 
 	OnSuccess.ExecuteIfBound(Result);
@@ -328,7 +330,7 @@ FHttpRequestCompleteDelegate CreateHttpResultHandler(const T& OnSuccess, const F
 		[OnSuccess, OnError]
 		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
 		{
-			if (Response && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+			if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 			{
 				HandleHttpResultOk(Response, OnSuccess);
 				return;

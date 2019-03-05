@@ -1,5 +1,10 @@
+// Copyright (c) 2018-2019 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
 #include "SShooterScreenshotEdit.h"
 #include "ShooterStyle.h"
+#include "GalleryStyle.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "SShooterScreenshotEdit.h"
 #include "UI/Menu/Widgets/SShooterScreenshot.h"
@@ -13,6 +18,8 @@ void SShooterScreenshotEdit::Construct(const FArguments& InArgs)
 	Entry = InArgs._Entry;
 	OnSave = InArgs._OnSave;
 
+	GalleryStyle = &FShooterStyle::Get().GetWidgetStyle<FGalleryStyle>("DefaultGalleryMenuStyle");
+
 	ChildSlot
 	[
 		SNew(SOverlay)
@@ -21,7 +28,7 @@ void SShooterScreenshotEdit::Construct(const FArguments& InArgs)
 		.HAlign(HAlign_Fill)
 		[
 			SNew(SImage)
-			.Image(&SShooterScreenshotEdit_BackgroundImage)
+			.Image(&GalleryStyle->EditCaptionBackground)
 		]
 		+ SOverlay::Slot()
 		.VAlign(VAlign_Center)
@@ -33,7 +40,7 @@ void SShooterScreenshotEdit::Construct(const FArguments& InArgs)
 			.HAlign(HAlign_Fill)
 			[
 				SNew(SImage)
-				.Image(FShooterStyle::Get().GetBrush("ShooterGame.CornerBorder"))
+				.Image(&GalleryStyle->EditCaptionInnerBackground)
 			]
 			+ SOverlay::Slot()
 			.Padding(FMargin(10))
@@ -46,12 +53,23 @@ void SShooterScreenshotEdit::Construct(const FArguments& InArgs)
 					+ SVerticalBox::Slot()
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString("Edit Caption"))
+						.Text(FText::FromString("EDIT CAPTION"))
+						.TextStyle(&GalleryStyle->EditCaptionTextStyle)
 					]
 					+ SVerticalBox::Slot()
 					[
-						SAssignNew(TextTitle, SEditableText)
-						.Text(FText::FromString(InArgs._Entry->Title))
+						SNew(SOverlay)
+						+SOverlay::Slot()
+						[
+							SNew(SImage)
+							.Image(&GalleryStyle->EditCaptionInputFieldBackground)
+						]
+						+SOverlay::Slot()
+						[
+							SAssignNew(TextTitle, SEditableText)
+							.Text(FText::FromString(InArgs._Entry->Title))
+							.Style(&GalleryStyle->EditCaptionInputFieldStyle)
+						]
 					]
 				]
 				+ SVerticalBox::Slot()
@@ -65,10 +83,7 @@ void SShooterScreenshotEdit::Construct(const FArguments& InArgs)
 							GEngine->GameViewport->RemoveViewportWidgetContent(AsShared());
 							return FReply::Handled();
 						}))
-						[
-							SNew(STextBlock)
-							.Text(FText::FromString("CANCEL"))
-						]
+						.ButtonStyle(&GalleryStyle->EditCaptionCloseButtonStyle)
 					]
 					+ SHorizontalBox::Slot()
 					[
@@ -79,10 +94,7 @@ void SShooterScreenshotEdit::Construct(const FArguments& InArgs)
 							GEngine->GameViewport->RemoveViewportWidgetContent(AsShared());
 							return FReply::Handled();
 						}))
-						[
-							SNew(STextBlock)
-							.Text(FText::FromString("SAVE"))
-						]
+						.ButtonStyle(&GalleryStyle->EditCaptionSaveButtonStyle)
 					]
 				]
 			]

@@ -1,3 +1,6 @@
+// Copyright (c) 2018-2019 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
 
 #include "ShooterGame.h"
 #include "SShooterScreenshot.h"
@@ -5,6 +8,8 @@
 #include "SShooterScreenshotEdit.h"
 #include "SShooterScreenshotResolver.h"
 #include "ShooterStyle.h"
+#include "GalleryStyle.h"
+#include "ShooterMenuWidgetStyle.h"
 #include "ShooterUIHelpers.h"
 #include "ShooterGameViewportClient.h"
 #include "ShooterGameInstance.h"
@@ -455,6 +460,8 @@ public:
 
 class SShooterScreenshotTileItem : public STableRow< TSharedPtr<FScreenshotEntry> >
 {
+	const FGalleryStyle *GalleryStyle;
+	
 public:
     DECLARE_DELEGATE_OneParam(FOnDeleteClick, const FString&)
 	DECLARE_DELEGATE_OneParam(FOnResolveClick, int32)
@@ -475,12 +482,14 @@ public:
 		OnResolveClick = InArgs._OnResolveClick;
 		OnRetryClick = InArgs._OnRetryClick;
 
+		GalleryStyle = &FShooterStyle::Get().GetWidgetStyle<FGalleryStyle>("DefaultGalleryMenuStyle");
+
 		STableRow< TSharedPtr<FScreenshotEntry> >::Construct(STableRow::FArguments().ShowSelection(false) , InOwnerTable);
 
 		ChildSlot
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
-		.Padding(20)
+		.Padding(4)
 		[
 			SNew(SOverlay)
 			+ SOverlay::Slot()
@@ -488,7 +497,7 @@ public:
 			.HAlign(HAlign_Fill)
 			[
 				SNew(SImage)
-				.Image(&BorderBrush)
+				.Image(&GalleryStyle->SlotBackground)
 			]
 			+ SOverlay::Slot()
 			.VAlign(VAlign_Fill)
@@ -553,21 +562,33 @@ public:
 				]
 				+ SVerticalBox::Slot()
 				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				[
+					SNew(SImage)
+					.Image(&GalleryStyle->SlotTextImage)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Fill)
 				[
 					SNew(SHorizontalBox)
 					+ SHorizontalBox::Slot()
-					.Padding(FMargin(0, 0, 10, 0))
 					.AutoWidth()
+					.VAlign(VAlign_Bottom)
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString(FString::Printf(TEXT("SLOTs %0d"), InItem->SlotNumber)))
-						.ColorAndOpacity(FLinearColor(0, 1, 1))
+						.Text(FText::FromString(FString::Printf(TEXT("SLOT %0d"), InItem->SlotNumber)))
+						.TextStyle(&GalleryStyle->SlotNumberStyle)
 					]
 					+ SHorizontalBox::Slot()
+					.Padding(FMargin(5, 0, 0, 0))
 					.FillWidth(1)
+					.VAlign(VAlign_Bottom)
 					[
 						SAssignNew(TextTitle, STextBlock)
 						.Text(this, &SShooterScreenshotTileItem::GetTitle)
+						.TextStyle(&GalleryStyle->SlotTitleStyle)
 					]
 				]
 			]
@@ -598,25 +619,13 @@ public:
 						SNew(SButton) // preview button
 						.VAlign(VAlign_Fill)
 						.HAlign(HAlign_Fill)
+						.ButtonStyle(&GalleryStyle->ZoomOut)
 						.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
 							SAssignNew(this->ScreenshotPreviewWidget, SShooterScreenshotPreview)
 								.Image(Item.Pin()->Image.Get());
 							this->ScreenshotPreviewWidget->Show();
 							return FReply::Handled();
 						}))
-						[
-							SNew(SOverlay)
-							+ SOverlay::Slot()
-							[
-								SNew(SImage)
-								.Image(&ButtonBackgrounBrush)
-							]
-							+ SOverlay::Slot()
-							[
-								SNew(SImage)
-								.Image(FShooterStyle::Get().GetBrush("ShooterGame.ZoomOut"))
-							]
-						]
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -632,28 +641,17 @@ public:
 						SNew(SButton) // edit button
 						.VAlign(VAlign_Fill)
 						.HAlign(HAlign_Fill)
+						.ButtonStyle(&GalleryStyle->Edit)
 						.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
 							SAssignNew(this->ScreenshotEditWidget, SShooterScreenshotEdit)
 								.Entry(Item.Pin().Get())
 								.OnSave(SShooterScreenshotEdit::FOnSave::CreateLambda([&]() {
 									TextTitle->SetText(FText::FromString(Item.Pin()->Title));
+									CloudStorage::UpdateSlotMetadata(Item.Pin()->SlotID, "", { "" }, Item.Pin()->Title, "", nullptr, nullptr, nullptr);
 								}));
 							this->ScreenshotEditWidget->Show();
 							return FReply::Handled();
 						}))
-						[
-							SNew(SOverlay)
-							+ SOverlay::Slot()
-							[
-								SNew(SImage)
-								.Image(&ButtonBackgrounBrush)
-							]
-							+ SOverlay::Slot()
-							[
-								SNew(SImage)
-								.Image(FShooterStyle::Get().GetBrush("ShooterGame.Edit"))
-							]
-						]
 					]
 				]
 				+ SHorizontalBox::Slot()
@@ -669,23 +667,11 @@ public:
 						SNew(SButton) // delete button
 						.VAlign(VAlign_Fill)
 						.HAlign(HAlign_Fill)
+						.ButtonStyle(&GalleryStyle->Close)
 						.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
 							OnDeleteClick.ExecuteIfBound(Item.Pin()->SlotID);
 							return FReply::Handled();
 						}))
-						[
-							SNew(SOverlay)
-							+ SOverlay::Slot()
-							[
-								SNew(SImage)
-								.Image(&ButtonBackgrounBrush)
-							]
-							+ SOverlay::Slot()
-							[
-								SNew(SImage)
-								.Image(FShooterStyle::Get().GetBrush("ShooterGame.Close"))
-							]
-						]
 					]
 				]
 			]
@@ -704,11 +690,8 @@ public:
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SButton)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Resolve"))
-					]
+					SNew(SButton) // Resolve
+					.ButtonStyle(&GalleryStyle->Resolve)
 					.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
 						OnResolveClick.ExecuteIfBound(Item.Pin()->SlotNumber - 1);
 						return FReply::Handled();
@@ -730,11 +713,8 @@ public:
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
-					SNew(SButton)
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Retry"))
-					]
+					SNew(SButton) // Retry
+					.ButtonStyle(&GalleryStyle->Retry)
 					.OnClicked(FOnClicked::CreateLambda([&]() -> FReply {
 						OnRetryClick.ExecuteIfBound(Item.Pin()->SlotNumber - 1);
 						return FReply::Handled();
@@ -746,7 +726,7 @@ public:
 
     const FSlateBrush* GetScreenshotImage() const 
     {
-		return !Item.Pin()->Image.IsValid() ? FShooterStyle::Get().GetBrush("ShooterGame.Image") : Item.Pin()->Image.Get();
+		return !Item.Pin()->Image.IsValid() ? &GalleryStyle->SlotEmptyBackground : Item.Pin()->Image.Get();
     }
 
 	const FSlateBrush* GetCloudImage() const
@@ -754,19 +734,19 @@ public:
 		switch (Item.Pin()->State)
 		{
 		case DONE:
-			return FShooterStyle::Get().GetBrush("ShooterGame.CloudDone");
+			return &GalleryStyle->CloudDone;
 		case DOWNLOADING:
-			return FShooterStyle::Get().GetBrush("ShooterGame.CloudDownload");
+			return &GalleryStyle->CloudDownload;
 		case UPLOADING:
-			return FShooterStyle::Get().GetBrush("ShooterGame.CloudUpload");
+			return &GalleryStyle->CloudUpload;
 		case ERROR:
 		case ERROR_UPLOAD:
-			return FShooterStyle::Get().GetBrush("ShooterGame.CloudOff");
+			return &GalleryStyle->CloudOff;
 		case CONFLICT:
-			return FShooterStyle::Get().GetBrush("ShooterGame.SyncProblem");
+			return &GalleryStyle->SyncProblem;
 		}
 
-		return FShooterStyle::Get().GetBrush("ShooterGame.CloudOff");
+		return &GalleryStyle->CloudOff;
 	}
 
     FText GetTitle() const
@@ -852,7 +832,7 @@ private:
 
 const FSlateColorBrush SShooterScreenshotTileItem::BorderBrush{ FLinearColor(0, 0, 0) };
 const FSlateColorBrush SShooterScreenshotTileItem::ImageBrush{ FLinearColor(1, 1, 1) };
-const FSlateColorBrush SShooterScreenshotTileItem::SelectedBrush{ FLinearColor(0, 1, 1, 0.6) };
+const FSlateColorBrush SShooterScreenshotTileItem::SelectedBrush{ FLinearColor(0, 1, 1, 0.3) };
 const FSlateColorBrush SShooterScreenshotTileItem::ButtonBackgrounBrush{ FLinearColor(0.3, 0.3, 0.3) };
 const FSlateColorBrush SShooterScreenshotTileItem::InactiveBrush{ FLinearColor(0, 0, 0, 0.5) };
 
@@ -866,9 +846,12 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
 	bIsMenuUp = false;
+	
+	const FGalleryStyle *GalleryStyle;
+	GalleryStyle = &FShooterStyle::Get().GetWidgetStyle<FGalleryStyle>("DefaultGalleryMenuStyle");
 
-	const int32 TileWidth = 288;
-	const int32 TileHeight = 200;
+	const int32 TileWidth = 430;
+	const int32 TileHeight = 300;
 	const int32 TileColumn = 2;
 	const int32 TileRow = 2;
 
@@ -882,7 +865,7 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 		.HAlign(HAlign_Fill)
 		[
 			SNew(SImage)
-			.Image(&BackgroundImage)
+			.Image(&GalleryStyle->GalleryBackground)
 		]
 		+ SOverlay::Slot()
 		.VAlign(VAlign_Center)
@@ -890,36 +873,6 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 		.Padding(0, 0, 30, 0)
 		[
 			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew(SBox)
-				.VAlign(VAlign_Fill)
-				.HAlign(HAlign_Fill)
-				.WidthOverride(400)
-				.HeightOverride(TileHeight * TileRow + 4)
-				[
-					SNew(SOverlay)
-					+ SOverlay::Slot()
-					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Fill)
-					[
-						SNew(SImage)
-						.Image(&GreyBackgroundBrush)
-					]
-					+ SOverlay::Slot()
-					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Fill)
-					[
-						SAssignNew(ScreenshotListWidget, SListView< TSharedPtr<FScreenShotSelectedEntry> >)
-						.ListItemsSource(&ScreenshotList)
-						.OnGenerateRow(this, &SShooterScreenshot::OnGenerateWidgetForListView)
-						.OnRowReleased(this, &SShooterScreenshot::OnReleaseWidgetForListView)
-						.SelectionMode(ESelectionMode::Single)
-					]
-
-				]
-			]
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
@@ -935,13 +888,6 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 					.VAlign(VAlign_Fill)
 					.HAlign(HAlign_Fill)
 					[
-						SNew(SImage)
-						.Image(&BlackBackgroundBrush)
-					]
-					+ SOverlay::Slot()
-					.VAlign(VAlign_Fill)
-					.HAlign(HAlign_Fill)
-					[
 						SAssignNew(SavedScreenshotListWidget, STileView< TSharedPtr<FScreenshotEntry> >)
 						.ItemWidth(TileWidth)
 						.ItemHeight(TileHeight)
@@ -951,6 +897,35 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 						.OnGenerateTile(this, &SShooterScreenshot::OnGenerateWidgetForTileView)
 						.SelectionMode(ESelectionMode::Single)
 					]
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				.WidthOverride(870)
+				.HeightOverride(TileHeight * TileRow + 4)
+				.Visibility(TAttribute<EVisibility>::Create([&]() { return bMainMenuMode ? EVisibility::Hidden : EVisibility::Visible; }))
+				[
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					[
+						SNew(SImage)
+						.Image(&GalleryStyle->GalleryListViewBackground)
+					]
+					+ SOverlay::Slot()
+					.VAlign(VAlign_Fill)
+					.HAlign(HAlign_Fill)
+					[
+						SAssignNew(ScreenshotListWidget, SListView< TSharedPtr<FScreenShotSelectedEntry> >)
+						.ListItemsSource(&ScreenshotList)
+						.OnGenerateRow(this, &SShooterScreenshot::OnGenerateWidgetForListView)
+						.OnRowReleased(this, &SShooterScreenshot::OnReleaseWidgetForListView)
+						.SelectionMode(ESelectionMode::Single)
+					]
+
 				]
 			]
 		]
@@ -1169,7 +1144,7 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 	LoadScreenshotImage(Index, ImageData);
 
 	FString Label = SavedScreenshotList[Index]->Title;
-	FString Tags = FString::Printf(TEXT("SlotIndex=%d"), Index);
+	TArray<FString> Tags = { FString::Printf(TEXT("SlotIndex=%d"), Index) };
 	FString SlotId = LocalSlots[Index].SlotId;
 
 	LocalSlots[Index].Status = STATUS_PENDING;
@@ -1185,12 +1160,13 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 			UE_LOG(LogTemp, Log, TEXT("File successfully saved, Index: %d, SlotID :%s"), Index, *Output.SlotId);
 			SavedScreenshotList[Index]->State = DONE;
 			SavedScreenshotList[Index]->Title = Output.Label;
+			SavedScreenshotList[Index]->SlotID = Output.SlotId;
 
 			LocalSlots[Index].UserId = Output.UserId;
 			LocalSlots[Index].SlotId = Output.SlotId;
 			LocalSlots[Index].Label = Output.Label;
 			LocalSlots[Index].MimeType = Output.MimeType;
-			LocalSlots[Index].NamespaceId = Output.NamespaceId;
+			LocalSlots[Index].Namespace = Output.Namespace;
 			LocalSlots[Index].OriginalName = Output.OriginalName;
 			LocalSlots[Index].SlotId = Output.SlotId;
 			LocalSlots[Index].Status = Output.Status;
@@ -1238,12 +1214,12 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 
 	if (SlotId.IsEmpty())
 	{
-		AccelByte::Api::CloudStorage::CreateSlot(ImageData, "Screenshot.png", Tags, Label,
+		AccelByte::Api::CloudStorage::CreateSlot(ImageData, "Screenshot.png", Tags, Label, "",
 			OnSuccess, OnProgress, OnError);
 	}
 	else
 	{
-		AccelByte::Api::CloudStorage::UpdateSlot(SlotId, ImageData, "Screenshot.png", Tags, Label,
+		AccelByte::Api::CloudStorage::UpdateSlot(SlotId, ImageData, "Screenshot.png", Tags, Label, "",
 			OnSuccess, OnProgress, OnError);
 	}
 }
@@ -1680,18 +1656,29 @@ void SShooterScreenshot::RefreshFromCloud()
             }
         }
 
-		for (int i = Result.Num(); i < LocalSlots.Num(); i++)
+		for (int i = 0; i < LocalSlots.Num(); i++)
 		{
-			SavedScreenshotList[i]->SlotID = LocalSlots[i].SlotId = "";
-			SavedScreenshotList[i]->Checksum = LocalSlots[i].Checksum = "";
-			SavedScreenshotList[i]->Title = LocalSlots[i].Label = "";
-			SavedScreenshotList[i]->State = NONE;
-			SavedScreenshotList[i]->Image = nullptr;
-			LocalSlots[i].Tags.Empty();
-			LocalSlots[i].Tags.Add(FString::Printf(TEXT("SlotIndex=%d"), i));
+			if (i >= Result.Num())
+			{
+				SavedScreenshotList[i]->SlotID = LocalSlots[i].SlotId = "";
+				SavedScreenshotList[i]->Checksum = LocalSlots[i].Checksum = "";
+				SavedScreenshotList[i]->Title = LocalSlots[i].Label = "";
+				SavedScreenshotList[i]->State = NONE;
+				SavedScreenshotList[i]->Image = nullptr;
+				LocalSlots[i].Tags.Empty();
+				LocalSlots[i].Tags.Add(FString::Printf(TEXT("SlotIndex=%d"), i));
+			}
+			else
+			{
+				SavedScreenshotList[i]->SlotID = LocalSlots[i].SlotId;
+				SavedScreenshotList[i]->Checksum = LocalSlots[i].Checksum;
+				SavedScreenshotList[i]->Title = LocalSlots[i].Label;
+			}
 		}
 
 		SaveScreenshotMetadata();
+
+		SavedScreenshotListWidget->RequestListRefresh();
     }),
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] AccelByte::Api::CloudStorage::GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);

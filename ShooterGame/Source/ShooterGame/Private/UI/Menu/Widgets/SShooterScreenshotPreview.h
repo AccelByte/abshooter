@@ -3,6 +3,7 @@
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "ShooterGame.h"
+#include "GalleryStyle.h"
 
 //class declare
 class SShooterScreenshotPreview : public SCompoundWidget
@@ -26,6 +27,7 @@ private:
 	TWeakObjectPtr<ULocalPlayer> PlayerOwner;
 	TSharedPtr<SWidget> OwnerWidget;
 	const FSlateBrush* Image;
+	const FGalleryStyle *GalleryStyle;
 
 	FMargin WidgetOffset;
 	FLinearColor WidgetColor;
