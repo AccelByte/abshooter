@@ -25,6 +25,7 @@ public class ShooterGame : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+                "EngineSettings",
 				"OnlineSubsystem",
 				"OnlineSubsystemUtils",
 				"AssetRegistry",

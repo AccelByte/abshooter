@@ -361,7 +361,8 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Offline", "OFFLINE"), StylizedMargin);
 
 		//// submenu under "host"
-		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "FREE FOR ALL"), this, &FShooterMainMenu::OnUIHostFreeForAll);
+		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "VS. BOT"), this, &FShooterMainMenu::OnUIHostFreeForAll);
+		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("Back", "BACK"), this, &FShooterMainMenu::OnUIMenuGoBack);
 		//MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("TDMLong", "TEAM DEATHMATCH"), this, &FShooterMainMenu::OnUIHostTeamDeathMatch);
 
 		//TSharedPtr<FShooterMenuItem> NumberOfBotsOption = MenuHelper::AddMenuOptionSP(MenuItem, LOCTEXT("NumberOfBots", "NUMBER OF BOTS"), BotsCountList, this, &FShooterMainMenu::BotCountOptionChanged);
@@ -1118,7 +1119,6 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	if (ShooterOptions->OptionsItem->SubMenu == Menu)
 	{
 		ShooterOptions->RevertChanges();
-		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
 	}
 
 	// In case a Play Together event was received, don't act on it
@@ -1137,17 +1137,6 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	if (StoreItem->SubMenu == Menu)
 	{
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
-		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
-	}
-
-	if (LobbyMenuItem->SubMenu == Menu)
-	{
-		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
-	}
-
-	if (ScreenshotItem->SubMenu == Menu)
-	{
-		UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Hidden);
 	}
 }
 
@@ -1204,6 +1193,11 @@ void FShooterMainMenu::RecordDemoChanged(TSharedPtr<FShooterMenuItem> MenuItem, 
 		GetPersistentUser()->SetIsRecordingDemos(bIsRecordingDemo);
 		GetPersistentUser()->SaveIfDirty();
 	}
+}
+
+void FShooterMainMenu::OnUIMenuGoBack()
+{
+	MenuWidget->MenuGoBack();
 }
 
 void FShooterMainMenu::OnUIHostFreeForAll()
@@ -1456,12 +1450,10 @@ void FShooterMainMenu::OnShowLobby()
 		return;
 	}
 
-	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 	ChangeBackground(MenuStyle->LobbyBackground);
 
 	AccelByte::FRegistry::Lobby.LoadFriendsList();
-	AccelByte::FRegistry::Lobby.ListIncomingFriends();
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 	MenuWidget->NextMenu = LobbyMenuItem->SubMenu;
 	MenuWidget->EnterSubMenu();
@@ -1469,7 +1461,6 @@ void FShooterMainMenu::OnShowLobby()
 
 void FShooterMainMenu::OnShowOption()
 {
-	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 	MenuWidget->NextMenu = ShooterOptions->OptionsItem->SubMenu;
 	MenuWidget->EnterSubMenu();
 
@@ -1523,7 +1514,6 @@ void FShooterMainMenu::OnShowInventory()
 	MenuWidget->NextMenu = InventoryItem->SubMenu;
 	InventoryWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
-	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::OnShowStore()
@@ -1534,16 +1524,16 @@ void FShooterMainMenu::OnShowStore()
 	StoreWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
-	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::OnShowScreenshot()
 {
+	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+	ChangeBackground(MenuStyle->GalleryBackground);
     MenuWidget->NextMenu = ScreenshotItem->SubMenu;
     ScreenshotWidget->MainMenuMode();
     ScreenshotWidget->RefreshFromCloud();
     MenuWidget->EnterSubMenu();    
-	UserProfileWidget->EscapeMainMenuInfo->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::OnUIQuit()

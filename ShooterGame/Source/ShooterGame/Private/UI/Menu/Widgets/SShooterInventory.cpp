@@ -2,6 +2,8 @@
 #include "ShooterGame.h"
 #include "SShooterInventory.h"
 #include "ShooterStyle.h"
+#include "SShooterMenuWidget.h"
+#include "ShooterMenuWidgetStyle.h"
 #include "ShooterUIHelpers.h"
 #include "SShooterInventoryItem.h"
 #include "ShooterGameViewportClient.h"
@@ -35,6 +37,7 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 	OnBuyItemFinished = InArgs._OnBuyItemFinished;
 
 	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
+	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 
 	ChildSlot
 	.VAlign(VAlign_Fill)
@@ -120,6 +123,33 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 			{
 				return InventoryList.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed;
 			}))
+		]
+		
+		+ SOverlay::Slot()
+		.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Right)
+		.Padding(0, 0, 200, 17)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ButtonStyle(&MenuStyle->EscapeButton)
+				.VAlign(VAlign_Bottom)
+				.OnClicked(FOnClicked::CreateLambda([&]()
+				{
+					static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+					return FReply::Handled();
+				}))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(10, 0, 0, 0)
+			.AutoWidth()
+			[
+				SNew(SImage)
+				.Image(&MenuStyle->EscapeMainMenuInfo)
+			]
 		]
 	];
 	//BuildInventoryItem();

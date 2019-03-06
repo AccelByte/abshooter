@@ -61,6 +61,12 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	FButtonStyle UnfriendButtonStyle;
 	UPROPERTY(EditAnywhere, Category = FriendList)
 	FButtonStyle AddFriendButtonStyle;
+	UPROPERTY(EditAnywhere, Category = FriendList)
+	FButtonStyle AcceptRequestFriendButtonStyle;
+	UPROPERTY(EditAnywhere, Category = FriendList)
+	FButtonStyle RejectRequestFriendButtonStyle;
+	UPROPERTY(EditAnywhere, Category = FriendList)
+	FButtonStyle CancelRequestFriendButtonStyle;
 	UPROPERTY(EditAnywhere, Category = FriendEntry)
 	FTableRowStyle FriendRowStyle;
 
@@ -112,6 +118,10 @@ struct FLobbyStyle : public FSlateWidgetStyle
 	FButtonStyle StartMatchButton;
 	UPROPERTY(EditAnywhere, Category = Party)
 	FSlateBrush WarningMatchImage;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FTextBlockStyle FindingMatchTextStyle;
+	UPROPERTY(EditAnywhere, Category = Party)
+	FButtonStyle CancelMatchButton;
 
 };
 

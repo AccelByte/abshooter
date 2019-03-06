@@ -16,7 +16,8 @@ public class CrashTracker : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"Engine",
-				"ImageWrapper",
+                "CoreUObject",
+                "ImageWrapper",
 				"RenderCore",
 				"RHI",
 				"ShaderCore",
