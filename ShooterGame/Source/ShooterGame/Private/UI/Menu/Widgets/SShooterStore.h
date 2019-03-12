@@ -6,6 +6,7 @@
 #include "SlateExtras.h"
 #include "ShooterGame.h"
 #include "Models/ShooterInventory.h"
+#include "Runtime/Networking/Public/Common/TcpListener.h"
 
 //class declare
 class SShooterStore : public SCompoundWidget
@@ -124,6 +125,7 @@ protected:
 
 	TSharedPtr<SScrollBar> CoinsScrollBar;
 	TSharedPtr<SScrollBar> ItemsScrollBar;
+
+private:
+	TSharedPtr<FTcpListener> PaymentListener;
 };
-
-
