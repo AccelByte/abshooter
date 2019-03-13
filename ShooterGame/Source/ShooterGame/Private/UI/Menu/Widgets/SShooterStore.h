@@ -85,6 +85,8 @@ protected:
 	void CloseConfirmationDialog();
 
 	FReply OnBuyConfirm();
+	void OnPaymentOrderCreated(FString Url);
+	FReply OnClosePayment();
 	FReply OnBuyCancel();
 
 	void OnGetItemsByCriteria(const struct FAccelByteModelsItemPagingSlicedResult& Result);

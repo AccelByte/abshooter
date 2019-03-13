@@ -16,6 +16,7 @@
 #include "ShooterStoreStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "SShooterCoinsWidget.h"
+#include "SShooterPaymentDialog.h"
 #include "Runtime/Networking/Public/Common/TcpListener.h"
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinimalWindowsApi.h"
@@ -23,6 +24,8 @@
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 #include "Sockets.h"
+
+#define USING_EXTERNAL_BROWSER 0
 
 using namespace AccelByte::Api;
 
@@ -396,12 +399,17 @@ FReply SShooterStore::OnBuyConfirm()
 	CloseConfirmationDialog();
 	ShowLoadingDialog();
 
+
 	AccelByte::Api::Order::CreateNewOrder(OrderCreate, AccelByte::THandler<FAccelByteModelsOrderInfo>::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
 		CloseLoadingDialog(); 
 		if (!OrderInfo.PaymentStationUrl.IsEmpty())
 		{
+#if USING_EXTERNAL_BROWSER
 			FPlatformProcess::LaunchURL(*OrderInfo.PaymentStationUrl, nullptr, nullptr);
 			OnBackFromPaymentBrowser(OrderInfo.PaymentStationUrl);
+#else // USING EMBEDDED BROWSER
+			OnPaymentOrderCreated(OrderInfo.PaymentStationUrl);
+#endif
 		}
 		else 
 		{
@@ -416,6 +424,45 @@ FReply SShooterStore::OnBuyConfirm()
 		ShowMessageDialog(FString::Printf(TEXT("Purchase failed %s"), *Message));
 		UE_LOG(LogTemp, Display, TEXT("Purchase failed: code: %d, message: %s"), ErrorCode, *Message)
 	}));
+	return FReply::Handled();
+}
+
+void SShooterStore::OnPaymentOrderCreated(FString Url)
+{
+	TSharedPtr<SShooterPaymentDialog> Dialog;
+
+	SAssignNew(MessageDialogWidget, SOverlay)
+	+ SOverlay::Slot()
+	[
+		SNew(SImage)
+		.Image(&ConfirmationBackgroundBrush)
+	]
+	+ SOverlay::Slot()
+	[
+		SAssignNew(Dialog, SShooterPaymentDialog)
+		.PlayerOwner(PlayerOwner)
+		.PaymentUrl(Url)
+		.CallBackUrl("127.0.0.1")
+		.OnCallbackUrlLoaded(FSimpleDelegate::CreateLambda([&]()
+		{
+			AsyncTask(ENamedThreads::GameThread, [&]() {
+				OnClosePayment();
+			});
+		}))
+		.OnCloseClicked(FOnClicked::CreateSP(this, &SShooterStore::OnClosePayment))
+	];
+
+	GEngine->GameViewport->AddViewportWidgetContent(MessageDialogWidget.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
+}
+
+FReply SShooterStore::OnClosePayment()
+{
+	GEngine->GameViewport->RemoveViewportWidgetContent(MessageDialogWidget.ToSharedRef());
+	MessageDialogWidget.Reset();
+	BuildInventoryItem();
+	OnBuyItemFinished.ExecuteIfBound();
+	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 	return FReply::Handled();
 }
 

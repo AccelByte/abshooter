@@ -35,6 +35,7 @@ public class ShooterGame : ModuleRules
 				"Http",
                 "InputCore",
                 "JsonUtilities",
+                "WebBrowser",
                 "AccelByteUe4Sdk",
                 "CrashTracker"
 			}
