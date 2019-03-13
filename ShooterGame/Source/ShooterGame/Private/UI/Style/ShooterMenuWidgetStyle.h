@@ -73,6 +73,8 @@ struct FShooterMenuStyle : public FSlateWidgetStyle
 
 	UPROPERTY(EditAnywhere, Category=Misc)
 	FSlateBrush EscapeMainMenuInfo;
+	UPROPERTY(EditAnywhere, Category=Misc)
+	FButtonStyle EscapeButton;
 
 	UPROPERTY(EditAnywhere, Category=Background)
 	UMaterialInterface* MainBackground;

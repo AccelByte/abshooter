@@ -219,6 +219,9 @@ protected:
 	/** record demo option changed callback */
 	void RecordDemoChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex);
 
+	/** Back to main menu*/
+	void OnUIMenuGoBack();
+
 	/** Plays StartGameSound sound and calls HostFreeForAll after sound is played */
 	void OnUIHostFreeForAll();
 

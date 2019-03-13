@@ -2,6 +2,8 @@
 #include "ShooterGame.h"
 #include "SShooterStore.h"
 #include "ShooterStyle.h"
+#include "ShooterMenuWidgetStyle.h"
+#include "SShooterMenuWidget.h"
 #include "ShooterUIHelpers.h"
 #include "SShooterStoreItem.h"
 #include "ShooterGameViewportClient.h"
@@ -38,6 +40,7 @@ void SShooterStore::Construct(const FArguments& InArgs)
 
 	const FShooterStoreStyle* StoreStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterStoreStyle>("DefaultShooterStoreStyle");
 	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
+	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 
 	ChildSlot
 	.VAlign(VAlign_Top)
@@ -144,6 +147,37 @@ void SShooterStore::Construct(const FArguments& InArgs)
 					.Orientation(EOrientation::Orient_Vertical)
 					.Visibility(EVisibility::Visible)
 					.Style(&InventoryStyle->ScrollBarStyle)
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.HAlign(HAlign_Right)
+			.Padding(FMargin(0, 0, 0, 20))
+			[
+				SNew(SBox)
+				.VAlign(VAlign_Bottom)
+				.HAlign(HAlign_Right)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.ButtonStyle(&MenuStyle->EscapeButton)
+						.VAlign(VAlign_Bottom)
+						.OnClicked(FOnClicked::CreateLambda([&]()
+						{
+							static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+							return FReply::Handled();
+						}))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(10, 0, 0, 0)
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Image(&MenuStyle->EscapeMainMenuInfo)
+					]
 				]
 			]
 		]
@@ -306,6 +340,7 @@ void SShooterStore::CloseConfirmationDialog()
 		GEngine->GameViewport->RemoveViewportWidgetContent(DialogWidget.ToSharedRef());
 		DialogWidget.Reset();
 	}
+	FSlateApplication::Get().SetKeyboardFocus(SharedThis(this));
 }
 
 FReply SShooterStore::OnBuyConfirm()
@@ -556,8 +591,8 @@ void SShooterStore::OnBackFromPaymentBrowser(FString PaymentUrl)
 	+ SOverlay::Slot()
 	[
 		SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-		.MessageText(FText::FromString("Are your payment is completed already?"))
-		.ConfirmText(FText::FromString("Yes!"))
+		.MessageText(FText::FromString("Complete Payment"))
+		.ConfirmText(FText::FromString("OK"))
 		.OnConfirmClicked(FOnClicked::CreateLambda([&]() -> FReply {
 			CloseMessageDialog();
 			BuildInventoryItem();

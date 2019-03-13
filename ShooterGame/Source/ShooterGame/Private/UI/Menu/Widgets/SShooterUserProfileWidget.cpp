@@ -97,15 +97,6 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 				]
 			]
 		]
-		+ SOverlay::Slot()
-		.HAlign(HAlign_Right)
-		.VAlign(VAlign_Bottom)
-		.Padding(0, 0, 40, 40)
-		[
-			SAssignNew(EscapeMainMenuInfo, SImage)
-			.Image(&MenuStyle->EscapeMainMenuInfo)
-			.Visibility(EVisibility::Hidden)
-		]
 	];
 }
 

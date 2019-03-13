@@ -8,6 +8,8 @@
 #include "SShooterScreenshotEdit.h"
 #include "SShooterScreenshotResolver.h"
 #include "ShooterStyle.h"
+#include "SShooterMenuWidget.h"
+#include "ShooterMenuWidgetStyle.h"
 #include "GalleryStyle.h"
 #include "ShooterMenuWidgetStyle.h"
 #include "ShooterUIHelpers.h"
@@ -849,6 +851,7 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 	
 	const FGalleryStyle *GalleryStyle;
 	GalleryStyle = &FShooterStyle::Get().GetWidgetStyle<FGalleryStyle>("DefaultGalleryMenuStyle");
+	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 
 	const int32 TileWidth = 430;
 	const int32 TileHeight = 300;
@@ -860,6 +863,12 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 	.HAlign(HAlign_Fill)
 	[
 		SNew(SOverlay)
+		+ SOverlay::Slot()
+		[
+			SNew(SBox)
+			.HeightOverride(TAttribute<FOptionalSize>::Create([&]() { return GetScreenSize().Y; }))
+			.WidthOverride(TAttribute<FOptionalSize>::Create([&]() { return GetScreenSize().X; }))
+		]
 		+ SOverlay::Slot()
 		.VAlign(VAlign_Fill)
 		.HAlign(HAlign_Fill)
@@ -929,6 +938,35 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 				]
 			]
 		]
+
+		+ SOverlay::Slot()
+		.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Right)
+		.Padding(0, 0, 200, 17)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ButtonStyle(&MenuStyle->EscapeButton)
+				.VAlign(VAlign_Bottom)
+				.Visibility(TAttribute<EVisibility>::Create([&]() { return bMainMenuMode ? EVisibility::Visible : EVisibility::Collapsed; }))
+				.OnClicked(FOnClicked::CreateLambda([&]()
+				{
+					static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+					return FReply::Handled();
+				}))
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(10, 0, 0, 0)
+			.AutoWidth()
+			[
+				SNew(SImage)
+				.Visibility(TAttribute<EVisibility>::Create([&]() { return bMainMenuMode ? EVisibility::Visible : EVisibility::Collapsed; }))
+				.Image(&MenuStyle->EscapeMainMenuInfo)
+			]
+		]
 	];
 	ComboBoxGroup = MakeShareable(new FScreenshotComboBoxGroup);
 	ComboBoxGroup->AvailableOptions = MakeShareable(new TArray<FScreenshotComboBoxType>());
@@ -939,6 +977,13 @@ void SShooterScreenshot::Construct(const FArguments& InArgs)
 	}
 
 	BuildScreenshotItem();
+}
+
+FVector2D SShooterScreenshot::GetScreenSize() const
+{
+	FVector2D Result = FVector2D(1, 1);
+	GEngine->GameViewport->GetViewportSize(Result);
+	return Result;
 }
 
 FString SShooterScreenshot::GetScreenshotsDir()

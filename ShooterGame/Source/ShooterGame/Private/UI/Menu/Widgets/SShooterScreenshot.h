@@ -118,6 +118,7 @@ protected:
 
 	void UpdateCurrentScreenshotList();
 
+	FVector2D GetScreenSize() const;
 	FString GetScreenshotsDir();
 	FString GetUserScreenshotsDir();
 	bool IsScreenshotMetadataExists();

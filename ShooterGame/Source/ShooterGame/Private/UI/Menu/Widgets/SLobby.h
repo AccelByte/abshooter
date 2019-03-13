@@ -26,12 +26,20 @@
 #include "SLobbyChatPage.h"
 #include "SLobbyChatTabButton.h"
 
+enum FriendEntryType
+{
+	FRIEND,
+	INCOMING,
+	OUTGOING
+};
+
 struct FFriendEntry
 {
 	FString UserId;
 	FString Name;
 	FString Presence; //ONLINE, INGAME, IDLE, OFFLINE
 	FString AvatarSmallUrl;
+	FriendEntryType Type;
 };
 
 //class declare
@@ -71,7 +79,8 @@ public:
     void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
     void SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath);
     FString GetCurrentUserID();
-    void AddFriend(FString UserID, FString DisplayName, FString Avatar);
+    void AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryType Type);
+    void RemoveFriend(FString UserId);
     void RefreshFriendList();
 	void UpdateFriendList();
 
@@ -139,6 +148,7 @@ protected:
 #pragma region FRIENDS_SERVICE
 	void OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response);
 	void OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response);
+	void OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFriendsResponse& Response);
 	void OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response);
 	void OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response);
 	void OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response);
