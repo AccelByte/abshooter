@@ -85,6 +85,7 @@ void SLobbyChatPage::AppendConversation(FString UserName, FString Message)
 				.TextStyle(&ConversationTextStyle)
 				.Text(FText::FromString(FormatText))
 				.AutoWrapText(true)
+				.IsReadOnly(true)
 			);
 		ConversationScrollBox->ScrollDescendantIntoView(Text);
 	}

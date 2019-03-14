@@ -660,6 +660,7 @@ void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Not
 void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification)
 {
     FString DisplayName = CheckDisplayName(Notification.From) ? GetDisplayName(Notification.From) : Notification.From;
+	CloseOverlay(InvitationOverlay);
 	TSharedPtr<SShooterConfirmationDialog> Dialog;
     SAssignNew(InvitationOverlay, SOverlay)
         + SOverlay::Slot()
@@ -712,28 +713,20 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                     PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
 					AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
                 }));
-                if (InvitationOverlay.IsValid())
-                {
-                    GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
-                    InvitationOverlay.Reset();
-                }
+                CloseOverlay(InvitationOverlay);
                 // add chat tab
 				LobbyChatWidget->AddParty(Notification.PartyId);
                 return FReply::Handled();
             }))
             .OnCancelClicked(FOnClicked::CreateLambda([&]()
             {
-                if (InvitationOverlay.IsValid())
-                {
-                    GEngine->GameViewport->RemoveViewportWidgetContent(InvitationOverlay.ToSharedRef());
-                    InvitationOverlay.Reset();
-                }
+                CloseOverlay(InvitationOverlay);
                 return FReply::Handled();
             }))
         ];
 
     GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());
-    FSlateApplication::Get().SetKeyboardFocus(InvitationOverlay);
+    FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
 void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo)
@@ -1219,6 +1212,12 @@ FReply SLobby::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEven
 
 FReply SLobby::OnRequestFriend()
 {
+	// if the input field is empty or whitespace, do not send the request, return
+	if (FriendSearchBar->GetText().IsEmptyOrWhitespace())
+	{
+		return FReply::Handled();
+	}
+	
 	AccelByte::Api::User::GetUserByLoginId(FriendSearchBar->GetText().ToString(), 
 		THandler<FUserData>::CreateLambda([&](const FUserData& User)
 		{
@@ -1231,6 +1230,7 @@ FReply SLobby::OnRequestFriend()
 			{
 				ErrorMessage = FString::Printf(TEXT("%s does not exist."), *FriendSearchBar->GetText().ToString());
 			}
+			CloseOverlay(NotificationOverlay);
 			TSharedPtr<SShooterConfirmationDialog> Dialog;
 			SAssignNew(NotificationOverlay, SOverlay)
 			+ SOverlay::Slot()
@@ -1250,11 +1250,7 @@ FReply SLobby::OnRequestFriend()
 					.ConfirmText(FText::FromString("OK"))
 					.OnConfirmClicked(FOnClicked::CreateLambda([&]()
 					{
-						if (NotificationOverlay.IsValid())
-						{
-							GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
-							NotificationOverlay.Reset();
-						}
+						CloseOverlay(NotificationOverlay);
 						return FReply::Handled();
 					}))
 				];
@@ -1651,6 +1647,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			Message = FString::Printf(TEXT("Failed. Error code= %s"), *Response.Code);
 		}
 
+		CloseOverlay(NotificationOverlay);
 		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
@@ -1670,11 +1667,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 				.ConfirmText(FText::FromString("CLOSE"))
 				.OnConfirmClicked(FOnClicked::CreateLambda([&]()
 				{
-					if (NotificationOverlay.IsValid())
-					{
-						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
-						NotificationOverlay.Reset();
-					}
+					CloseOverlay(NotificationOverlay);
 					return FReply::Handled();
 				}))
 			];
@@ -1775,6 +1768,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
+			CloseOverlay(NotificationOverlay);
 			TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
@@ -1795,11 +1789,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
 				{
 					AccelByte::FRegistry::Lobby.AcceptFriend(Response.friendId);
-					if (NotificationOverlay.IsValid())
-					{
-						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
-						NotificationOverlay.Reset();
-					}
+					CloseOverlay(NotificationOverlay);
 					AccelByte::FRegistry::Lobby.LoadFriendsList();
 					return FReply::Handled();
 				}))
@@ -1807,11 +1797,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 				.OnCancelClicked(FOnClicked::CreateLambda([&, Response]()
 				{
 					AccelByte::FRegistry::Lobby.RejectFriend(Response.friendId);
-					if (NotificationOverlay.IsValid())
-					{
-						GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
-						NotificationOverlay.Reset();
-					}
+					CloseOverlay(NotificationOverlay);
 					return FReply::Handled();
 				}))
 			];
@@ -1831,6 +1817,7 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 		return;
 	}
 
+	CloseOverlay(NotificationOverlay);
 	TSharedPtr<SShooterConfirmationDialog> Dialog;
 	SAssignNew(NotificationOverlay, SOverlay)
 		+ SOverlay::Slot()
@@ -1850,11 +1837,7 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 			.ConfirmText(FText::FromString("CLOSE"))
 			.OnConfirmClicked(FOnClicked::CreateLambda([&]()
 			{
-				if (NotificationOverlay.IsValid())
-				{
-					GEngine->GameViewport->RemoveViewportWidgetContent(NotificationOverlay.ToSharedRef());
-					NotificationOverlay.Reset();
-				}
+				CloseOverlay(NotificationOverlay);
 				return FReply::Handled();
 			}))
 		];
@@ -1881,6 +1864,15 @@ void SLobby::OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersRespons
 	}
 	RefreshFriendList();
 	UpdateSearchStatus();
+}
+
+void SLobby::CloseOverlay(TSharedPtr<SOverlay> Overlay)
+{
+	if (Overlay.IsValid())
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(Overlay.ToSharedRef());
+		Overlay.Reset();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

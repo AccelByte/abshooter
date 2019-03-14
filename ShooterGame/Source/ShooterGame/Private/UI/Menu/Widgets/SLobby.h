@@ -180,6 +180,7 @@ public:
 #pragma endregion PARTY
 
 	TSharedPtr<SOverlay> NotificationOverlay;
+	void CloseOverlay(TSharedPtr<SOverlay> Overlay);
 	void OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification);
 	void OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 };
