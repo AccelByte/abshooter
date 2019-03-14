@@ -16,6 +16,13 @@
 #include "ShooterStoreStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "SShooterCoinsWidget.h"
+#include "Runtime/Networking/Public/Common/TcpListener.h"
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include "Windows/MinimalWindowsApi.h"
+#include "SocketSubsystem.h"
+#include "Interfaces/IPv4/IPv4Address.h"
+#include "Interfaces/IPv4/IPv4Endpoint.h"
+#include "Sockets.h"
 
 using namespace AccelByte::Api;
 
@@ -29,6 +36,39 @@ SShooterStore::SShooterStore()
 	, VerticalPaddingRatio(0)
 	, MarginTop(175)
 {
+	FIPv4Endpoint EndPoint;
+	FIPv4Endpoint::Parse(FString("127.0.0.1:7777"), EndPoint);
+	
+	PaymentListener = MakeShared<FTcpListener>(EndPoint);
+	PaymentListener->Init();
+	PaymentListener->OnConnectionAccepted().BindLambda([this](FSocket* Socket, const FIPv4Endpoint EndPoint) {
+		FString ResponseBody = "Your payment has been completed. You can close this window and return back to the game.\r\n";
+		FTCHARToUTF8 ResponseBodyUtf8(*ResponseBody);
+
+		FString ResponseHeader = FString::Printf(
+			TEXT(
+				"HTTP/1.1 200 OK\r\n"
+				"Connection: keep-alive\r\n"
+				"Date: Tue, 12 Mar 2019 06:01:15 GMT\r\n"
+				"Content-Type: text/html; charset=UTF-8\r\n"
+				"Content-Length: %d\r\n"
+				"\r\n"
+			), 
+			ResponseBodyUtf8.Length());
+
+		FString Response = ResponseHeader.Append(ResponseBody);
+
+		FTCHARToUTF8 ResponseUtf8(*Response);
+		int32 SentBytes = 0;
+
+		Socket->Send((const uint8_t*)ResponseUtf8.Get(), ResponseUtf8.Length(), SentBytes);
+		Socket->Close();
+		HWND WindowHandle = static_cast<HWND>(GEngine->GameViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
+		BringWindowToTop(WindowHandle);
+		SetForegroundWindow(WindowHandle);
+
+		return true;
+	});	
 }
 
 void SShooterStore::Construct(const FArguments& InArgs)
@@ -351,7 +391,7 @@ FReply SShooterStore::OnBuyConfirm()
 	OrderCreate.Price = SelectedItem->Price;
 	OrderCreate.DiscountedPrice = SelectedItem->DiscountedPrice;
 	OrderCreate.Quantity = 1;
-	OrderCreate.ReturnUrl = TEXT("https://sdk.example.com");
+	OrderCreate.ReturnUrl = TEXT("http://127.0.0.1:7777/");
 
 	CloseConfirmationDialog();
 	ShowLoadingDialog();
