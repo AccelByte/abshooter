@@ -44,6 +44,7 @@ private:
 	TSharedRef<SWidget> GetLeftWidget(const FInventoryEntry * item) const;
 
 	FString GetPriceString(const FInventoryEntry * item) const;
+	FString GetDiscountedPriceString(const FInventoryEntry * item) const;
 
 	/** get content image*/
 	const FSlateBrush* GetImage() const;

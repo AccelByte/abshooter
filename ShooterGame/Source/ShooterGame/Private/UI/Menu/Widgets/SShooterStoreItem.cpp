@@ -18,6 +18,8 @@ void SShooterStoreItem::Construct(const FArguments& InArgs, const TSharedRef<STa
 	PlayerOwner = InPlayerOwner;
 	OnBuyItem = InArgs._OnBuyItem;
 
+	float DiscountTextDegree = 45.0f;
+
 	STableRow< TSharedPtr<FInventoryEntry> >::Construct(STableRow::FArguments().ShowSelection(false).Padding(FMargin(0, 4.0f)), InOwnerTable);
 
 	if (Item.IsValid()) 
@@ -25,6 +27,14 @@ void SShooterStoreItem::Construct(const FArguments& InArgs, const TSharedRef<STa
 		InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 		StoreStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterStoreStyle>("DefaultShooterStoreStyle");
 		TSharedPtr<FInventoryEntry> item = Item.Pin();
+
+		FString DicsountBannerText;
+		int Discount = 
+			(Item.Pin()->DiscountPercentage == 0) ? 
+			(FMath::CeilToInt( (Item.Pin()->Price - Item.Pin()->DiscountedPrice) * 100.00f / (double)Item.Pin()->Price )):
+			FMath::CeilToInt(Item.Pin()->DiscountPercentage * 100.0f);
+		DicsountBannerText.Append(Discount < 10 ? "  " : "").Append(FString::Printf(TEXT("%d%% OFF  "), Discount));
+		FMargin DiscountBannerTextMargin = FMargin(0, 5, 15, 0);
 
 		if (item->ImageURL.StartsWith("http")) 
 		{
@@ -84,6 +94,22 @@ void SShooterStoreItem::Construct(const FArguments& InArgs, const TSharedRef<STa
 					]
 				]
 			]
+
+			+SOverlay::Slot().HAlign(HAlign_Right).VAlign(VAlign_Top).Padding(0, 0, 35, 0)
+			[
+				SNew(SImage)
+				.Image(&StoreStyle->RibbonImage)
+				.Visibility(TAttribute<EVisibility>::Create([Discount]() -> EVisibility { return (Discount > 0) ? EVisibility::Visible : EVisibility::Collapsed; }))
+			]
+
+			+SOverlay::Slot().HAlign(HAlign_Right).VAlign(VAlign_Top).Padding(DiscountBannerTextMargin)
+			[
+					SNew(STextBlock)
+					.Text(FText::FromString(DicsountBannerText))
+					.TextStyle(&StoreStyle->DiscountRibbonTextStyle)
+					.RenderTransform(FSlateRenderTransform(FQuat2D(FMath::DegreesToRadians(DiscountTextDegree))))
+					.Visibility(TAttribute<EVisibility>::Create([Discount]() -> EVisibility { return (Discount > 0) ? EVisibility::Visible : EVisibility::Collapsed; }))
+			]
 		];
 	}
 }
@@ -91,45 +117,6 @@ void SShooterStoreItem::Construct(const FArguments& InArgs, const TSharedRef<STa
 void SShooterStoreItem::OnReceivedImage(FCacheBrush Image)
 {
 	ImageBrush = Image;
-}
-
-TSharedRef<SWidget> SShooterStoreItem::GetPriceWidget(const FInventoryEntry* item) const
-{
-	if (!item->Purchasable && item->Owned)
-	{
-		return SNew(SBox);
-	}
-	else
-	{
-		// construct the price in string format, different format for REAL and VIRTUAL currency
-		float Price = (item->CurrencyType == TEXT("REAL") ? item->Price / 100.00f : item->Price / 1.f);
-		FString PriceString;
-		PriceString.Append(item->CurrencyType == TEXT("REAL") ? item->CurrencyCode + TEXT("\n") : TEXT(""));
-		PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == TEXT("REAL") ? 2 : 0));
-
-		return SNew(SHorizontalBox)
-		+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		.AutoWidth()
-		[
-			item->CurrencyType != TEXT("REAL") // if VIRTUAL currency then show the coin image
-			?
-			SNew(SImage).Image(&InventoryStyle->CoinImage)
-			:
-			SNew(SImage).Visibility(EVisibility::Collapsed)
-		]
-		+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.AutoWidth()
-		[
-			SNew(STextBlock)
-			.Margin(FMargin(5, 0))
-			.TextStyle(&InventoryStyle->PriceTextStyle)
-			.Text(FText::FromString(PriceString))
-		];
-	}
 }
 
 TSharedRef<SWidget> SShooterStoreItem::GetLeftWidget(const FInventoryEntry* item) const
@@ -141,10 +128,37 @@ TSharedRef<SWidget> SShooterStoreItem::GetLeftWidget(const FInventoryEntry* item
 			.HAlign(HAlign_Left)
 			.AutoHeight()
 			[
-				SNew(STextBlock)
-				.Margin(FMargin(5, 0))
-				.TextStyle(&StoreStyle->RealCurrencyTextStyle)
-				.Text(FText::FromString(GetPriceString(item)))
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Margin(FMargin(5, 0))
+					.TextStyle(&InventoryStyle->PriceTextStyle)
+					.Text(FText::FromString(GetDiscountedPriceString(item)))
+				]
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SOverlay)
+					.Visibility(TAttribute<EVisibility>::Create([item]() -> EVisibility { return (item->DiscountPercentage > 0.f || (item->Price - item->DiscountedPrice) > 0) ? EVisibility::Visible : EVisibility::Collapsed; }))
+					+SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Margin(FMargin(5, 0))
+						.TextStyle(&StoreStyle->StrikeThroughTextStyle)
+						.Text(FText::FromString(GetPriceString(item)))
+					]
+					+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center)
+					[
+						SNew(SImage)
+						.Image(&StoreStyle->StrikethroughImage)
+					]
+				]
 			]
 			+ SVerticalBox::Slot()
 			.HAlign(HAlign_Left)
@@ -196,9 +210,37 @@ TSharedRef<SWidget> SShooterStoreItem::GetLeftWidget(const FInventoryEntry* item
 			+ SVerticalBox::Slot() // Price
 			.AutoHeight()
 			[
-				SNew(STextBlock)
-				.TextStyle(&InventoryStyle->PriceTextStyle)
-				.Text(FText::FromString(GetPriceString(item)))
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.Margin(FMargin(5, 0))
+					.TextStyle(&InventoryStyle->PriceTextStyle)
+					.Text(FText::FromString(GetDiscountedPriceString(item)))
+				]
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.AutoWidth()
+				[
+					SNew(SOverlay)
+					.Visibility(TAttribute<EVisibility>::Create([item]() -> EVisibility { return (item->DiscountPercentage > 0.f || (item->Price - item->DiscountedPrice) > 0) ? EVisibility::Visible : EVisibility::Collapsed; }))
+					+ SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+					[
+						SNew(STextBlock)
+						.Margin(FMargin(5, 0))
+						.TextStyle(&StoreStyle->StrikeThroughTextStyle)
+						.Text(FText::FromString(GetPriceString(item)))
+					]
+					+ SOverlay::Slot().HAlign(HAlign_Fill).VAlign(VAlign_Center)
+					[
+						SNew(SImage)
+						.Image(&StoreStyle->StrikethroughImage)
+					]
+				]
 			]
 			+ SVerticalBox::Slot() // Price
 			.HAlign(HAlign_Left)
@@ -214,6 +256,23 @@ TSharedRef<SWidget> SShooterStoreItem::GetLeftWidget(const FInventoryEntry* item
 FString SShooterStoreItem::GetPriceString(const FInventoryEntry* item) const
 {
 	float Price = (item->CurrencyType == TEXT("REAL") ? item->Price / 100.00f : item->Price / 1.f);
+	FString PriceString;
+	if (item->CurrencyType == TEXT("REAL"))
+	{
+		PriceString.Append(item->CurrencyCode);
+	}
+	else
+	{
+		PriceString.Append("VC");
+	}
+	PriceString.Append(" ");
+	PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == TEXT("REAL") ? 2 : 0));
+	return PriceString;
+}
+
+FString SShooterStoreItem::GetDiscountedPriceString(const FInventoryEntry * item) const
+{
+	float Price = (item->CurrencyType == TEXT("REAL") ? item->DiscountedPrice / 100.00f : item->DiscountedPrice / 1.f);
 	FString PriceString;
 	if (item->CurrencyType == TEXT("REAL"))
 	{

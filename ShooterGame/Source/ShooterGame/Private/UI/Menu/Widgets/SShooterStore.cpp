@@ -484,6 +484,7 @@ TSharedRef< FInventoryEntry > SShooterStore::CreateInventoryItem(const FAccelByt
 	{
 		if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL" || ItemInfo.RegionData[j].CurrencyType == "REAL")
 		{
+			Inventory->DiscountPercentage = ItemInfo.RegionData[j].DiscountPercentage / 100.f;
 			Inventory->CurrencyCode = ItemInfo.RegionData[j].CurrencyCode;
 			Inventory->Price = ItemInfo.RegionData[j].Price;
 			Inventory->DiscountedPrice = ItemInfo.RegionData[j].DiscountedPrice;
