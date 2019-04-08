@@ -26,12 +26,21 @@ struct FShooterStoreStyle : public FSlateWidgetStyle
 		FSlateBrush HeaderItems;
 	UPROPERTY(EditAnywhere, Category = StoreItem)
 		FSlateBrush HeaderVirtualCoins;
+	UPROPERTY(EditAnywhere, Category = StoreItem)
+		FSlateBrush RibbonImage;
+	UPROPERTY(EditAnywhere, Category = StoreItem)
+		FSlateBrush StrikethroughImage;
 
 	/**
 	 * The text style
 	 */
 	UPROPERTY(EditAnywhere, Category = StoreItemText)
 	FTextBlockStyle RealCurrencyTextStyle;
+	UPROPERTY(EditAnywhere, Category = StoreItemText)
+	FTextBlockStyle DiscountRibbonTextStyle;
+	UPROPERTY(EditAnywhere, Category = StoreItemText)
+	FTextBlockStyle StrikeThroughTextStyle;
+
 
 	UPROPERTY(EditAnywhere, Category = StoreButton)
 	FButtonStyle BuyButtonStyle;

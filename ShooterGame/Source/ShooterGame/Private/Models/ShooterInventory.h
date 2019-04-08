@@ -33,6 +33,9 @@ struct FInventoryEntry
 	/** item price*/
 	int32 DiscountedPrice;
 
+	/** item discount percentage*/
+	float DiscountPercentage;
+
 	/** item consumable flag*/
 	bool Purchasable;
 
