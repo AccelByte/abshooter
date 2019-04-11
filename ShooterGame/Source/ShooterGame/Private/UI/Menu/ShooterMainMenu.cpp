@@ -358,7 +358,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		FMargin StylizedMargin = FMargin(640, 10, 0, 10);
 		TSharedPtr<FShooterMenuItem> MenuItem;
 		// HOST menu option
-		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("Offline", "OFFLINE"), StylizedMargin);
+		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("SinglePlayer", "SINGLE PLAYER"), StylizedMargin);
 
 		//// submenu under "host"
 		MenuHelper::AddMenuItemSP(MenuItem, LOCTEXT("FFALong", "VS. BOT"), this, &FShooterMainMenu::OnUIHostFreeForAll);
