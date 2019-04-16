@@ -137,16 +137,27 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 
 	if (GEngine && GEngine->GameViewport)
 	{		
-		SAssignNew(MenuWidget, SShooterMenuWidget)
-			.Cursor(EMouseCursor::Default)
-			.PlayerOwner(GetPlayerOwner())
-			.IsGameMenu(false);
 
-		// Justice user profile logged-in		
+		// Justice user profile logged-in
 		SAssignNew(UserProfileWidget, SShooterUserProfileWidget)
 			.Cursor(EMouseCursor::Default)
 			.PlayerOwner(GetPlayerOwner())
-			.IsGameMenu(false);
+			.IsGameMenu(false)
+			.OnClicked(FOnClicked::CreateLambda([&]()->FReply
+			{
+				OnShowGameProfile();
+				return FReply::Handled();
+			}));
+
+		SAssignNew(MenuWidget, SShooterMenuWidget)
+			.Cursor(EMouseCursor::Default)
+			.PlayerOwner(GetPlayerOwner())
+			.IsGameMenu(false)
+			.UserProfileWidget(UserProfileWidget);
+
+		SAssignNew(GameProfileWidget, SShooterGameProfile)
+			.OwnerWidget(MenuWidget)
+			.PlayerOwner(GetPlayerOwner());
 
 		SAssignNew(CoinsWidgetContainer, SShooterCoinsWidget)
 			.Cursor(EMouseCursor::Default);
@@ -357,6 +368,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 #else
 		FMargin StylizedMargin = FMargin(640, 10, 0, 10);
 		TSharedPtr<FShooterMenuItem> MenuItem;
+
 		// HOST menu option
 		MenuItem = MenuHelper::AddMenuItem(RootMenuItem, LOCTEXT("SinglePlayer", "SINGLE PLAYER"), StylizedMargin);
 
@@ -438,6 +450,10 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			HelpSubMenu->OnConfirmMenuItem.BindStatic([](){ FSlateApplication::Get().ShowSystemHelp(); });
 		}
 
+		//Game Profile
+		{
+			MenuHelper::AddCustomMenuItem(GameProfileItem, GameProfileWidget);
+		}
 		// QUIT option (for PC)
 #if !SHOOTER_CONSOLE_UI
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Quit", "QUIT"), this, &FShooterMainMenu::OnUIQuit, StylizedMargin);
@@ -466,7 +482,6 @@ void FShooterMainMenu::AddMenuToGameViewport()
 	{
 		UGameViewportClient* const GVC = GEngine->GameViewport;
 		
-		GVC->AddViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
 		GVC->AddViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
 		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
 		GVC->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
@@ -475,15 +490,17 @@ void FShooterMainMenu::AddMenuToGameViewport()
 
 void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FString AvatarURL)
 {
-	UserProfileWidget->UserName = FText::FromString(Username);
-	UserProfileWidget->UserID = FText::FromString(UserID);
+	UserProfileWidget->ProfileName = FText::FromString(Username);
+	UserProfileWidget->ProfileID = FText::FromString(UserID);
 	UserProfileWidget->UpdateAvatar(AvatarURL);
+	GameProfileWidget->ProfileName = FText::FromString(Username);
     LobbyWidget->SetCurrentUser(UserID, Username, AvatarURL);
 }
 
 void FShooterMainMenu::UpdateUserProfileFromCache(FString Username, FString UserID, FString AvatarPath)
 {
     UserProfileWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
+	GameProfileWidget->ProfileName = FText::FromString(Username);
     LobbyWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
 }
 
@@ -493,7 +510,6 @@ void FShooterMainMenu::RemoveMenuFromGameViewport()
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
 		GEngine->GameViewport->RemoveViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
-		GEngine->GameViewport->RemoveViewportWidgetContent(UserProfileWidgetContainer.ToSharedRef());
 
 	}
 }
@@ -1138,6 +1154,8 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	{
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
+
+	UserProfileWidget->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::BotCountOptionChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex)
@@ -1440,6 +1458,7 @@ void FShooterMainMenu::OnShowLeaderboard()
 	LeaderboardWidget->ReadStats();
 #endif
 	MenuWidget->EnterSubMenu();
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
 }
 
 void FShooterMainMenu::OnShowLobby()
@@ -1457,6 +1476,7 @@ void FShooterMainMenu::OnShowLobby()
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 	MenuWidget->NextMenu = LobbyMenuItem->SubMenu;
 	MenuWidget->EnterSubMenu();
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
 }
 
 void FShooterMainMenu::OnShowOption()
@@ -1466,6 +1486,7 @@ void FShooterMainMenu::OnShowOption()
 
 	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 	ChangeBackground(MenuStyle->OptionBackground);
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
 }
 
 void FShooterMainMenu::ChangeBackground(UMaterialInterface* Material)
@@ -1514,6 +1535,7 @@ void FShooterMainMenu::OnShowInventory()
 	MenuWidget->NextMenu = InventoryItem->SubMenu;
 	InventoryWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
 }
 
 void FShooterMainMenu::OnShowStore()
@@ -1524,6 +1546,17 @@ void FShooterMainMenu::OnShowStore()
 	StoreWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
+}
+
+void FShooterMainMenu::OnShowGameProfile()
+{
+	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+	ChangeBackground(MenuStyle->GameProfileBackground);
+	MenuWidget->NextMenu = GameProfileItem->SubMenu;
+	GameProfileWidget->BuildProfileItem();
+	MenuWidget->EnterSubMenu();
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
 }
 
 void FShooterMainMenu::OnShowScreenshot()
@@ -1533,7 +1566,8 @@ void FShooterMainMenu::OnShowScreenshot()
     MenuWidget->NextMenu = ScreenshotItem->SubMenu;
     ScreenshotWidget->MainMenuMode();
     ScreenshotWidget->RefreshFromCloud();
-    MenuWidget->EnterSubMenu();    
+    MenuWidget->EnterSubMenu();
+	UserProfileWidget->SetVisibility(EVisibility::Collapsed);
 }
 
 void FShooterMainMenu::OnUIQuit()

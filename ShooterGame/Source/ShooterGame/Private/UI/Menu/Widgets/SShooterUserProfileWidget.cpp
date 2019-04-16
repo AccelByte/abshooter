@@ -93,6 +93,7 @@ void SShooterUserProfileWidget::Construct(const FArguments& InArgs)
 						.Margin(FMargin(8.0f, 0, 0, 0))
 						.TextStyle(FShooterStyle::Get(), "ShooterGame.UsernameTextStyle")
 						.Text(this, &SShooterUserProfileWidget::GetProfileName)
+						.OnDoubleClicked(InArgs._OnClicked)
 					]
 				]
 			]
@@ -140,12 +141,12 @@ const FSlateBrush* SShooterUserProfileWidget::GetProfileAvatar() const
 
 FText SShooterUserProfileWidget::GetProfileName() const
 {
-	return UserName;
+	return ProfileName;
 }
 
 FText SShooterUserProfileWidget::GetProfileUserID() const
 {
-	return UserID;
+	return ProfileID;
 }
 
 bool SShooterUserProfileWidget::ProfileUISwap(const int ControllerIndex) const
@@ -238,8 +239,8 @@ void SShooterUserProfileWidget::BuildAndShowMenu()
 	bMenuHiding = false;
 	FSlateApplication::Get().PlaySound(MenuStyle->MenuEnterSound, GetOwnerUserIndex());
 
-	UserName = FText::FromString(TEXT("[Username]"));
-	UserID = FText::FromString(TEXT("[+]"));
+	ProfileName = FText::FromString(TEXT("[Username]"));
+	ProfileID = FText::FromString(TEXT("[+]"));
 }
 
 void SShooterUserProfileWidget::UpdateAvatar(FString Url)
@@ -256,12 +257,12 @@ void SShooterUserProfileWidget::UpdateAvatar(FString Url)
 
 }
 
-void SShooterUserProfileWidget::SetCurrentUserFromCache(FString _UserID, FString DisplayName, FString AvatarPath)
+void SShooterUserProfileWidget::SetCurrentUserFromCache(FString _ProfileID, FString DisplayName, FString AvatarPath)
 {
     if (!bProfileUpdated)
     {
-        UserName = FText::FromString(DisplayName);
-        UserID = FText::FromString(_UserID);
+        ProfileName = FText::FromString(DisplayName);
+        ProfileID = FText::FromString(_ProfileID);
 
         TArray<uint8> ImageData;
         if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
@@ -726,7 +727,7 @@ FMargin SShooterUserProfileWidget::GetMenuOffset() const
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FSlateFontInfo PlayerNameFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.UsernameTextStyle").Font;
 	const FSlateFontInfo ProfileSwapFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.UserIDTextStyle").Font;
-	const float MenuProfileWidth = FMath::Max(FontMeasure->Measure(UserName, PlayerNameFontInfo, 1.0f).X, FontMeasure->Measure(UserID.ToString(), ProfileSwapFontInfo, 1.0f).X) + 32.0f;
+	const float MenuProfileWidth = FMath::Max(FontMeasure->Measure(ProfileName, PlayerNameFontInfo, 1.0f).X, FontMeasure->Measure(ProfileID.ToString(), ProfileSwapFontInfo, 1.0f).X) + 32.0f;
 
 	const float OffsetX = (ScreenRes.X - MenuProfileWidth - 200); // 84 avatar width	
 	FMargin Result = FMargin(OffsetX, 53.0f, 0, 0);
