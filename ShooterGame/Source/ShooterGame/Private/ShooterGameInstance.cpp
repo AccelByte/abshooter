@@ -195,22 +195,22 @@ void UShooterGameInstance::Init()
 			UserToken.Display_name = AccelByte::FRegistry::Credentials.GetUserDisplayName();
 
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login With username password success"));
-			bHasDone = true;
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
 			AccelByte::FRegistry::Lobby.Connect();
+			bHasDone = true;
 
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
+			/*UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
 			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
 				TEXT("ext-userid-001"),
 				TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
-				AccelByte::THandler<FString>::CreateLambda([](FString Result) {
-
+				AccelByte::THandler<FString>::CreateLambda([&bHasDone](FString Result) mutable {
+				bHasDone = true;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
 
-			}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+			}), AccelByte::FErrorHandler::CreateLambda([&bHasDone](int32 Code, FString Message) mutable {
 				bHasDone = true;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
-			}));
+			}));*/
 		});
 
 		AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {

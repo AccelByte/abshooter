@@ -39,9 +39,9 @@ void SShooterPaymentDialog::Construct( const FArguments& InArgs )
 					.InitialURL(InArgs._PaymentUrl)
 					.ShowControls(false)
 					.SupportsTransparency(true)
-					.OnLoadCompleted(FSimpleDelegate::CreateLambda([&]()
+					.OnUrlChanged(FOnTextChanged::CreateLambda([&](const FText& LatestUrl)
 					{
-						if (WebBrowserWidget->GetUrl().Contains(CallBackUrl))
+						if (LatestUrl.ToString().Contains(CallBackUrl))
 						{
 							WebBrowserWidget->StopLoad();
 							OnCallbackUrlLoaded.ExecuteIfBound();
