@@ -329,7 +329,8 @@ void SShooterStore::OnCashInventoryMouseClick(TSharedPtr<FInventoryEntry> InItem
 void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem)
 {
 	SelectedItem = InItem;
-	if (InItem->CurrencyType != TEXT("REAL") && CoinsWidget.Pin()->Balance < InItem->Price)
+	float FinalPrice = InItem->DiscountedPrice != 0 ? InItem->DiscountedPrice : InItem->Price * (1.f - InItem->DiscountPercentage);
+	if (InItem->CurrencyType != TEXT("REAL") && CoinsWidget.Pin()->Balance < FinalPrice)
 	{
 		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(DialogWidget, SOverlay)
@@ -351,7 +352,7 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 		return;
 	}
 
-	float Price = (InItem->CurrencyType == TEXT("REAL") ? InItem->Price/100.00f : InItem->Price/1.f);
+	float Price = (InItem->CurrencyType == TEXT("REAL") ? FinalPrice /100.00f : FinalPrice /1.f);
 	FString PriceString = FString::SanitizeFloat(Price, InItem->CurrencyType == TEXT("REAL")? 2 : 0);
 
 	TSharedPtr<SShooterConfirmationDialog> Dialog;
