@@ -70,7 +70,11 @@ class AShooterGameMode : public AGameMode
 	void CreateBotControllers();
 
 	/** Create a bot */
-	AShooterAIController* CreateBot(int32 BotNum);	
+	AShooterAIController* CreateBot(int32 BotNum);
+
+	virtual void Tick(float DeltaTime) override;
+
+	void EndPlay(const EEndPlayReason::Type EndPlayReason);
 
 protected:
 

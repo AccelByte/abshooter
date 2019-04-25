@@ -83,12 +83,13 @@ ShooterGame/Saved/
 *.pdb
 ShooterGame/Output/
 ShooterGame/Build/
+ShooterGame/Content/
 ShooterGame/Binaries/
 ShooterGame/Plugins/AccelByteCustomWebBrowserWidget/Intermediate/
 ShooterGame/Plugins/AccelByteUe4Sdk/Intermediate/
 ShooterGame/Plugins/AccelByteCustomWebBrowserWidget/Binaries/
 ShooterGame/Plugins/AccelByteUe4Sdk/Binaries/
-ShooterGame/Plugins/CrashTracker/Intermediate/
+ShooterGame/Plugins/AvengersSDK/Intermediate/
 ShooterGame/Output2/
 ShooterGame/DerivedDataCache/
 ShooterGame/Content/Internationalization/

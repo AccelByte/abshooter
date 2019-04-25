@@ -10,6 +10,7 @@
 #include "Online/ShooterGameSession.h"
 #include "Bots/ShooterAIController.h"
 #include "ShooterTeamStart.h"
+#include "AvengersSDKModule.h"
 
 
 AShooterGameMode::AShooterGameMode(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -283,6 +284,8 @@ void AShooterGameMode::PostLogin(APlayerController* NewPlayer)
 		NewPC->ClientGameStarted();
 		NewPC->ClientStartOnlineGame();
 	}
+
+	IAccelByteAvengersSDKModuleInterface::Get().BeginPlay(NewPlayer);
 }
 
 void AShooterGameMode::Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType)
@@ -540,3 +543,15 @@ void AShooterGameMode::RestartGame()
 	Super::RestartGame();
 }
 
+void AShooterGameMode::Tick(float DeltaTime)
+{
+	IAccelByteAvengersSDKModuleInterface::Get().Tick(DeltaTime);
+	Super::Tick(DeltaTime);
+}
+
+void AShooterGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	IAccelByteAvengersSDKModuleInterface::Get().EndPlay();
+	Super::EndPlay(EndPlayReason);
+
+}
