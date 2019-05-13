@@ -74,7 +74,7 @@
 		},
 		{
 			"Name": "AvengersSDK",
-			"Enabled": true
+			"Enabled": false
 		},
 		{
 			"Name": "AccelByteCustomWebBrowserWidget",

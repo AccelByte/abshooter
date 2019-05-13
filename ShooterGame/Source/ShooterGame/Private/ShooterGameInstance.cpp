@@ -199,18 +199,18 @@ void UShooterGameInstance::Init()
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
 			AccelByte::FRegistry::Lobby.Connect();
 
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
-			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
-				TEXT("ext-userid-001"),
-				TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
-				AccelByte::THandler<FString>::CreateLambda([](FString Result) {
+			//UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
+			//AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
+			//	TEXT("ext-userid-001"),
+			//	TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
+			//	AccelByte::THandler<FString>::CreateLambda([](FString Result) {
 
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
+			//	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
 
-			}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-				bHasDone = true;
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
-			}));
+			//}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+			//	bHasDone = true;
+			//	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
+			//}));
 		});
 
 		AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
@@ -851,18 +851,18 @@ void UShooterGameInstance::BeginMainMenuState()
 				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
 			}
 
-            AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
-                AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
+            //AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
+            //    AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
+            //    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *Result.FirstName);
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *Result.UserId);
-                MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, Result.UserId, Result.AvatarSmallUrl);
-                this->UserProfileInfo = Result; // save our own
+            //    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *Result.FirstName);
+            //    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *Result.UserId);
+            //    MainMenuUI->UpdateUserProfile(this->UserToken.Display_name, Result.UserId, Result.AvatarSmallUrl);
+            //    this->UserProfileInfo = Result; // save our own
 
-            }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
-            }));
+            //}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            //    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
+            //}));
 
         }));
     }
