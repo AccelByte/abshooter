@@ -10,6 +10,7 @@
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
 #include "Widgets/SShooterStore.h"
+#include "Widgets/SShooterGameProfile.h"
 #include "Widgets/SShooterLeaderboard.h"
 #include "Widgets/SLobby.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
@@ -92,6 +93,8 @@ protected:
 	/* used for removing the MenuWidget */
 	TSharedPtr<class SWeakWidget> MenuWidgetContainer;
 	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
+	
+	TSharedPtr<class SWeakWidget> GameProfileWidgetContainer;
 
 	/** SplitScreen Lobby Widget */
 	TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;
@@ -116,6 +119,8 @@ protected:
 	/** store widget */
 	TSharedPtr<class SShooterStore> StoreWidget;
 
+	TSharedPtr<class SShooterGameProfile> GameProfileWidget;
+
     /** Screenshot widget */
     TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
     /** yet another custom menu */
@@ -138,6 +143,8 @@ protected:
 
 	/** Store menu */
 	TSharedPtr<class FShooterMenuItem> StoreItem;
+
+	TSharedPtr<class FShooterMenuItem> GameProfileItem;
 
 	/** LAN Options */
 	TSharedPtr<class FShooterMenuItem> HostLANItem;
@@ -267,6 +274,8 @@ protected:
 
 	/** Show store */
 	void OnShowStore();
+
+	void OnShowGameProfile();
 
     /** Show screenshot */
     void OnShowScreenshot();

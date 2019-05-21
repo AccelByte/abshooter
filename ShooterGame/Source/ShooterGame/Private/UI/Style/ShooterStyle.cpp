@@ -102,7 +102,26 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	Style.Set("ShooterGame.UsernameTextStyle", FTextBlockStyle()
 		.SetFont(TTF_FONT("Fonts/ChakraPetch-Medium", 15))
 		.SetColorAndOpacity(FLinearColor(FColor(142, 246, 255)))
-		//.SetShadowOffset(FIntPoint(-1, 1))
+	);
+
+	Style.Set("ShooterGame.ProfileNameTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Medium", 20))
+		.SetColorAndOpacity(FLinearColor(FColor(0, 235, 255)))
+	);
+
+	Style.Set("ShooterGame.ProfileStatNameTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 11))
+		.SetColorAndOpacity(FLinearColor(FColor(100, 100, 100)))
+	);
+
+	Style.Set("ShooterGame.ProfileAchieveNameTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 9.5))
+		.SetColorAndOpacity(FLinearColor(FColor(100, 100, 100)))
+	);
+
+	Style.Set("ShooterGame.ProfileStatNumTextStyle", FTextBlockStyle()
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Regular", 23))
+		.SetColorAndOpacity(FLinearColor(FColor(0, 235, 255)))
 	);
 
 	Style.Set("ShooterGame.UserIDTextStyle", FTextBlockStyle()

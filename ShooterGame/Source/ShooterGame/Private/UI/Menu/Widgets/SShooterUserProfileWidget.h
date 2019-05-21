@@ -23,7 +23,9 @@ public:
 
 	/** is this main menu or in game menu? */
 	SLATE_ARGUMENT(bool, IsGameMenu)
-	
+
+	SLATE_ARGUMENT(FOnClicked, OnClicked)
+
 	/** always goes here */
 	SLATE_END_ARGS()
 
@@ -139,8 +141,8 @@ public:
 	/** if console is currently opened */
 	bool bConsoleVisible;	
 
-	FText UserName;
-	FText UserID;
+	FText ProfileName;
+	FText ProfileID;
 
 	void UpdateAvatar(FString Url);
     void SetCurrentUserFromCache(FString _UserID, FString DisplayName, FString AvatarPath);
@@ -286,7 +288,5 @@ private:
 
 	/** style for the menu widget */
 	const struct FShooterMenuStyle *MenuStyle;
-
-
 
 };
