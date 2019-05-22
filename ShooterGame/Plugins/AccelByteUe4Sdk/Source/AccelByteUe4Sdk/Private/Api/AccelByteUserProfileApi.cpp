@@ -114,25 +114,5 @@ void UserProfile::CreateDefaultUserProfile(FString DisplayName, const THandler<F
 
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
-
-void UserProfile::CreateEntitlementReceiver(FString UserID, FString ExternalUserID, FString Content, const THandler<FString> & OnSuccess, const FErrorHandler & OnError)
-{
-    FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::Credentials.GetUserAccessToken());
-    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/entitlements/receivers/%s"), *FRegistry::Settings.PlatformServerUrl, *FRegistry::Settings.Namespace, *UserID, *ExternalUserID);
-    FString Verb = TEXT("POST");
-    FString ContentType = TEXT("application/json");
-    FString Accept = TEXT("application/json");        
-
-    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(Url);
-    Request->SetHeader(TEXT("Authorization"), Authorization);
-    Request->SetVerb(Verb);
-    Request->SetHeader(TEXT("Content-Type"), ContentType);
-    Request->SetHeader(TEXT("Accept"), Accept);
-    Request->SetContentAsString(Content);
-	
-	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
-}
-
 } // Namespace Api
 } // Namespace AccelByte

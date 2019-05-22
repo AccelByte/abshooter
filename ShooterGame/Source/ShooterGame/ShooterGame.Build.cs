@@ -37,7 +37,7 @@ public class ShooterGame : ModuleRules
                 "JsonUtilities",
                 "WebBrowser",
                 "AccelByteUe4Sdk",
-                "AvengersSDK"
+                //"AvengersSDK"
 			}
 		);
 
@@ -85,6 +85,6 @@ public class ShooterGame : ModuleRules
 
 		// Accelbyte SDK
 		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
-        PublicIncludePaths.AddRange(new string[] { "AvengersSDK" });   
+        //PublicIncludePaths.AddRange(new string[] { "AvengersSDK" });   
 	}
 }

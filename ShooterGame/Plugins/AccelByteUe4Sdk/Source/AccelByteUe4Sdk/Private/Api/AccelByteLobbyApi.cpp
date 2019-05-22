@@ -37,6 +37,7 @@ namespace Api
         // Matchmaking
         const FString StartMatchmaking = TEXT("startMatchmakingRequest");
         const FString CancelMatchmaking = TEXT("cancelMatchmakingRequest");
+		const FString ReadyConsent = TEXT("setReadyConsentRequest");
 
 		// Friends
 		const FString RequestFriend = TEXT("requestFriendsRequest");
@@ -87,7 +88,11 @@ namespace Api
         // Matchmaking
         const FString StartMatchmaking = TEXT("startMatchmakingResponse");
 		const FString CancelMatchmaking = TEXT("cancelMatchmakingResponse");
+		const FString ReadyConsentResponse = TEXT("setReadyConsentResponse");
 		const FString MatchmakingNotif = TEXT("matchmakingNotif");
+		const FString ReadyConsentNotif = TEXT("setReadyConsentNotif");
+		const FString RematchmakingNotif = TEXT("rematchmakingNotif");
+		const FString DsNotif = TEXT("dsNotif");
 
 		// Friends
 		const FString RequestFriends = TEXT("requestFriendsResponse");
@@ -252,6 +257,12 @@ FString Lobby::SendCancelMatchmaking(FString GameMode)
         FString::Printf(TEXT("gameMode: %s\n"),*GameMode));
 }
 
+FString Lobby::SendReadyConsentRequest(FString MatchId)
+{
+	return SendRawRequest(LobbyRequest::ReadyConsent, Prefix::Matchmaking,
+		FString::Printf(TEXT("matchId: %s\n"), *MatchId));
+}
+
 //-------------------------------------------------------------------------------------------------
 // Friends
 //-------------------------------------------------------------------------------------------------
@@ -315,7 +326,8 @@ void Lobby::UnbindEvent()
     PartyKickNotif.Unbind();
     PersonalChatNotif.Unbind();
     PartyChatNotif.Unbind();
-    FriendStatusNotif.Unbind();	
+    FriendStatusNotif.Unbind();
+	ReadyConsentNotif.Unbind();
 }
 
 void Lobby::OnConnected()
@@ -416,12 +428,12 @@ void Lobby::OnMessage(const FString& Message)
     }
     FString lobbyResponseType = JsonParsed->GetStringField("type");
     UE_LOG(LogTemp, Display, TEXT("Type: %s"), *lobbyResponseType);
-
+	
 #define HANDLE_LOBBY_MESSAGE(MessageType, Model, ResponseCallback) \
     if (lobbyResponseType.Equals(MessageType)) \
     { \
         Model Result; \
-        bool bSuccess = FJsonObjectConverter::JsonObjectStringToUStruct(ParsedJson, &Result, 0, 0); \
+		bool bSuccess = FJsonObjectConverter::JsonObjectStringToUStruct(ParsedJson, &Result, 0, 0); \
         if (bSuccess) \
         { \
             ResponseCallback.ExecuteIfBound(Result); \
@@ -472,7 +484,11 @@ void Lobby::OnMessage(const FString& Message)
     // Matchmaking
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::StartMatchmaking, FAccelByteModelsMatchmakingResponse, MatchmakingStartResponse);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::CancelMatchmaking, FAccelByteModelsMatchmakingResponse, MatchmakingCancelResponse);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::ReadyConsentResponse, FAccelByteModelsReadyConsentRequest, ReadyConsentResponse);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::MatchmakingNotif, FAccelByteModelsMatchmakingNotice, MatchmakingNotif);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::ReadyConsentNotif, FAccelByteModelsReadyConsentNotice, ReadyConsentNotif);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::RematchmakingNotif, FAccelByteModelsRematchmakingNotice, RematchmakingNotif);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::DsNotif, FAccelByteModelsDsNotice, DsNotif);
 
 	// Friends
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::RequestFriends, FAccelByteModelsRequestFriendsResponse, RequestFriendsResponse);

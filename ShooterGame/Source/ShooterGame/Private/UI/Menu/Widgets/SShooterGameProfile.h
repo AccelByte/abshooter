@@ -10,6 +10,8 @@
 #include "Models/ShooterInventory.h"
 #include "Models/ShooterGameProfile.h"
 #include "Models/AccelByteEntitlementModels.h"
+#include "Runtime/Online/HTTP/Public/Http.h"
+#include "Http.h"
 
 //class declare
 class SShooterGameProfile : public SCompoundWidget
@@ -40,7 +42,17 @@ public:
 
 	void EntrySelectionChanged(TSharedPtr<FAchievementEntry> InItem, ESelectInfo::Type SelectInfo);
 
-	FText ProfileName;
+	const FSlateBrush* GetProfileAvatar() const;
+
+	FText GetProfileName() const;
+
+	void SetProfileName(FText ProfileName);
+
+	void SetProfileId(FString ProfileId);
+
+	void SetCurrentProfileFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath);
+
+	void UpdateAvatar(FString Url);
 
 protected:
 
@@ -106,10 +118,19 @@ protected:
 
 	TSharedPtr<SScrollBar> ItemsScrollBar;
 
+	TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
+
 private:
 
-	const FSlateBrush* GetProfileAvatar() const;
-	FText GetProfileName() const;
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
+
+	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	bool bProfileUpdated;
+
+	FString ProfileId;
+	
+	FText ProfileName;
 };
 
 

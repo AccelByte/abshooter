@@ -40,8 +40,10 @@ SShooterGameProfile::SShooterGameProfile()
 
 void SShooterGameProfile::Construct(const FArguments& InArgs)
 {
+	ThumbnailBrush.Reset();
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
+	bProfileUpdated = false;
 
 	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
@@ -625,6 +627,69 @@ float SShooterGameProfile::GetItemHeight() const
 	return FMath::Max(GetScreenHeight() * TileItemHeightRatio, 112.5f);
 }
 
+TSharedPtr<FSlateDynamicImageBrush> SShooterGameProfile::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
+{
+	UE_LOG(LogTemp, Log, TEXT("SShooterGameProfile::CreateBrush : %s, Content Type: %s"), *ResourceName.ToString(), *ContentType);
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
+
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+	int BitDepth = 8;
+	//jpg
+	EImageFormat ImageFormat = EImageFormat::JPEG;
+	ERGBFormat RgbFormat = ERGBFormat::BGRA;
+	//png
+	if (ContentType.Contains(TEXT("png")))
+	{
+		ImageFormat = EImageFormat::PNG;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+	//bmp
+	else if (ContentType.Contains(TEXT("bmp")))
+	{
+		ImageFormat = EImageFormat::BMP;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
+
+		const TArray<uint8>* RawData = NULL;
+
+		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
+
+	return Brush;
+}
+
+void SShooterGameProfile::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (bWasSuccessful && Response.IsValid())
+	{
+		TArray<uint8> ImageData = Response->GetContent();
+		ThumbnailBrush = CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData);
+		bProfileUpdated = true;
+	}
+}
+
 void SShooterGameProfile::BuildProfileItem()
 {
 	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
@@ -700,6 +765,45 @@ const FSlateBrush* SShooterGameProfile::GetProfileAvatar() const
 FText SShooterGameProfile::GetProfileName() const
 {
 	return ProfileName;
+}
+
+void SShooterGameProfile::SetProfileName(FText ProfileName)
+{
+	SShooterGameProfile::ProfileName = ProfileName;
+}
+
+void SShooterGameProfile::SetProfileId(FString ProfileId)
+{
+	SShooterGameProfile::ProfileId = ProfileId;
+}
+
+void SShooterGameProfile::SetCurrentProfileFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath)
+{
+	if (!bProfileUpdated)
+	{
+		ProfileName = FText::FromString(DisplayName);
+		SShooterGameProfile::ProfileId = ProfileId;
+
+		TArray<uint8> ImageData;
+		if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
+		{
+			ThumbnailBrush = CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData);
+			bProfileUpdated = true;
+		}
+	}
+}
+
+void SShooterGameProfile::UpdateAvatar(FString Url)
+{
+	if (!bProfileUpdated)
+	{
+		// start download avatar
+		TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+		ThumbRequest->SetVerb("GET");
+		ThumbRequest->SetURL(Url);
+		ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SShooterGameProfile::OnThumbImageReceived);
+		ThumbRequest->ProcessRequest();
+	}
 }
 
 void SShooterGameProfile::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)

@@ -141,11 +141,19 @@ public:
 	/** if console is currently opened */
 	bool bConsoleVisible;	
 
-	FText ProfileName;
-	FText ProfileID;
-
 	void UpdateAvatar(FString Url);
-    void SetCurrentUserFromCache(FString _UserID, FString DisplayName, FString AvatarPath);
+
+    void SetCurrentUserFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath);
+
+	const FSlateBrush* GetProfileAvatar() const;
+
+	FText GetProfileName() const;
+
+	FText GetProfileUserId() const;
+
+	void SetProfileName(FString ProfileName);
+	void SetProfileId(FString ProfileId);
+	void SetUserId(FString UserId);
 
 private:
 
@@ -186,15 +194,6 @@ private:
 
 	/** gets the visibility of the swap profile UI */
 	EVisibility GetProfileSwapVisibility() const;
-
-
-	const FSlateBrush* GetProfileAvatar() const;
-
-
-	FText GetProfileName() const;
-
-	FText GetProfileUserID() const;
-
 
 	/** called when we want to swap the logged in user */
 	bool ProfileUISwap(const int ControllerIndex) const; 
@@ -288,5 +287,9 @@ private:
 
 	/** style for the menu widget */
 	const struct FShooterMenuStyle *MenuStyle;
+
+	FText UserId;
+	FText ProfileName;
+	FText ProfileId;
 
 };
