@@ -154,8 +154,15 @@ protected:
 	void OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response);
 #pragma endregion FRIENDS_SERVICE
 
+#pragma region MESSAGE_DIALOG
+	TSharedPtr<SWidget> MessageDialogWidget;
+	FSlateColorBrush ConfirmationBackgroundBrush;
+	void ShowMessageDialog(FString Message, FOnClicked OnClicked);
+	void CloseMessageDialog();
+#pragma endregion
+
 #pragma region Matchmaking
-	void StartMatch(const FString&, const FString& PartyId);
+	void StartMatch(const FString&, const FString& PartyId, const FString& DedicatedServerAddress);
 	bool bMatchmakingStarted{ false };
 	FString GameMode { "test" };
 	FOnStartMatch OnStartMatch;

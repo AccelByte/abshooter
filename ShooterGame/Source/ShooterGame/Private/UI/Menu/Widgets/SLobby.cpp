@@ -32,6 +32,7 @@
 
 SLobby::SLobby()
     : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	, ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
 {
 
 }
@@ -154,67 +155,14 @@ void SLobby::Construct(const FArguments& InArgs)
 	{
 		if (Response.Status == EAccelByteMatchmakingStatus::Done)
 		{
-#if SIMULATE_SETUP_MATCHMAKING
-			// for test only, may not work on the future
 			FString MatchId = Response.MatchId;
-			FString Url = FString::Printf(TEXT("%s/match"), *DedicatedServerBaseUrl);
-			FString Verb = TEXT("POST");
-			FString ContentType = TEXT("application/json");
-			FString Accept = TEXT("application/json");
 
-			FString Content;
+			ShowMessageDialog("Ready?", FOnClicked::CreateLambda([MatchId, this]() {
+				AccelByte::FRegistry::Lobby.SendReadyConsentRequest(MatchId);
+				CloseMessageDialog();
 
-			GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
-			FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-			MatchmakingInfo.channel = GameMode;
-			MatchmakingInfo.match_id = Response.MatchId;
-
-			FAccelByteModelsMatchmakingParty Party;
-			for (auto Member : Response.PartyMember)
-			{
-				FAccelByteModelsMatchmakingPartyMember PartyMember;
-				PartyMember.user_id = Member;
-				Party.party_members.Add(PartyMember);
-			}
-
-			Party.party_id = CurrentPartyID;
-			MatchmakingInfo.matching_parties.Add(Party);
-
-			FAccelByteModelsMatchmakingParty CounterParty;
-			for (auto Member : Response.CounterPartyMember)
-			{
-				FAccelByteModelsMatchmakingPartyMember PartyMember;
-				PartyMember.user_id = Member;
-				CounterParty.party_members.Add(PartyMember);
-			}
-			MatchmakingInfo.matching_parties.Add(CounterParty);
-
-			FJsonObjectConverter::UStructToJsonObjectString(MatchmakingInfo, Content, 0, 0);
-			FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-			Request->SetURL(Url);
-			Request->SetVerb(Verb);
-			Request->SetHeader(TEXT("Content-Type"), ContentType);
-			Request->SetHeader(TEXT("Accept"), Accept);
-			Request->SetContentAsString(Content);
-			Request->OnProcessRequestComplete().BindLambda([&, MatchId](FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful) {
-				if (Successful && Request.IsValid())
-				{
-					UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
-					StartMatch(MatchId, CurrentPartyID);
-				}
-				else
-				{
-					FString ErrorMessage = FString::Printf(TEXT("Can't setup matchmaking to %s"), *DedicatedServerBaseUrl);
-					UE_LOG(LogOnlineGame, Log, TEXT("%s"), *ErrorMessage);
-					if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, *ErrorMessage);
-				}
-				bMatchmakingStarted = false;
-			});
-			UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking..."));
-			Request->ProcessRequest();
-#else
-			StartMatch(Response.MatchId, CurrentPartyID);
-#endif
+				return FReply::Handled();
+			}));
 		}
 		// show loading for non leader party member
 		else if(Response.Status == EAccelByteMatchmakingStatus::Start)
@@ -246,6 +194,17 @@ void SLobby::Construct(const FArguments& InArgs)
 	AccelByte::FRegistry::Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
 	{
 		bMatchmakingStarted = false;
+	}));
+	AccelByte::FRegistry::Lobby.SetDsNotifDelegate(AccelByte::Api::Lobby::FDsNotif::CreateLambda([&](const FAccelByteModelsDsNotice& Notice)
+	{
+		UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
+
+		if (Notice.Status.Compare(TEXT("READY")) == 0)
+		{
+			FString ServerAddress = Notice.Ip + ":" + FString::FromInt(Notice.Port);
+			UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
+			StartMatch(Notice.MatchId, CurrentPartyID, Notice.Ip);
+		}
 	}));
 
 
@@ -602,12 +561,43 @@ float SLobby::GetLobbyWidth(float Divider) const
 	return float(ViewPortSize.X/Divider);
 }
 
-void SLobby::StartMatch(const FString& MatchId, const FString& PartyId)
+void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FString& DedicatedServerAddress)
 {
 	OnStartMatch.ExecuteIfBound();
 	UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
 	UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *GetCurrentUserID()));
 }
+
+void SLobby::ShowMessageDialog(FString Message, FOnClicked OnClicked)
+{
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
+	SAssignNew(MessageDialogWidget, SOverlay)
+		+ SOverlay::Slot()
+		[
+			SNew(SImage)
+			.Image(&ConfirmationBackgroundBrush)
+		]
+	+ SOverlay::Slot()
+		[
+			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+			.MessageText(FText::FromString(Message))
+		.ConfirmText(FText::FromString("OK"))
+		.OnConfirmClicked(OnClicked)
+		];
+
+	GEngine->GameViewport->AddViewportWidgetContent(MessageDialogWidget.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
+}
+
+void SLobby::CloseMessageDialog()
+{
+	if (MessageDialogWidget.IsValid())
+	{
+		GEngine->GameViewport->RemoveViewportWidgetContent(MessageDialogWidget.ToSharedRef());
+		MessageDialogWidget.Reset();
+	}
+}
+
 
 void SLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& PartyInfo)
 {
