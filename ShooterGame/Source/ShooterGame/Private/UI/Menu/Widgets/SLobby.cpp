@@ -157,8 +157,10 @@ void SLobby::Construct(const FArguments& InArgs)
 		{
 			FString MatchId = Response.MatchId;
 
+			CloseMessageDialog();
 			ShowMessageDialog("Ready?", FOnClicked::CreateLambda([MatchId, this]() {
 				AccelByte::FRegistry::Lobby.SendReadyConsentRequest(MatchId);
+				bReadyConsent = true;
 				CloseMessageDialog();
 
 				return FReply::Handled();
@@ -206,7 +208,29 @@ void SLobby::Construct(const FArguments& InArgs)
 			StartMatch(Notice.MatchId, CurrentPartyID, Notice.Ip);
 		}
 	}));
-
+	AccelByte::FRegistry::Lobby.SetRematchmakingNotifDelegate(AccelByte::Api::Lobby::FRematchmakingNotif::CreateLambda([&](const FAccelByteModelsRematchmakingNotice& Notice)
+	{
+		bReadyConsent = false;
+		if (Notice.BanDuration == 0)
+		{
+			ShowMessageDialog("Your Opponent's Party Have been Banned Because of Long Term Inactivity. We'll Rematch You with Another Party.", FOnClicked::CreateLambda([this]()
+			{
+				bMatchmakingStarted = true;
+				CloseMessageDialog();
+				return FReply::Handled();
+			}));
+		}
+		else
+		{
+			CloseMessageDialog();
+			ShowMessageDialog(FString::Printf(TEXT("You're Banned for %d sec Because of Long Term Inactivity. You Can Search for A Match Again After the Ban is Lifted."), Notice.BanDuration), FOnClicked::CreateLambda([this]()
+			{
+				bMatchmakingStarted = false;
+				CloseMessageDialog();
+				return FReply::Handled();
+			}));
+		}
+	}));
 
 	ChildSlot
 	.VAlign(VAlign_Fill)
@@ -443,6 +467,7 @@ void SLobby::Construct(const FArguments& InArgs)
 						.OnClicked(FOnClicked::CreateLambda([&] 
 						{
 							bMatchmakingStarted = true;
+							bReadyConsent = false;
 							GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
 							AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
 							return FReply::Handled();
@@ -465,9 +490,27 @@ void SLobby::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Center)
 						.AutoWidth()
 						[
-							SNew(STextBlock)
-							.Text(FText::FromString("Finding Match"))
-							.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+							SNew(SOverlay)
+							+SOverlay::Slot()
+							[
+								SNew(STextBlock)
+								.Text(FText::FromString("Finding Match"))
+								.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+								.Visibility(TAttribute<EVisibility>::Create([&]
+								{
+									return !bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
+								}))	
+							]
+							+ SOverlay::Slot()
+							[
+								SNew(STextBlock)
+								.Text(FText::FromString("Waiting for the Other Party"))
+								.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+								.Visibility(TAttribute<EVisibility>::Create([&]
+								{
+									return bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
+								}))
+							]
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
