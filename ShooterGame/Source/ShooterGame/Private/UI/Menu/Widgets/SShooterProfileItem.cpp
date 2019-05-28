@@ -16,14 +16,13 @@ void SShooterProfileItem::Construct(const FArguments& InArgs, const TSharedRef<S
 {
 	Item = InItem;
 	PlayerOwner = InPlayerOwner;
-	
+
 	STableRow< TSharedPtr<FAchievementEntry> >::Construct(STableRow::FArguments().ShowSelection(false).Padding(FMargin(5.0f)), InOwnerTable);
 
 	if (Item.IsValid())
 	{
 		InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 		TSharedPtr<FAchievementEntry> item = Item.Pin();
-		FSlateBrush achievementIcon;
 
 		if (item->ImageURL.StartsWith("http"))
 		{

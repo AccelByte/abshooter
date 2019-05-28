@@ -61,6 +61,7 @@ public:
 	 * @param OnError This will be called when the operation failed.
 	 */
 	static void CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError);
+    static void CreateDefaultUserProfile(FString DisplayName, const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError);
 
 private:
 	UserProfile() = delete; // static class can't have instance

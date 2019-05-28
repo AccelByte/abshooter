@@ -31,8 +31,8 @@ public:
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
 
-	void UpdateUserProfile(FString Username, FString UserID, FString AvatarURL);
-    void UpdateUserProfileFromCache(FString Username, FString UserID, FString AvatarPath);
+	void UpdateUserProfile(FString ProfileId, FString ProfileName, FString UserID, FString AvatarURL);
+    void UpdateUserProfileFromCache(FString ProfileId, FString ProfileName, FString UserId, FString AvatarPath);
 
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	
@@ -93,8 +93,6 @@ protected:
 	/* used for removing the MenuWidget */
 	TSharedPtr<class SWeakWidget> MenuWidgetContainer;
 	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
-	
-	TSharedPtr<class SWeakWidget> GameProfileWidgetContainer;
 
 	/** SplitScreen Lobby Widget */
 	TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;

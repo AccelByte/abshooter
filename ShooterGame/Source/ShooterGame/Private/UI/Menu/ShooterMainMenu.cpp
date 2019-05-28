@@ -488,20 +488,23 @@ void FShooterMainMenu::AddMenuToGameViewport()
 	}
 }
 
-void FShooterMainMenu::UpdateUserProfile(FString Username, FString UserID, FString AvatarURL)
+void FShooterMainMenu::UpdateUserProfile(FString ProfileId, FString ProfileName, FString UserID, FString AvatarURL)
 {
-	UserProfileWidget->ProfileName = FText::FromString(Username);
-	UserProfileWidget->ProfileID = FText::FromString(UserID);
+	UserProfileWidget->SetProfileName(ProfileName);
+	UserProfileWidget->SetUserId(UserID);
+	UserProfileWidget->SetProfileId(ProfileId);
 	UserProfileWidget->UpdateAvatar(AvatarURL);
-	GameProfileWidget->ProfileName = FText::FromString(Username);
-    LobbyWidget->SetCurrentUser(UserID, Username, AvatarURL);
+	GameProfileWidget->SetProfileId(ProfileId);
+	GameProfileWidget->SetProfileName(FText::FromString(ProfileName));
+	GameProfileWidget->UpdateAvatar(AvatarURL);
+    LobbyWidget->SetCurrentUser(UserID, ProfileName, AvatarURL);
 }
 
-void FShooterMainMenu::UpdateUserProfileFromCache(FString Username, FString UserID, FString AvatarPath)
+void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileId, FString ProfileName, FString UserId, FString AvatarPath)
 {
-    UserProfileWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
-	GameProfileWidget->ProfileName = FText::FromString(Username);
-    LobbyWidget->SetCurrentUserFromCache(UserID, Username, AvatarPath);
+	UserProfileWidget->SetCurrentUserFromCache(ProfileId, UserId, ProfileName, AvatarPath);
+	GameProfileWidget->SetCurrentProfileFromCache(ProfileId, UserId, ProfileName, AvatarPath);
+	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
 }
 
 void FShooterMainMenu::RemoveMenuFromGameViewport()
