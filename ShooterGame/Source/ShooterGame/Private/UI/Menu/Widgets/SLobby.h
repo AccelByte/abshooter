@@ -168,6 +168,7 @@ protected:
 	FOnStartMatch OnStartMatch;
 	FString DedicatedServerBaseUrl;
 	FString DedicatedServerAddress;
+	bool bReadyConsent;
 #pragma endregion Matchmaking
 
     void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);

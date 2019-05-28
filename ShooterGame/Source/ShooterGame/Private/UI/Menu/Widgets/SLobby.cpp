@@ -157,8 +157,10 @@ void SLobby::Construct(const FArguments& InArgs)
 		{
 			FString MatchId = Response.MatchId;
 
+			CloseMessageDialog();
 			ShowMessageDialog("Ready?", FOnClicked::CreateLambda([MatchId, this]() {
 				AccelByte::FRegistry::Lobby.SendReadyConsentRequest(MatchId);
+				bReadyConsent = true;
 				CloseMessageDialog();
 
 				return FReply::Handled();
@@ -206,7 +208,29 @@ void SLobby::Construct(const FArguments& InArgs)
 			StartMatch(Notice.MatchId, CurrentPartyID, Notice.Ip);
 		}
 	}));
-
+	AccelByte::FRegistry::Lobby.SetRematchmakingNotifDelegate(AccelByte::Api::Lobby::FRematchmakingNotif::CreateLambda([&](const FAccelByteModelsRematchmakingNotice& Notice)
+	{
+		bReadyConsent = false;
+		if (Notice.BanDuration == 0)
+		{
+			ShowMessageDialog("Your Opponent's Party Have been Banned Because of Long Term Inactivity. We'll Rematch You with Another Party.", FOnClicked::CreateLambda([this]()
+			{
+				bMatchmakingStarted = true;
+				CloseMessageDialog();
+				return FReply::Handled();
+			}));
+		}
+		else
+		{
+			CloseMessageDialog();
+			ShowMessageDialog(FString::Printf(TEXT("You're Banned for %d sec Because of Long Term Inactivity. You Can Search for A Match Again After the Ban is Lifted."), Notice.BanDuration), FOnClicked::CreateLambda([this]()
+			{
+				bMatchmakingStarted = false;
+				CloseMessageDialog();
+				return FReply::Handled();
+			}));
+		}
+	}));
 
 	ChildSlot
 	.VAlign(VAlign_Fill)
@@ -443,6 +467,7 @@ void SLobby::Construct(const FArguments& InArgs)
 						.OnClicked(FOnClicked::CreateLambda([&] 
 						{
 							bMatchmakingStarted = true;
+							bReadyConsent = false;
 							GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
 							AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
 							return FReply::Handled();
@@ -465,9 +490,27 @@ void SLobby::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Center)
 						.AutoWidth()
 						[
-							SNew(STextBlock)
-							.Text(FText::FromString("Finding Match"))
-							.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+							SNew(SOverlay)
+							+SOverlay::Slot()
+							[
+								SNew(STextBlock)
+								.Text(FText::FromString("Finding Match"))
+								.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+								.Visibility(TAttribute<EVisibility>::Create([&]
+								{
+									return !bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
+								}))	
+							]
+							+ SOverlay::Slot()
+							[
+								SNew(STextBlock)
+								.Text(FText::FromString("Waiting for the Other Party"))
+								.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+								.Visibility(TAttribute<EVisibility>::Create([&]
+								{
+									return bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
+								}))
+							]
 						]
 						+ SHorizontalBox::Slot()
 						.AutoWidth()
@@ -831,19 +874,9 @@ void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotic
         
         if (!found)
         {
-			//check game profile first, if exist, addfriend
-			AccelByte::FRegistry::GameProfile.BatchGetPublicGameProfiles({ Response.UserID }, THandler<TArray<FAccelByteModelsPublicGameProfile>>::CreateLambda([this](const TArray<FAccelByteModelsPublicGameProfile>& Result)
-			{
-				if (Result[0].gameProfiles.Num() != 0)
-				{
-					AddFriend(Result[0].userId, Result[0].gameProfiles[0].profileName, Result[0].gameProfiles[0].avatarUrl, FriendEntryType::FRIEND);
-					RefreshFriendList();
-					UpdateSearchStatus();
-				}
-			}), FErrorHandler::CreateLambda([](int32 Code, FString Message)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Getting Friend Public Game Profiles Failed: %d | %s"), Code, *Message);
-			}));
+            AddFriend(Response.UserID, Response.UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
+            RefreshFriendList();
+            UpdateSearchStatus();
         }
         else
         {
@@ -1039,37 +1072,51 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
     {
         if (!AvatarListCache->Contains(UserID))
         {
-			//get avatar from soc-profile service (Game Profile)
-			AccelByte::FRegistry::GameProfile.BatchGetPublicGameProfiles({ UserID }, THandler<TArray<FAccelByteModelsPublicGameProfile>>::CreateLambda([this, UserID](const TArray<FAccelByteModelsPublicGameProfile>& Result)
-			{
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *Result[0].userId, *Result[0].gameProfiles[0].avatarUrl);
-				AvatarListCache->Add(Result[0].userId, Result[0].gameProfiles[0].avatarUrl);
-				// next get display name
-				if (!DiplayNameListCache->Contains(UserID))
-				{
-					DiplayNameListCache->Add(Result[0].userId, Result[0].gameProfiles[0].profileName);
-					// save to our cache
-					FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
-					TArray<FString> Raw;
-					Result[0].gameProfiles[0].avatarUrl.ParseIntoArray(Raw, TEXT("/"), true);
-					FString FileName = Raw.Last();
-					FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *Result[0].gameProfiles[0].profileName);
+            //get avatar from platform service (User profile)
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
+            AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::THandler<FAccelByteModelsPublicUserProfileInfo>::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+                AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
 
-					if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
-					{
-						UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
-					}
-				}
-				// start download avatar
-				TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-				ThumbRequest->SetVerb("GET");
-				ThumbRequest->SetURL(Result[0].gameProfiles[0].avatarUrl);
-				ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, Result[0].userId);
-				ThumbRequest->ProcessRequest();
-			}), FErrorHandler::CreateLambda([](int32 Code, FString Message)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Getting Friend Public Game Profiles Failed: %d | %s"), Code, *Message);
-			}));
+                // next get display name
+                if (!DiplayNameListCache->Contains(UserID))
+                {
+                    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
+                    AccelByte::Api::User::GetPublicUserInfo(UserID, THandler<FPublicUserInfo>::CreateLambda([this, UserID, UserProfileInfo](const FPublicUserInfo& UserInfo) {
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
+                        DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
+
+                        // save to our cache
+                        FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+
+                        // userid.txt -> file name fisik \n display name
+
+                        TArray<FString> Raw;
+                        UserProfileInfo.AvatarSmallUrl.ParseIntoArray(Raw, TEXT("/"), true);
+                        FString FileName = Raw.Last();
+                        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserInfo.DisplayName);
+
+                        if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
+                        {
+                            UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
+                        }
+                    }),
+                        AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
+                    }));
+                }
+
+                // start download avatar
+                TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+                ThumbRequest->SetVerb("GET");
+                ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
+                ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
+                ThumbRequest->ProcessRequest();
+
+            }),
+                AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
+            }));
         }
     }
 }
@@ -1207,16 +1254,7 @@ FReply SLobby::OnRequestFriend()
 	AccelByte::Api::User::GetUserByLoginId(FriendSearchBar->GetText().ToString(), 
 		THandler<FUserData>::CreateLambda([&](const FUserData& User)
 		{
-			AccelByte::FRegistry::GameProfile.BatchGetPublicGameProfiles({ User.UserId }, THandler<TArray<FAccelByteModelsPublicGameProfile>>::CreateLambda([this](const TArray<FAccelByteModelsPublicGameProfile>& Result)
-			{
-				if (Result[0].gameProfiles.Num() != 0)
-				{
-					AccelByte::FRegistry::Lobby.RequestFriend(Result[0].userId);
-				}
-			}), FErrorHandler::CreateLambda([](int32 Code, FString Message)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Getting Friend Public Game Profiles Failed: %d | %s"), Code, *Message);
-			}));
+			AccelByte::FRegistry::Lobby.RequestFriend(User.UserId);
 		}), 
 		AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) 
 		{
@@ -1509,9 +1547,9 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
             if (ParentClass.IsValid())
             {
                 FString DisplayName = Item->UserId;
-                if (ParentClass.Pin()->CheckDisplayName(Item->UserId))
+                if (ParentClass.Pin()->CheckDisplayName(Item->Name))
                 {
-                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->UserId);
+                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
                 }
 
                 ParentClass.Pin()->LobbyChatWidget->AddPrivate(Item->UserId, DisplayName);
@@ -1679,49 +1717,39 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			AccelByte::FRegistry::Lobby.ListOutgoingFriends();
 			return;
 		}
-		//check if they do have a game profile yet
-		AccelByte::FRegistry::GameProfile.BatchGetPublicGameProfiles(Response.friendsId, THandler<TArray<FAccelByteModelsPublicGameProfile>>::CreateLambda([this, Length](const TArray<FAccelByteModelsPublicGameProfile>& Result)
+		for (int i = 0; i < Length; i++)
 		{
-			for (int i = 0; i < Length; i++)
+			AccelByte::Api::User::GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, i, Length, Response](const FPublicUserInfo& User)
 			{
-				//if they do, add
-				if (Result[i].gameProfiles.Num() != 0)
-				{
-					AddFriend(Result[i].userId, Result[i].gameProfiles[0].profileName, Result[i].gameProfiles[0].avatarUrl, FriendEntryType::INCOMING);
-					RefreshFriendList();
-					if (i == Length - 1)
-					{
-						AccelByte::FRegistry::Lobby.ListOutgoingFriends();
-					}
-				}
-			}
+				AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::INCOMING);
+				RefreshFriendList();
+				if (i == Length - 1) { AccelByte::FRegistry::Lobby.ListOutgoingFriends(); }
+			}),
+			FErrorHandler::CreateLambda([&, i, Length, Response](int32 Code, FString Message)
+			{
+				AddFriend(Response.friendsId[i], TEXT("not found"), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::INCOMING);
+				RefreshFriendList();
+				if (i == Length - 1) { AccelByte::FRegistry::Lobby.ListOutgoingFriends(); }
+			}));
 		}
-		), FErrorHandler::CreateLambda([](int32 Code, FString Message)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Getting Friend Public Game Profiles Failed: %d | %s"), Code, *Message);
-		}));
 	}
 
 	void SLobby::OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFriendsResponse& Response) 
 	{
 		int Length = Response.friendsId.Num();
-		//check if they do have game profile yet
-		AccelByte::FRegistry::GameProfile.BatchGetPublicGameProfiles(Response.friendsId, THandler<TArray<FAccelByteModelsPublicGameProfile>>::CreateLambda([this, Length](const TArray<FAccelByteModelsPublicGameProfile>& Result)
+		for (int i = 0; i < Length; i++)
 		{
-			for (int i = 0; i < Length; i++)
+			AccelByte::Api::User::GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, Length, Response](const FPublicUserInfo& User)
 			{
-				//if they do, add
-				if (Result[i].gameProfiles.Num() != 0)
-				{
-					AddFriend(Result[i].userId, Result[i].gameProfiles[0].profileName, Result[i].gameProfiles[0].avatarUrl, FriendEntryType::OUTGOING);
-					RefreshFriendList();
-				}
-			}
-		}),FErrorHandler::CreateLambda([](int32 Code, FString Message)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Getting Friend Public Game Profiles Failed: %d | %s"), Code, *Message);
-		}));
-		
+				AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::OUTGOING);
+				RefreshFriendList();
+			}),
+			FErrorHandler::CreateLambda([&, i, Response](int32 Code, FString Message)
+			{
+				AddFriend(Response.friendsId[i], TEXT("not found"), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::OUTGOING);
+				RefreshFriendList();
+			}));
+		}
 	}
 
 	void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response)
@@ -1736,20 +1764,11 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		FriendList.Reset();
 		CompleteFriendList.Reset();
 		
-		AccelByte::FRegistry::GameProfile.BatchGetPublicGameProfiles(Response.friendsId, THandler<TArray<FAccelByteModelsPublicGameProfile>>::CreateLambda([this](const TArray<FAccelByteModelsPublicGameProfile>& Result)
+		for (int i = 0; i < Response.friendsId.Num(); i++)
 		{
-			for (int i = 0; i < Result.Num(); i++)
-			{
-				if (Result[i].gameProfiles.Num() != 0)
-				{
-					AddFriend(Result[i].userId, Result[i].gameProfiles[0].profileName, Result[i].gameProfiles[0].avatarUrl, FriendEntryType::FRIEND);
-				}
-			}
-			AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
-		}), FErrorHandler::CreateLambda([](int32 Code, FString Message)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Getting Friend Public Game Profiles Failed: %d | %s"), Code, *Message);
-		}));
+			AddFriend(Response.friendsId[i], Response.friendsId[i], TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
+		}
+		AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
 
 		RefreshFriendList();
 		AccelByte::FRegistry::Lobby.ListIncomingFriends();
