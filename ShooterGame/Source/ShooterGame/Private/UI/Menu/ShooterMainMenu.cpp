@@ -507,6 +507,14 @@ void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileId, FString Pro
 	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
 }
 
+void FShooterMainMenu::UpdateProfileStatItem(FText MVPScore, FText TotalAssistScore, FText TotalDeathsScore, FText TotalKillsScore)
+{
+	GameProfileWidget->SetMVPScore(MVPScore);
+	GameProfileWidget->SetTotalAssistsScore(TotalAssistScore);
+	GameProfileWidget->SetTotalDeathsScore(TotalDeathsScore);
+	GameProfileWidget->SetTotalKillsScore(TotalKillsScore);
+}
+
 void FShooterMainMenu::RemoveMenuFromGameViewport()
 {
 	if (GEngine && GEngine->GameViewport)

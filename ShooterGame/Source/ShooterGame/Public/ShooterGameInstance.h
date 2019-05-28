@@ -412,6 +412,8 @@ private:
 	AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
 	void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 
+	void GetStatItems();
+
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
 };
