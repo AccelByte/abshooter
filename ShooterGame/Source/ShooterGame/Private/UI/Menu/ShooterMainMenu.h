@@ -277,6 +277,8 @@ protected:
 
 	void OnShowGameProfile();
 
+	void GetStatItems();
+
     /** Show screenshot */
     void OnShowScreenshot();
 

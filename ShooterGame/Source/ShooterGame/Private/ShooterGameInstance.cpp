@@ -979,23 +979,27 @@ void UShooterGameInstance::GetStatItems()
 		if (Result.Num() != 0)
 		{
 			TArray<float> StatValue;
+			for (int i = 0; i < 4; i++)
+			{
+				StatValue.Add(0);
+			}
 			for (FAccelByteModelsUserStatItemInfo item : Result)
 			{
 				if (item.StatCode == StatCodes[0])
 				{
-					StatValue.Add(item.Value);
+					StatValue[0] = item.Value;
 				}
 				else if (item.StatCode == StatCodes[1])
 				{
-					StatValue.Add(item.Value);
+					StatValue[1] = item.Value;
 				}
 				else if (item.StatCode == StatCodes[2])
 				{
-					StatValue.Add(item.Value);
+					StatValue[2] = item.Value;
 				}
 				else if (item.StatCode == StatCodes[3])
 				{
-					StatValue.Add(item.Value);
+					StatValue[3] = item.Value;
 				}
 			}
 			MainMenuUI->UpdateProfileStatItem(FText::AsNumber(StatValue[0], &format), FText::AsNumber(StatValue[1], &format), FText::AsNumber(StatValue[2], &format), FText::AsNumber(StatValue[3], &format));

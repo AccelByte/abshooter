@@ -767,6 +767,11 @@ FText SShooterGameProfile::GetProfileName() const
 	return ProfileName;
 }
 
+FString SShooterGameProfile::GetProfileId() const
+{
+	return ProfileId;
+}
+
 FText SShooterGameProfile::GetMVPScore() const
 {
 	return MVPScore;

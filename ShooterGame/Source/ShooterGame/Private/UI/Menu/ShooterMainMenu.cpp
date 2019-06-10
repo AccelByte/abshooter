@@ -24,6 +24,8 @@
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteWalletApi.h"
+#include "Api/AccelByteGameProfileApi.h"
+#include "Api/AccelByteStatisticApi.h"
 #include "Core/AccelByteCredentials.h"
 #include "Core/AccelByteRegistry.h"
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
@@ -1562,6 +1564,7 @@ void FShooterMainMenu::OnShowStore()
 
 void FShooterMainMenu::OnShowGameProfile()
 {
+	GetStatItems();
 	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 	ChangeBackground(MenuStyle->GameProfileBackground);
 	MenuWidget->NextMenu = GameProfileItem->SubMenu;
@@ -1687,4 +1690,51 @@ void FShooterMainMenu::OnPlayTogetherEventReceived()
 	MenuWidget->ConfirmMenuItem();
 }
 
+void FShooterMainMenu::GetStatItems()
+{
+	FNumberFormattingOptions format;
+	format.RoundingMode = HalfToZero;
+	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
+	const FString profileId = GameProfileWidget->GetProfileId();
+	AccelByte::FRegistry::Statistic.GetStatItemsByStatCodes(profileId, StatCodes, THandler<TArray<FAccelByteModelsUserStatItemInfo>>::CreateLambda([this, StatCodes, format](const TArray<FAccelByteModelsUserStatItemInfo>& Result)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
+		if (Result.Num() != 0)
+		{
+			TArray<float> StatValue;
+			for (int i = 0; i < 4; i++)
+			{
+				StatValue.Add(0);
+			}
+			for (FAccelByteModelsUserStatItemInfo item : Result)
+			{
+				if (item.StatCode == StatCodes[0])
+				{
+					StatValue[0] = item.Value;
+				}
+				else if (item.StatCode == StatCodes[1])
+				{
+					StatValue[1] = item.Value;
+				}
+				else if (item.StatCode == StatCodes[2])
+				{
+					StatValue[2] = item.Value;
+				}
+				else if (item.StatCode == StatCodes[3])
+				{
+					StatValue[3] = item.Value;
+				}
+			}
+			UpdateProfileStatItem(FText::AsNumber(StatValue[0], &format), FText::AsNumber(StatValue[1], &format), FText::AsNumber(StatValue[2], &format), FText::AsNumber(StatValue[3], &format));
+		}
+		else
+		{
+			UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
+		}
+	}), FErrorHandler::CreateLambda([this](int32 Code, FString Message)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
+		UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
+	}));
+}
 #undef LOCTEXT_NAMESPACE

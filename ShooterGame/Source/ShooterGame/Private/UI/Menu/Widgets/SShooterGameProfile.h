@@ -46,6 +46,8 @@ public:
 
 	FText GetProfileName() const;
 
+	FString GetProfileId() const;
+
 	void SetProfileName(FText ProfileName);
 
 	void SetProfileId(FString ProfileId);
