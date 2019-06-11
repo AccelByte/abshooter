@@ -341,14 +341,14 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchmakingNotice
 {
     GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-	EAccelByteMatchmakingStatus Status;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+    FString Code;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
     FString MatchId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-	int32 Duration;
+    EAccelByteMatchmakingStatus Status;
 };
 
 // DS Notification

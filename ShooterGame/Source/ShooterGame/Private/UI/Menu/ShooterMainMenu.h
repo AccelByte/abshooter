@@ -34,6 +34,8 @@ public:
 	void UpdateUserProfile(FString ProfileId, FString ProfileName, FString UserID, FString AvatarURL);
     void UpdateUserProfileFromCache(FString ProfileId, FString ProfileName, FString UserId, FString AvatarPath);
 
+	void UpdateProfileStatItem(FText MVPScore, FText TotalAssistScore, FText TotalDeathsScore, FText TotalKillsScore);
+
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	
 
@@ -274,6 +276,8 @@ protected:
 	void OnShowStore();
 
 	void OnShowGameProfile();
+
+	void GetStatItems();
 
     /** Show screenshot */
     void OnShowScreenshot();

@@ -216,7 +216,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											[
 												SNew(STextBlock)
 												.TextStyle(FShooterStyle::Get(), "ShooterGame.ProfileStatNumTextStyle")
-												.Text(FText::FromString("10"))
+												.Text(this, &SShooterGameProfile::GetMVPScore)
 											]
 										]
 									]
@@ -279,7 +279,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											[
 												SNew(STextBlock)
 												.TextStyle(FShooterStyle::Get(), "ShooterGame.ProfileStatNumTextStyle")
-												.Text(FText::FromString("220"))
+												.Text(this,&SShooterGameProfile::GetTotalKillsScore)
 											]
 										]
 									]
@@ -342,7 +342,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											[
 												SNew(STextBlock)
 												.TextStyle(FShooterStyle::Get(), "ShooterGame.ProfileStatNumTextStyle")
-												.Text(FText::FromString("341"))
+												.Text(this, &SShooterGameProfile::GetTotalAssistsScore)
 											]
 										]
 									]
@@ -405,7 +405,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											[
 												SNew(STextBlock)
 												.TextStyle(FShooterStyle::Get(), "ShooterGame.ProfileStatNumTextStyle")
-												.Text(FText::FromString("201"))
+												.Text(this, &SShooterGameProfile::GetTotalDeathsScore)
 											]
 										]
 									]
@@ -767,6 +767,31 @@ FText SShooterGameProfile::GetProfileName() const
 	return ProfileName;
 }
 
+FString SShooterGameProfile::GetProfileId() const
+{
+	return ProfileId;
+}
+
+FText SShooterGameProfile::GetMVPScore() const
+{
+	return MVPScore;
+}
+
+FText SShooterGameProfile::GetTotalDeathsScore() const
+{
+	return TotalDeathsScore;
+}
+
+FText SShooterGameProfile::GetTotalAssistsScore() const
+{
+	return TotalAssistsScore;
+}
+
+FText SShooterGameProfile::GetTotalKillsScore() const
+{
+	return TotalKillsScore;
+}
+
 void SShooterGameProfile::SetProfileName(FText ProfileName)
 {
 	SShooterGameProfile::ProfileName = ProfileName;
@@ -775,6 +800,26 @@ void SShooterGameProfile::SetProfileName(FText ProfileName)
 void SShooterGameProfile::SetProfileId(FString ProfileId)
 {
 	SShooterGameProfile::ProfileId = ProfileId;
+}
+
+void SShooterGameProfile::SetMVPScore(FText MVPScore)
+{
+	SShooterGameProfile::MVPScore = MVPScore;
+}
+
+void SShooterGameProfile::SetTotalAssistsScore(FText TotalAssistsScore)
+{
+	SShooterGameProfile::TotalAssistsScore = TotalAssistsScore;
+}
+
+void SShooterGameProfile::SetTotalDeathsScore(FText TotalDeathsScore)
+{
+	SShooterGameProfile::TotalDeathsScore = TotalDeathsScore;
+}
+
+void SShooterGameProfile::SetTotalKillsScore(FText TotalKillsScore)
+{
+	SShooterGameProfile::TotalKillsScore = TotalKillsScore;
 }
 
 void SShooterGameProfile::SetCurrentProfileFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath)

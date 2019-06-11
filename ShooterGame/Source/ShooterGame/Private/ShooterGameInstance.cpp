@@ -22,6 +22,7 @@
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
+#include "Api/AccelByteStatisticApi.h"
 #include "Core/AccelByteCredentials.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
@@ -837,6 +838,7 @@ void UShooterGameInstance::BeginMainMenuState()
 					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
 					MainMenuUI->UpdateUserProfileFromCache(UserGameProfiles[0].profileId, CachedDisplayName, CurrentUserID, ImageCache);
 					this->UserGameProfile = UserGameProfiles[0];
+					GetStatItems();
 				}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 				{
 					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to get Game Profile...Error: %s"), *Message);
@@ -874,6 +876,7 @@ void UShooterGameInstance::BeginMainMenuState()
 						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserGameProfile.profileId);
 						MainMenuUI->UpdateUserProfile(UserGameProfile.profileId, UserGameProfile.profileName, UserGameProfile.userId, UserGameProfile.avatarUrl);
 						this->UserGameProfile = UserGameProfile; // save our own
+						GetStatItems();
 					}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 					{
 						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default Game Profile...Error: %s"), *Message);
@@ -885,6 +888,7 @@ void UShooterGameInstance::BeginMainMenuState()
 					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
 					MainMenuUI->UpdateUserProfile(UserGameProfiles[0].profileId, UserGameProfiles[0].profileName, ResultGetUserProfile.UserId, UserGameProfiles[0].avatarUrl);
 					this->UserGameProfile = UserGameProfiles[0];
+					GetStatItems();
 				}
 			}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 			{
@@ -927,6 +931,7 @@ void UShooterGameInstance::BeginMainMenuState()
 							UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserGameProfile.profileId);
 							MainMenuUI->UpdateUserProfile(UserGameProfile.profileId, UserGameProfile.profileName, UserGameProfile.userId, UserGameProfile.avatarUrl);
 							this->UserGameProfile = UserGameProfile; // save our own
+							GetStatItems();
 						}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 						{
 							UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default Game Profile...Error: %s"), *Message);
@@ -938,6 +943,7 @@ void UShooterGameInstance::BeginMainMenuState()
 						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
 						MainMenuUI->UpdateUserProfile(UserGameProfiles[0].profileId, UserGameProfiles[0].profileName, ResultCreateUserProfile.UserId, UserGameProfiles[0].avatarUrl);
 						this->UserGameProfile = UserGameProfiles[0];
+						GetStatItems();
 					}
 				}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 				{
@@ -959,8 +965,54 @@ void UShooterGameInstance::BeginMainMenuState()
 
 
 
-
 	RemoveNetworkFailureHandlers();
+}
+
+void UShooterGameInstance::GetStatItems()
+{
+	FNumberFormattingOptions format;
+	format.RoundingMode = HalfToZero;
+	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
+	AccelByte::FRegistry::Statistic.GetStatItemsByStatCodes(this->UserGameProfile.profileId, StatCodes, THandler<TArray<FAccelByteModelsUserStatItemInfo>>::CreateLambda([this, StatCodes, format](const TArray<FAccelByteModelsUserStatItemInfo>& Result)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
+		if (Result.Num() != 0)
+		{
+			TArray<float> StatValue;
+			for (int i = 0; i < 4; i++)
+			{
+				StatValue.Add(0);
+			}
+			for (FAccelByteModelsUserStatItemInfo item : Result)
+			{
+				if (item.StatCode == StatCodes[0])
+				{
+					StatValue[0] = item.Value;
+				}
+				else if (item.StatCode == StatCodes[1])
+				{
+					StatValue[1] = item.Value;
+				}
+				else if (item.StatCode == StatCodes[2])
+				{
+					StatValue[2] = item.Value;
+				}
+				else if (item.StatCode == StatCodes[3])
+				{
+					StatValue[3] = item.Value;
+				}
+			}
+			MainMenuUI->UpdateProfileStatItem(FText::AsNumber(StatValue[0], &format), FText::AsNumber(StatValue[1], &format), FText::AsNumber(StatValue[2], &format), FText::AsNumber(StatValue[3], &format));
+		}
+		else
+		{
+			MainMenuUI->UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
+		}
+	}), FErrorHandler::CreateLambda([this](int32 Code, FString Message)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
+		MainMenuUI->UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
+	}));
 }
 
 void UShooterGameInstance::EndMainMenuState()

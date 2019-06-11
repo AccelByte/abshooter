@@ -46,9 +46,19 @@ public:
 
 	FText GetProfileName() const;
 
+	FString GetProfileId() const;
+
 	void SetProfileName(FText ProfileName);
 
 	void SetProfileId(FString ProfileId);
+
+	void SetMVPScore(FText MVPScore);
+
+	void SetTotalAssistsScore(FText TotalAssistsScore);
+
+	void SetTotalDeathsScore(FText TotalDeathsScore);
+
+	void SetTotalKillsScore(FText TotalKillsScore);
 
 	void SetCurrentProfileFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath);
 
@@ -120,6 +130,14 @@ protected:
 
 	TSharedPtr<FSlateDynamicImageBrush> ThumbnailBrush;
 
+	FText GetMVPScore() const;
+
+	FText GetTotalKillsScore() const;
+
+	FText GetTotalDeathsScore() const;
+
+	FText GetTotalAssistsScore() const;
+
 private:
 
 	TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
@@ -131,6 +149,14 @@ private:
 	FString ProfileId;
 	
 	FText ProfileName;
+
+	FText MVPScore;
+
+	FText TotalKillsScore;
+
+	FText TotalDeathsScore;
+
+	FText TotalAssistsScore;
 };
 
 
