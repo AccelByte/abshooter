@@ -20,6 +20,7 @@
 #include "AccelByteItemApi.h"
 #include "AccelByteError.h"
 #include "Api/AccelByteCloudStorageApi.h"
+#include "Core/AccelByteRegistry.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "Runtime/ImageWriteQueue/Public/ImagePixelData.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
@@ -649,7 +650,7 @@ public:
 								.Entry(Item.Pin().Get())
 								.OnSave(SShooterScreenshotEdit::FOnSave::CreateLambda([&]() {
 									TextTitle->SetText(FText::FromString(Item.Pin()->Title));
-									CloudStorage::UpdateSlotMetadata(Item.Pin()->SlotID, "", { "" }, Item.Pin()->Title, "", nullptr, nullptr, nullptr);
+									FRegistry::CloudStorage.UpdateSlotMetadata(Item.Pin()->SlotID, "", { "" }, Item.Pin()->Title, "", nullptr, nullptr, nullptr);
 								}));
 							this->ScreenshotEditWidget->Show();
 							return FReply::Handled();
@@ -1259,12 +1260,12 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 
 	if (SlotId.IsEmpty())
 	{
-		AccelByte::Api::CloudStorage::CreateSlot(ImageData, "Screenshot.png", Tags, Label, "",
+		FRegistry::CloudStorage.CreateSlot(ImageData, "Screenshot.png", Tags, Label, "",
 			OnSuccess, OnProgress, OnError);
 	}
 	else
 	{
-		AccelByte::Api::CloudStorage::UpdateSlot(SlotId, ImageData, "Screenshot.png", Tags, Label, "",
+		FRegistry::CloudStorage.UpdateSlot(SlotId, ImageData, "Screenshot.png", Tags, Label, "",
 			OnSuccess, OnProgress, OnError);
 	}
 }
@@ -1310,7 +1311,7 @@ TSharedRef<ITableRow> SShooterScreenshot::OnGenerateWidgetForListView(TSharedPtr
 				//SavedScreenshotListWidget->RebuildList();
 
 				FString Label = FString::Printf(TEXT("Screenshot-%s"), *FDateTime::Now().ToString());
-				LocalSlots[Index].DateModified = FDateTime::UtcNow();
+				LocalSlots[Index].DateModified = FDateTime::UtcNow().ToUnixTimestamp();
 				auto PixelData = FSlateBrushToPixelData(SavedScreenshotList[Index]->Image.Get());
 				auto ByteData = GetCompressedImage(PixelData, EImageFormat::PNG);
 				SaveLocalScreenshotImage(Index, ByteData);
@@ -1461,7 +1462,7 @@ void SShooterScreenshot::LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 
 	auto OnSuccess = AccelByte::THandler<TArray<uint8>>::CreateLambda([&, Slot, SlotIndex](const TArray<uint8>& Result) {
 		OnReceiveSlotImage(Result, Slot, SlotIndex);
 	});
-    AccelByte::Api::CloudStorage::GetSlot(Slot.SlotId, OnSuccess,
+    FRegistry::CloudStorage.GetSlot(Slot.SlotId, OnSuccess,
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
     }));
@@ -1505,7 +1506,7 @@ void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
 {
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s"), *SlotID);
 
-    AccelByte::Api::CloudStorage::DeleteSlot(SlotID, 
+    FRegistry::CloudStorage.DeleteSlot(SlotID, 
         AccelByte::FVoidHandler::CreateLambda([&, SlotID]() {
             
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s SUCCESS, updating the slot tile..."), *SlotID);
@@ -1565,7 +1566,7 @@ void SShooterScreenshot::OnResolveSlot(int32 Index)
 
 				SaveScreenshotMetadata();
 
-				LocalSlots[Index].DateModified = FDateTime::UtcNow();
+				LocalSlots[Index].DateModified = FDateTime::UtcNow().ToUnixTimestamp();
 
 				SaveToCloud(Index);
 			}
@@ -1620,7 +1621,7 @@ void SShooterScreenshot::RefreshFromCloud()
 		}
 	}
 
-    AccelByte::Api::CloudStorage::GetAllSlots(AccelByte::THandler<TArray<FAccelByteModelsSlot>>::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
+    FRegistry::CloudStorage.GetAllSlots(AccelByte::THandler<TArray<FAccelByteModelsSlot>>::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
         for (int i = 0; i < Result.Num(); i++)
         {
             FAccelByteModelsSlot Slot = Result[i];
@@ -1726,6 +1727,6 @@ void SShooterScreenshot::RefreshFromCloud()
 		SavedScreenshotListWidget->RequestListRefresh();
     }),
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] AccelByte::Api::CloudStorage::GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FRegistry::CloudStorage.GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
     }));
 }

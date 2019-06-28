@@ -1525,7 +1525,7 @@ void FShooterMainMenu::ChangeBackground(UMaterialInterface* Material)
 
 void FShooterMainMenu::RefreshWallet()
 {
-	AccelByte::Api::Wallet::GetWalletInfoByCurrencyCode(TEXT("ShooterGameCoin"),
+	FRegistry::Wallet.GetWalletInfoByCurrencyCode(TEXT("ShooterGameCoin"),
 		AccelByte::THandler<FAccelByteModelsWalletInfo>::CreateSP(this, &FShooterMainMenu::OnGetWalletSuccess),
 		FErrorHandler::CreateSP(this, &FShooterMainMenu::OnGetWalletError));
 }

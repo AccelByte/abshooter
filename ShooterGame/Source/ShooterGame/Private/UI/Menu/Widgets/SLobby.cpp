@@ -1074,7 +1074,7 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
         {
             //get avatar from platform service (User profile)
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
-            AccelByte::Api::UserProfile::GetPublicUserProfileInfo(UserID, AccelByte::THandler<FAccelByteModelsPublicUserProfileInfo>::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
+            FRegistry::UserProfile.GetPublicUserProfileInfo(UserID, AccelByte::THandler<FAccelByteModelsPublicUserProfileInfo>::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo) {
                 UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
                 AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
 
@@ -1082,7 +1082,7 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
                 if (!DiplayNameListCache->Contains(UserID))
                 {
                     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
-                    AccelByte::Api::User::GetPublicUserInfo(UserID, THandler<FPublicUserInfo>::CreateLambda([this, UserID, UserProfileInfo](const FPublicUserInfo& UserInfo) {
+                    FRegistry::User.GetPublicUserInfo(UserID, THandler<FPublicUserInfo>::CreateLambda([this, UserID, UserProfileInfo](const FPublicUserInfo& UserInfo) {
                         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
                         DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
 
@@ -1251,7 +1251,7 @@ FReply SLobby::OnRequestFriend()
 		return FReply::Handled();
 	}
 	
-	AccelByte::Api::User::GetUserByLoginId(FriendSearchBar->GetText().ToString(), 
+	FRegistry::User.GetUserByLoginId(FriendSearchBar->GetText().ToString(), 
 		THandler<FUserData>::CreateLambda([&](const FUserData& User)
 		{
 			AccelByte::FRegistry::Lobby.RequestFriend(User.UserId);
@@ -1719,7 +1719,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		}
 		for (int i = 0; i < Length; i++)
 		{
-			AccelByte::Api::User::GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, i, Length, Response](const FPublicUserInfo& User)
+			FRegistry::User.GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, i, Length, Response](const FPublicUserInfo& User)
 			{
 				AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::INCOMING);
 				RefreshFriendList();
@@ -1739,7 +1739,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		int Length = Response.friendsId.Num();
 		for (int i = 0; i < Length; i++)
 		{
-			AccelByte::Api::User::GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, Length, Response](const FPublicUserInfo& User)
+			FRegistry::User.GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, Length, Response](const FPublicUserInfo& User)
 			{
 				AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::OUTGOING);
 				RefreshFriendList();
@@ -1776,12 +1776,12 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 
 	void SLobby::OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response)
 	{
-		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
+		FRegistry::User.GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
 			RefreshFriendList();
 			FSlateBrush* FriendAvatar = GetAvatarOrDefault(Response.friendId);
 
-			FString NotificationMessage = FString::Printf(TEXT("%s accept your friend request!"), (User.EmailAddress == TEXT(""))? *User.EmailAddress : *User.DisplayName);
+			FString NotificationMessage = FString::Printf(TEXT("%s accept your friend request!"), *User.DisplayName);
 			TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
 				.NotificationMessage(NotificationMessage)
 				.AvatarImage(FriendAvatar)
@@ -1799,7 +1799,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 	{
 		FString DisplayName = CheckDisplayName(Response.friendId) ? GetDisplayName(Response.friendId) : Response.friendId;
 
-		AccelByte::Api::User::GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
+		FRegistry::User.GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
 		{
 			CloseOverlay(NotificationOverlay);
 			TSharedPtr<SShooterConfirmationDialog> Dialog;

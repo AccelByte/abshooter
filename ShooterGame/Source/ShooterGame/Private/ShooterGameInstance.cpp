@@ -28,6 +28,7 @@
 #include "HttpManager.h"
 
 #include "Core/AccelByteRegistry.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -219,7 +220,7 @@ void UShooterGameInstance::Init()
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Error: %s"), *Message);
 		});
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
-		AccelByte::Api::User::LoginWithLauncher(OnLoginSuccess, OnLoginError);
+		FRegistry::User.LoginWithLauncher(OnLoginSuccess, OnLoginError);
 
 		// Blocking here
 		double LastTime = FPlatformTime::Seconds();
@@ -227,6 +228,7 @@ void UShooterGameInstance::Init()
 		{
 			const double AppTime = FPlatformTime::Seconds();
 			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
 			LastTime = AppTime;
 			FPlatformProcess::Sleep(0.5f);
 		}
@@ -849,7 +851,7 @@ void UShooterGameInstance::BeginMainMenuState()
     }
     else
     {
-        AccelByte::Api::UserProfile::GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
+        FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
 			[this](const FAccelByteModelsUserProfileInfo& UserProfileInfo) 
 		{
 			FAccelByteModelsUserProfileInfo ResultGetUserProfile = UserProfileInfo;
@@ -907,7 +909,7 @@ void UShooterGameInstance::BeginMainMenuState()
 				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
 			}
 
-            AccelByte::Api::UserProfile::CreateDefaultUserProfile(UserToken.Display_name,
+            FRegistry::UserProfile.CreateDefaultUserProfile(UserToken.Display_name,
                 AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
 				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
