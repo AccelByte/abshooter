@@ -57,7 +57,7 @@ void FServerConfig::GetClientAccessToken(const FGetClientAccessTokenSuccess& OnS
 {
 	if (TokenExpirationTime < FPlatformTime::Seconds())
 	{
-		Oauth2::GetAccessTokenWithClientCredentialsGrant(ClientId, ClientSecret, Oauth2::FGetAccessTokenWithClientCredentialsGrantSuccess::CreateLambda([&, OnSuccess](const FAccelByteModelsOauth2Token& Result) {
+		Oauth2::GetAccessTokenWithClientCredentialsGrant(ClientId, ClientSecret, THandler<FOauth2Token>::CreateLambda([&, OnSuccess](const FOauth2Token& Result) {
 			TokenExpirationTime = FPlatformTime::Seconds() + (Result.Expires_in*FMath::FRandRange(0.7, 0.9));
 			FRegistry::Credentials.SetClientToken(Result.Access_token, TokenExpirationTime, Result.Namespace);
 			OnSuccess.ExecuteIfBound(Credentials);

@@ -19,8 +19,10 @@
 #include "SShooterCoinsWidget.h"
 #include "SShooterPaymentDialog.h"
 #include "Runtime/Networking/Public/Common/TcpListener.h"
+#if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinimalWindowsApi.h"
+#endif
 #include "SocketSubsystem.h"
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
@@ -67,10 +69,12 @@ SShooterStore::SShooterStore()
 
 		Socket->Send((const uint8_t*)ResponseUtf8.Get(), ResponseUtf8.Length(), SentBytes);
 		Socket->Close();
+
+#if PLATFORM_WINDOWS
 		HWND WindowHandle = static_cast<HWND>(GEngine->GameViewport->GetWindow()->GetNativeWindow()->GetOSWindowHandle());
 		BringWindowToTop(WindowHandle);
 		SetForegroundWindow(WindowHandle);
-
+#endif
 		return true;
 	});	
 }
