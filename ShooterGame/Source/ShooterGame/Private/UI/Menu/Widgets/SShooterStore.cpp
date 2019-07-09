@@ -13,6 +13,7 @@
 #include "AccelByteItemApi.h"
 #include "AccelByteEntitlementApi.h"
 #include "AccelByteError.h"
+#include "Core/AccelByteRegistry.h"
 #include "ShooterStoreStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "SShooterCoinsWidget.h"
@@ -270,7 +271,7 @@ void SShooterStore::BuildInventoryItem()
 	{
 		bRequestInventoryList = true;
 		InventoryList.Empty();
-		Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
+		FRegistry::Item.GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
 			"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterStore::OnGetItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterStore::OnGetItemsByCriteriaError));
@@ -279,7 +280,7 @@ void SShooterStore::BuildInventoryItem()
 	{
 		bRequestCashInventoryList = true;
 		CashInventoryList.Empty();
-		Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
+		FRegistry::Item.GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
 			"/coin", EAccelByteItemType::COINS, EAccelByteItemStatus::ACTIVE, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterStore::OnGetCashItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterStore::OnGetItemsByCriteriaError));
@@ -401,7 +402,7 @@ FReply SShooterStore::OnBuyConfirm()
 	ShowLoadingDialog();
 
 
-	AccelByte::Api::Order::CreateNewOrder(OrderCreate, AccelByte::THandler<FAccelByteModelsOrderInfo>::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
+	FRegistry::Order.CreateNewOrder(OrderCreate, AccelByte::THandler<FAccelByteModelsOrderInfo>::CreateLambda([&](const FAccelByteModelsOrderInfo& OrderInfo) {
 		CloseLoadingDialog(); 
 		if (!OrderInfo.PaymentStationUrl.IsEmpty())
 		{
@@ -554,7 +555,7 @@ void SShooterStore::OnGetCashItemsByCriteriaError(int32 Code, const FString& Mes
 
 void SShooterStore::GetUserEntitlements() 
 {
-	Entitlement::QueryUserEntitlement("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
+	FRegistry::Entitlement.QueryUserEntitlement("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
 	{
 		TMap<FString, int> Quantities;
 		for (int i = 0; i < Result.Data.Num(); i++)

@@ -15,6 +15,7 @@
 #include "AccelByteError.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "ShooterInventoryWidgetStyle.h"
+#include "Core/AccelByteRegistry.h"
 
 using namespace AccelByte::Api;
 
@@ -205,7 +206,7 @@ void SShooterInventory::BuildInventoryItem()
 	{
 		bRequestInventoryList = true;
 		InventoryList.Empty();
-		Item::GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
+		FRegistry::Item.GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
 			"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
@@ -280,7 +281,7 @@ void SShooterInventory::OnGetItemsByCriteriaError(int32 Code, const FString& Mes
 
 void SShooterInventory::GetUserEntitlements() 
 {
-	Entitlement::QueryUserEntitlement("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
+	FRegistry::Entitlement.QueryUserEntitlement("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
 	{
 		TMap<FString, int> Quantities;
 		for (int i = 0; i < Result.Data.Num(); i++)
