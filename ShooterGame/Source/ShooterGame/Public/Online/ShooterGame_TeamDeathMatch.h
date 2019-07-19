@@ -31,6 +31,8 @@ class AShooterGame_TeamDeathMatch : public AShooterGameMode
 
 protected:
 
+	int32 JoinedTeam = 0;
+
 	/** number of teams */
 	int32 NumTeams;
 

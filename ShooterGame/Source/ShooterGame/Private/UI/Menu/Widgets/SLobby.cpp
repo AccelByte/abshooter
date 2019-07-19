@@ -203,9 +203,60 @@ void SLobby::Construct(const FArguments& InArgs)
 
 		if (Notice.Status.Compare(TEXT("READY")) == 0)
 		{
-			FString ServerAddress = Notice.Ip + ":" + FString::FromInt(Notice.Port);
-			UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
-			StartMatch(Notice.MatchId, CurrentPartyID, Notice.Ip);
+
+#if SIMULATE_SETUP_MATCHMAKING
+			// for test only, may not work on the future
+			FString MatchId = Notice.MatchId;
+			FString Url = FString::Printf(TEXT("%s:%i/match"), *Notice.Ip, Notice.Port);
+			FString Verb = TEXT("POST");
+			FString ContentType = TEXT("application/json");
+			FString Accept = TEXT("application/json");
+
+			FString Content;
+
+			GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
+			FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+			MatchmakingInfo.channel = GameMode;
+			MatchmakingInfo.match_id = Notice.MatchId;
+
+			FAccelByteModelsMatchmakingParty Party;
+			for (auto Member : PartyInfo.Members)
+			{
+				FAccelByteModelsMatchmakingPartyMember PartyMember;
+				PartyMember.user_id = Member;
+				Party.party_members.Add(PartyMember);
+			}
+
+			Party.party_id = CurrentPartyID;
+			MatchmakingInfo.matching_parties.Add(Party);
+
+			FJsonObjectConverter::UStructToJsonObjectString(MatchmakingInfo, Content, 0, 0);
+			FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+			Request->SetURL(Url);
+			Request->SetVerb(Verb);
+			Request->SetHeader(TEXT("Content-Type"), ContentType);
+			Request->SetHeader(TEXT("Accept"), Accept);
+			Request->SetContentAsString(Content);
+			Request->OnProcessRequestComplete().BindLambda([&, Notice, MatchId](FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful)
+			{
+				if (Successful && Request.IsValid())
+				{
+					UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
+					FString ServerAddress = Notice.Ip;
+					UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
+					StartMatch(Notice.MatchId, CurrentPartyID, ServerAddress);
+				}
+				else
+				{
+					FString ErrorMessage = FString::Printf(TEXT("Can't setup matchmaking to %s"), *DedicatedServerBaseUrl);
+					UE_LOG(LogOnlineGame, Log, TEXT("%s"), *ErrorMessage);
+					if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, *ErrorMessage);
+				}
+				bMatchmakingStarted = false;
+			});
+			UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking..."));
+			Request->ProcessRequest();
+#endif	
 		}
 	}));
 	AccelByte::FRegistry::Lobby.SetRematchmakingNotifDelegate(AccelByte::Api::Lobby::FRematchmakingNotif::CreateLambda([&](const FAccelByteModelsRematchmakingNotice& Notice)
@@ -669,6 +720,7 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
     // add chat tab
     CurrentPartyID = PartyInfo.PartyId;
 	LobbyChatWidget->AddParty(PartyInfo.PartyId);
+	SLobby::PartyInfo = PartyInfo;
 }
 
 void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification)
