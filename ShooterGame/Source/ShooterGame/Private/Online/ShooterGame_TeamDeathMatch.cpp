@@ -494,6 +494,7 @@ void AShooterGame_TeamDeathMatch::SetupMatch(const FAccelByteModelsMatchmakingIn
 	MyGameState->RemainingTime = WarmupTime;
 	SetMatchState(MatchState::WaitingToStart);
 	MatchmakingInfo = Info;
+	JoinedTeam = MatchmakingInfo.matching_parties.Num();
 }
 
 bool AShooterGame_TeamDeathMatch::SetupSecondParty(const FAccelByteModelsMatchmakingInfo& Info)
@@ -501,33 +502,49 @@ bool AShooterGame_TeamDeathMatch::SetupSecondParty(const FAccelByteModelsMatchma
 #if SIMULATE_SETUP_MATCHMAKING
 	if (MatchmakingInfo.match_id == Info.match_id)
 	{
-		FAccelByteModelsMatchmakingParty InParty;
-
-		for (const FAccelByteModelsMatchmakingParty& Party : Info.matching_parties)
+		if (JoinedTeam < 2)
 		{
-			if (!Party.party_id.IsEmpty())
-			{
-				InParty = Party;
-				break;
-			}
-		}
+			FAccelByteModelsMatchmakingParty InParty;
 
-		if (!InParty.party_id.IsEmpty() && InParty.party_members.Num() > 0)
-		{
-			for (FAccelByteModelsMatchmakingParty& Party : MatchmakingInfo.matching_parties)
+			for (const FAccelByteModelsMatchmakingParty& Party : Info.matching_parties)
 			{
-				if (Party.party_id.IsEmpty() || Party.party_id == InParty.party_id)
+				if (!Party.party_id.IsEmpty())
 				{
-					for (const FAccelByteModelsMatchmakingPartyMember& Member : Party.party_members)
+					InParty = Party;
+					break;
+				}
+			}
+
+			if (!InParty.party_id.IsEmpty() && InParty.party_members.Num() > 0)
+			{
+				if (MatchmakingInfo.matching_parties.Num() >= 2)
+				{
+					for (FAccelByteModelsMatchmakingParty& Party : MatchmakingInfo.matching_parties)
 					{
-						if (InParty.party_members[0].user_id == Member.user_id)
+						if (Party.party_id.IsEmpty() || Party.party_id == InParty.party_id)
 						{
-							Party.party_id = InParty.party_id;
-							return true;
+							for (const FAccelByteModelsMatchmakingPartyMember& Member : Party.party_members)
+							{
+								if (InParty.party_members[0].user_id == Member.user_id)
+								{
+									Party.party_id = InParty.party_id;
+									return true;
+								}
+							}
 						}
 					}
 				}
+				else
+				{
+					MatchmakingInfo.matching_parties.Add(InParty);
+					JoinedTeam++;
+					return true;
+				}
 			}
+		}
+		else
+		{
+			return false;
 		}
 	}
 #endif

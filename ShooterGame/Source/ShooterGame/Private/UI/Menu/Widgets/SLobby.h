@@ -137,6 +137,7 @@ protected:
 	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
 	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > LobbyWidget;
 	TSharedPtr<FFriendEntry> SelectedItem;
+	FAccelByteModelsInfoPartyResponse PartyInfo;
 	
 	FString MapFilterName;
 	
