@@ -108,3 +108,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
 		TArray<FAccelByteModelsMatchPlayer> players;
 };
+
+USTRUCT(BlueprintType)
+struct FAccelByteModelsDSClaim
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString SessionID;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString Namespace;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString GameMode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		TArray<FAccelByteModelsMatchmakingParty> MatchingAllies;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString PodName;
+};

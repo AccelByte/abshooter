@@ -115,7 +115,7 @@ TSharedRef< FSlateStyleSet > FShooterStyle::Create()
 	);
 
 	Style.Set("ShooterGame.ProfileAchieveNameTextStyle", FTextBlockStyle()
-		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 9.5))
+		.SetFont(TTF_FONT("Fonts/ChakraPetch-Bold", 9))
 		.SetColorAndOpacity(FLinearColor(FColor(100, 100, 100)))
 	);
 
