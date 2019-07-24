@@ -248,23 +248,34 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 			{
 				if (!GameMode->IsMatchStarted())
 				{
-					FAccelByteModelsDSClaim DSClaim;
-					FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &DSClaim, 0, 0);
-					FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-					MatchmakingInfo.channel = DSClaim.GameMode;
-					MatchmakingInfo.match_id = DSClaim.SessionID;
-					MatchmakingInfo.matching_parties = DSClaim.MatchingAllies;
-					bool Initialized = false;
-					AsyncTask(ENamedThreads::GameThread, [&]()
+					FAccelByteModelsDSMessage DSMessage;
+					bool parsed = FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &DSMessage, 0, 0);
+					if (parsed)
 					{
-						GameMode->SetupMatch(MatchmakingInfo);
-						Initialized = true;
-					});
+						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+						MatchmakingInfo.channel = DSMessage.message.game_mode;
+						MatchmakingInfo.match_id = DSMessage.message.session_id;
+						for (FAccelByteModelsMatchingAllies partyMember : DSMessage.message.matching_allies)
+						{
+							MatchmakingInfo.matching_parties.Add(partyMember.matching_parties[0]);
+						}
+						bool Initialized = false;
+						AsyncTask(ENamedThreads::GameThread, [&]()
+						{
+							GameMode->SetupMatch(MatchmakingInfo);
+							Initialized = true;
+						});
 
-					while (!Initialized) FPlatformProcess::Sleep(0.1f);
+						while (!Initialized) FPlatformProcess::Sleep(0.1f);
 
-					Code = "200";
-					Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
+						Code = "200";
+						Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
+					}
+					else
+					{
+						Code = "400";
+						Body = FString::Printf(MessageFormat, 1003, TEXT("Wrong JSON format"));
+					}
 				}
 				else
 				{

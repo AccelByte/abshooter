@@ -8,7 +8,8 @@ RUN apt-get update && \
     chmod u+s /bin/netstat &&\
     groupadd -g 999 shooter && \
     useradd -r -u 999 -g shooter shooter && \
+    chmod +x start.sh && \
     chmod +x LinuxNoEditor/run.sh && \
     chown -R shooter .
 USER shooter
-ENTRYPOINT ["bash", "./LinuxNoEditor/run.sh", "-f", "/dev/null"]
+ENTRYPOINT ["bash", "./start.sh", "-f", "/dev/null"]
