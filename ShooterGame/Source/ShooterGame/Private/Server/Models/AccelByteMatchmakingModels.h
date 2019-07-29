@@ -108,3 +108,39 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Matchmaking | Models | Info")
 		TArray<FAccelByteModelsMatchPlayer> players;
 };
+
+USTRUCT(BlueprintType)
+struct FAccelByteModelsMatchingAllies
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | MatchingAllies")
+		TArray<FAccelByteModelsMatchmakingParty> matching_parties;
+};
+
+USTRUCT(BlueprintType)
+struct FAccelByteModelsDSClaim
+{
+	GENERATED_BODY()
+public:
+		UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString session_id;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString Namespace;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString game_mode;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		TArray<FAccelByteModelsMatchingAllies> matching_allies;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSClaim")
+		FString pod_name;
+};
+
+USTRUCT(BlueprintType)
+struct FAccelByteModelsDSMessage
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSMessage")
+		FString msg_type;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Lobby | Models | DS | DSMessage")
+		FAccelByteModelsDSClaim message;
+};

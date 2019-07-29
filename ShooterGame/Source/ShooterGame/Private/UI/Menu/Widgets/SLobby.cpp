@@ -26,9 +26,7 @@
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 #define SIMULATE_SETUP_MATCHMAKING 1
-#if SIMULATE_SETUP_MATCHMAKING
 #include "Server/Models/AccelByteMatchmakingModels.h"
-#endif
 
 SLobby::SLobby()
     : OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
@@ -206,6 +204,8 @@ void SLobby::Construct(const FArguments& InArgs)
 
 #if SIMULATE_SETUP_MATCHMAKING
 			// for test only, may not work on the future
+			//brief: send request to ds to claim ds, sending match info with match id and party members on the message content
+			//this function should be done by dsm
 			FString MatchId = Notice.MatchId;
 			FString Url = FString::Printf(TEXT("%s:%i/match"), *Notice.Ip, Notice.Port);
 			FString Verb = TEXT("POST");
@@ -242,9 +242,11 @@ void SLobby::Construct(const FArguments& InArgs)
 				if (Successful && Request.IsValid())
 				{
 					UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
-					FString ServerAddress = Notice.Ip;
+#endif
+					FString ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
 					UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
 					StartMatch(Notice.MatchId, CurrentPartyID, ServerAddress);
+#if SIMULATE_SETUP_MATCHMAKING
 				}
 				else
 				{

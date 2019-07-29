@@ -6,6 +6,7 @@
 #include "WebServer.h"
 #include "Runtime/Core/Public/Misc/CString.h"
 #include "GameDelegates.h"
+#include "Server/ServerConfig.h"
 
 FWebServer::FWebServer()
 	: Listener(NULL), Thread(NULL)
@@ -57,10 +58,16 @@ bool FWebServer::Init()
 {
 	if (Listener == NULL)
 	{
-		Listener = new FTcpListener(DEFAULT_ENDPOINT);
-		Listener->OnConnectionAccepted().BindRaw(this, &FWebServer::HandleListenerConnectionAccepted);
-		Stopping = false;
-        UE_LOG(LogTemp, Log, TEXT("Web server started...On port 8080"));
+			uint16 ServerPort;
+#if PLATFORM_LINUX
+			ServerPort = FCString::Atoi(*FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("PORT")));
+#else
+			ServerPort = FCString::Atoi(*FGenericPlatformMisc::GetEnvironmentVariable(TEXT("PORT")));
+#endif
+			Listener = new FTcpListener(FIPv4Endpoint(FIPv4Address(0, 0, 0, 0), ServerPort));
+			Listener->OnConnectionAccepted().BindRaw(this, &FWebServer::HandleListenerConnectionAccepted);
+			Stopping = false;
+			UE_LOG(LogTemp, Log, TEXT("Web server started...On port %i"), ServerPort);
 	}
 	return (Listener != NULL);
 }
