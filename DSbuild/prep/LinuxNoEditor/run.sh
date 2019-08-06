@@ -7,7 +7,7 @@ CHECK="1"
 while [ "$CHECK" -gt "0" ]; do
     number=$(( $(od -A n -N 1 /dev/urandom) + 1))
     export PORT=$(( ( $number % 1000 )  + 15000 ))
-    CHECK=$(netstat -antp 2>/dev/null | grep $PORT | wc -l)
+    CHECK=$(netstat -anp 2>/dev/null | grep $PORT | wc -l)
     echo "Port $PORT is used.."
 done
 

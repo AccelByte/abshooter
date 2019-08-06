@@ -7,8 +7,8 @@ CHECK=$(netstat -antp 2>/dev/null | grep $PORT | wc -l)
 
 echo $CHECK
 
-while [ "$CHECK" -eq "0" ]; do
-    CHECK=$(netstat -antp 2>/dev/null | grep $PORT | wc -l)
+while [ "$CHECK" -le "1" ]; do
+    CHECK=$(netstat -anp 2>/dev/null | grep $PORT | wc -l)
     echo "Server is not ready yet.."
     sleep 3
 done
