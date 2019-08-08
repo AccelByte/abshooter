@@ -32,7 +32,7 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
-	void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush);
+	void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush, bool IsClientPartyLeader);
 
 	void Release();
 

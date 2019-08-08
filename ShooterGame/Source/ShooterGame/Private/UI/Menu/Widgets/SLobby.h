@@ -185,6 +185,7 @@ public:
 	void OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& CreatePartyInfo);
     void OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo);
     void OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo);
+	void OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response);
     FSlateColorBrush OverlayBackgroundBrush;
 #pragma endregion PARTY
 

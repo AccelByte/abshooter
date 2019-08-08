@@ -142,6 +142,7 @@ void SLobby::Construct(const FArguments& InArgs)
 	AccelByte::FRegistry::Lobby.SetOnFriendRequestAcceptedNotifDelegate(AccelByte::Api::Lobby::FAcceptFriendsNotif::CreateSP(this, &SLobby::OnFriendRequestAcceptedNotification));
 	AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &SLobby::OnIncomingFriendRequestNotification));
 	AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &SLobby::OnGetOnlineUserResponse));
+	AccelByte::FRegistry::Lobby.SetInvitePartyResponseDelegate(AccelByte::Api::Lobby::FPartyInviteResponse::CreateSP(this, &SLobby::OnPartyInviteResponse));
 	AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
 	{
 		if (Response.Code != "0")
@@ -708,7 +709,7 @@ void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& Par
     FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;
     FSlateBrush* LeaderAvatar = GetAvatarOrDefault(PartyInfo.LeaderId);
 
-    PartyWidget->InsertLeader(PartyInfo.LeaderId, LeaderDisplayName, LeaderAvatar);
+    PartyWidget->InsertLeader(PartyInfo.LeaderId, LeaderDisplayName, LeaderAvatar, bIsPartyLeader);
     for (FString MemberId : PartyInfo.Members)
     {
         if (MemberId != PartyInfo.LeaderId)
@@ -786,7 +787,7 @@ void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notif
                     FString LeaderDisplayName = CheckDisplayName(Response.LeaderId) ? GetDisplayName(Response.LeaderId) : Response.LeaderId;
 					FSlateBrush* LeaderAvatar = GetAvatarOrDefault(Response.LeaderId);
 
-                    PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar);
+                    PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar, PartyInfo.LeaderId == GetCurrentUserID());
                     for (FString MemberId : Response.Members)
                     {
                         if (MemberId != Response.LeaderId)
@@ -839,13 +840,15 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 	}
 	else
 	{
-		for (auto Member : PartyWidget->PartyMembers)
+		/*for (auto Member : PartyWidget->PartyMembers)
 		{
 			if (Member->UserId == KickInfo.UserId)
 			{
 				Member->Release();
 			}
-		};
+		};*/
+
+		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 
         // show popup
         FString DisplayName = CheckDisplayName(KickInfo.UserId) ? GetDisplayName(KickInfo.UserId) : KickInfo.UserId;
@@ -864,13 +867,15 @@ void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& K
 
 void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 {
-	for (auto Member : SLobby::PartyWidget->PartyMembers)
+	/*for (auto Member : SLobby::PartyWidget->PartyMembers)
 	{
 		if (Member->UserId == LeaveInfo.UserID)
 		{
 			Member->Release();
 		}
-	};
+	};*/
+
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 
     if (LeaveInfo.UserID == CurrentUserID)
     {
@@ -1951,6 +1956,52 @@ void SLobby::OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersRespons
 	}
 	RefreshFriendList();
 	UpdateSearchStatus();
+}
+
+void SLobby::OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response)
+{
+	FString Message;
+	if (Response.Code == TEXT("11254"))
+	{
+		Message = TEXT("Friend already have a party");
+	}
+	else
+		if (Response.Code == TEXT("0"))
+		{
+			return;
+		}
+		else
+		{
+			Message = FString::Printf(TEXT("Failed. Error code= %s"), *Response.Code);
+		}
+
+	CloseOverlay(NotificationOverlay);
+	TSharedPtr<SShooterConfirmationDialog> Dialog;
+	SAssignNew(NotificationOverlay, SOverlay)
+		+ SOverlay::Slot()
+		[
+			SNew(SBox)
+			.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Fill)
+		[
+			SNew(SImage)
+			.Image(&OverlayBackgroundBrush)
+		]
+		]
+	+ SOverlay::Slot()
+		[
+			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+			.MessageText(FText::FromString(Message))
+		.ConfirmText(FText::FromString("CLOSE"))
+		.OnConfirmClicked(FOnClicked::CreateLambda([&]()
+	{
+		CloseOverlay(NotificationOverlay);
+		return FReply::Handled();
+	}))
+		];
+
+	GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
+	FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
 void SLobby::CloseOverlay(TSharedPtr<SOverlay> Overlay)

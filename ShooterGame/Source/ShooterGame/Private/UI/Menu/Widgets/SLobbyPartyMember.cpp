@@ -96,7 +96,7 @@ void SLobbyPartyMember::Construct(const FArguments& InArgs)
 		];
 }
 
-void SLobbyPartyMember::Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush)
+void SLobbyPartyMember::Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush, bool IsClientPartyLeader)
 {
 	this->SetVisibility(EVisibility::Visible);
 	UserId = ID;
@@ -104,7 +104,14 @@ void SLobbyPartyMember::Set(FString ID, bool IsPartyLeader, FString DisplayName,
     ProfilePicture->SetImage(AvatarBrush);
 
 	LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
-	KickButton->SetVisibility(!IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
+	if (IsClientPartyLeader)
+	{
+		KickButton->SetVisibility(EVisibility::Visible);
+	}
+	else
+	{
+		KickButton->SetVisibility(bMySelf ? EVisibility::Visible : EVisibility::Hidden);
+	}
 	MemberImage->SetImage(IsPartyLeader ? &LobbyStyle->LeaderBoxPartySlot : &LobbyStyle->MemberBoxPartySlot);
 	bIsOccupied = true;
 }

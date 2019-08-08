@@ -29,7 +29,7 @@ public:
 
 	void InsertMember(FString ID, FString DisplayName, FSlateBrush* AvatarBrush, bool bMyself);
 
-	void InsertLeader(FString ID, FString DisplayName, FSlateBrush* AvatarBrush);
+	void InsertLeader(FString ID, FString DisplayName, FSlateBrush* AvatarBrush, bool bMyself);
 
 	void ResetAll();
 

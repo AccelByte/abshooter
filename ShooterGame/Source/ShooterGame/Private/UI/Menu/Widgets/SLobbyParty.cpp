@@ -76,21 +76,25 @@ void SParty::Construct(const FArguments& InArgs)
 
 void SParty::InsertMember(FString ID, FString DisplayName, FSlateBrush* AvatarBrush, bool bMyself)
 {
+	bool IsClientPartyLeader = PartyMembers[0]->bMySelf ? true : false;
 	for (int i = 1; i < 4; i++)
 	{
 		if (!PartyMembers[i]->bIsOccupied)
 		{
-			PartyMembers[i]->Set(ID, false, DisplayName, AvatarBrush);
 			PartyMembers[i]->bMySelf = bMyself;
+			PartyMembers[i]->Set(ID, false, DisplayName, AvatarBrush, IsClientPartyLeader);
 			PartyMembers[i]->UpdateButtonStyleMode();
 			break;
 		}
 	}
 }
 
-void SParty::InsertLeader(FString ID, FString DisplayName, FSlateBrush* AvatarBrush)
+void SParty::InsertLeader(FString ID, FString DisplayName, FSlateBrush* AvatarBrush, bool bMyself)
 {
-	PartyMembers[0]->Set(ID, true, DisplayName, AvatarBrush);
+	PartyMembers[0]->bMySelf = bMyself;
+	PartyMembers[0]->Set(ID, true, DisplayName, AvatarBrush, bMyself);
+	PartyMembers[0]->UpdateButtonStyleMode();
+
 }
 
 void SParty::ResetAll()
