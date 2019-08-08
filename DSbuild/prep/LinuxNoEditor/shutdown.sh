@@ -3,10 +3,9 @@ BASE_URL="<INSERT-YOUR-BASE-URL-HERE>"
 BASIC_CREDS="<INSERT-YOUR-BASIC-CREDS-HERE>"
 namespace="<INSERT-YOUR-NAMESPACE-HERE>"
 
-alive=true
 count=0
 
-while [ "$alive" = true ]; do
+while [ true ]; do
     response=$(curl "localhost:$PORT/match/status")
     match_id=$(echo "$response" | grep match_id | cut -d ':' -f 2 | cut -d '"' -f 2)
     match_state=$(echo "$response" | grep match_state | cut -d ':' -f 2 | cut -d '"' -f 2)
@@ -14,7 +13,6 @@ while [ "$alive" = true ]; do
     echo "match id: $match_id"
     echo "match state: $match_state"
     echo "players: $players"
-    echo "alive: $alive"
     if [ "$match_id" != "" ]; then
         if [ "$match_state" = "InProgress" ]; then
             echo "Match has been started..!"
@@ -23,7 +21,7 @@ while [ "$alive" = true ]; do
                     echo $count
                     count=$(( $count + 1 ))
                 else
-                    alive=false
+                    break
                 fi
             fi
         fi
