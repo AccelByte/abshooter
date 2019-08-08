@@ -11,147 +11,157 @@
 
 void SLobbyPartyMember::Construct(const FArguments& InArgs)
 {
-	LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+    LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
 
-	LeavePartyMemberButton = LobbyStyle->LeavePartyMemberButton;
-	KickPartyMemberButton = LobbyStyle->KickPartyMemberButton;
+    LeavePartyMemberButton = LobbyStyle->LeavePartyMemberButton;
+    KickPartyMemberButton = LobbyStyle->KickPartyMemberButton;
 
-	ChildSlot
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		[
+    ChildSlot
+    .VAlign(VAlign_Fill)
+    .HAlign(HAlign_Fill)
+    [
+        SNew(SOverlay)
 
-			SNew(SOverlay)
-			
-			+ SOverlay::Slot()			//NoMemberYet
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SAssignNew(MemberImage, SImage)
-				.Image(&LobbyStyle->UnoccupiedPartySlot)
-			]
+        + SOverlay::Slot()			//NoMemberYet
+        .HAlign(HAlign_Fill)
+        .VAlign(VAlign_Fill)
+        [
+            SAssignNew(MemberImage, SImage)
+            .Image(&LobbyStyle->UnoccupiedPartySlot)
+        ]
 
-			+ SOverlay::Slot()			//MainInfo
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SHorizontalBox)
+        + SOverlay::Slot()			//MainInfo
+        .HAlign(HAlign_Fill)
+        .VAlign(VAlign_Fill)
+        [
+            SNew(SHorizontalBox)
 
-				+ SHorizontalBox::Slot()			//LeaderBadge
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Top)
-				.AutoWidth()
-				[
-					SAssignNew(LeaderBadge, SImage)
-					.Image(&LobbyStyle->PartyLeaderIcon)
-					.Visibility(TAttribute<EVisibility>::Create([&]() {return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden; }))
-				]
+            + SHorizontalBox::Slot()			//LeaderBadge
+            .HAlign(HAlign_Fill)
+            .VAlign(VAlign_Top)
+            .AutoWidth()
+            [
+                SAssignNew(LeaderBadge, SImage)
+                .Image(&LobbyStyle->PartyLeaderIcon)
+                .Visibility(TAttribute<EVisibility>::Create([&]()
+                {
+                    return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden;
+                }))
+            ]
 
-				+ SHorizontalBox::Slot()			//Profile
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Center)
-				.FillWidth(1.0f)
-				[
-					SNew(SHorizontalBox)
+            + SHorizontalBox::Slot()			//Profile
+            .HAlign(HAlign_Fill)
+            .VAlign(VAlign_Center)
+            .FillWidth(1.0f)
+            [
+                SNew(SHorizontalBox)
 
-					+ SHorizontalBox::Slot()			//Picture
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-                        SNew(SBox)
-                        .HeightOverride(56)
-                        .WidthOverride(56)
-                        [
-                            SAssignNew(ProfilePicture, SImage)
-							.Visibility(TAttribute<EVisibility>::Create([&]() {return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden; }))
-						]
-					]
+                + SHorizontalBox::Slot()			//Picture
+                .HAlign(HAlign_Center)
+                .VAlign(VAlign_Center)
+                .AutoWidth()
+                [
+                    SNew(SBox)
+                    .HeightOverride(56)
+                    .WidthOverride(56)
+                    [
+                        SAssignNew(ProfilePicture, SImage)
+                        .Visibility(TAttribute<EVisibility>::Create([&]()
+                        {
+                            return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden;
+                        }))
+                    ]
+                ]
 
-					+ SHorizontalBox::Slot()			//Name
-					.HAlign(HAlign_Fill)
-					.VAlign(VAlign_Center)
-					.Padding(5, 0, 0, 0)
-					.FillWidth(1.0f)
-					[
-						SAssignNew(Name, STextBlock)
-						.Visibility(TAttribute<EVisibility>::Create([&]() {return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden; }))
-					]
-				]
+                + SHorizontalBox::Slot()			//Name
+                .HAlign(HAlign_Fill)
+                .VAlign(VAlign_Center)
+                .Padding(5, 0, 0, 0)
+                .FillWidth(1.0f)
+                [
+                    SAssignNew(Name, STextBlock)
+                    .Visibility(TAttribute<EVisibility>::Create([&]()
+                    {
+                        return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden;
+                    }))
+                ]
+            ]
 
-				+ SHorizontalBox::Slot()			//Kick
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Top)
-				.AutoWidth()
-				[
-					SAssignNew(KickButton, SButton)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-					.OnClicked(this, &SLobbyPartyMember::OnKickButtonClicked)
-					.ButtonStyle(&LobbyStyle->LeavePartyMemberButton)
-					.Visibility(TAttribute<EVisibility>::Create([&]() {return SLobbyPartyMember::GetIsOccupied()?EVisibility::Visible:EVisibility::Hidden; }))
-				]
-			]
-
-		];
+            + SHorizontalBox::Slot()			//Kick
+            .HAlign(HAlign_Fill)
+            .VAlign(VAlign_Top)
+            .AutoWidth()
+            [
+                SAssignNew(KickButton, SButton)
+                .HAlign(HAlign_Center)
+                .VAlign(VAlign_Center)
+                .OnClicked(this, &SLobbyPartyMember::OnKickButtonClicked)
+                .ButtonStyle(&LobbyStyle->LeavePartyMemberButton)
+                .Visibility(TAttribute<EVisibility>::Create([&]()
+                {
+                    return SLobbyPartyMember::GetIsOccupied() ? EVisibility::Visible : EVisibility::Hidden;
+                }))
+            ]
+        ]
+    ];
 }
 
 void SLobbyPartyMember::Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush, bool IsClientPartyLeader)
 {
-	this->SetVisibility(EVisibility::Visible);
-	UserId = ID;
-	Name->SetText(FText::FromString(DisplayName));
+    this->SetVisibility(EVisibility::Visible);
+    UserId = ID;
+    Name->SetText(FText::FromString(DisplayName));
     ProfilePicture->SetImage(AvatarBrush);
 
-	LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
-	if (IsClientPartyLeader)
-	{
-		KickButton->SetVisibility(EVisibility::Visible);
-	}
-	else
-	{
-		KickButton->SetVisibility(bMySelf ? EVisibility::Visible : EVisibility::Hidden);
-	}
-	MemberImage->SetImage(IsPartyLeader ? &LobbyStyle->LeaderBoxPartySlot : &LobbyStyle->MemberBoxPartySlot);
-	bIsOccupied = true;
+    LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
+    if (IsClientPartyLeader)
+    {
+        KickButton->SetVisibility(EVisibility::Visible);
+    }
+    else
+    {
+        KickButton->SetVisibility(bMySelf ? EVisibility::Visible : EVisibility::Hidden);
+    }
+    MemberImage->SetImage(IsPartyLeader ? &LobbyStyle->LeaderBoxPartySlot : &LobbyStyle->MemberBoxPartySlot);
+    bIsOccupied = true;
 }
 
 void SLobbyPartyMember::Release()
 {
-	this->SetVisibility(EVisibility::Hidden);
-	bIsOccupied = false;
-	Name->SetText(FString::Printf(TEXT("")));
-	MemberImage->SetImage(&LobbyStyle->UnoccupiedPartySlot);
-	MemberImage->SetVisibility(EVisibility::Visible);
+    this->SetVisibility(EVisibility::Hidden);
+    bIsOccupied = false;
+    Name->SetText(FString::Printf(TEXT("")));
+    MemberImage->SetImage(&LobbyStyle->UnoccupiedPartySlot);
+    MemberImage->SetVisibility(EVisibility::Visible);
 }
 
 FReply SLobbyPartyMember::OnKickButtonClicked()
 {
-	if (bMySelf)
-	{
-		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
-	}
-	else
-	{
-		AccelByte::FRegistry::Lobby.SendKickPartyMemberRequest(UserId);
-		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-	}
-	return FReply::Handled();
+    if (bMySelf)
+    {
+        AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
+    }
+    else
+    {
+        AccelByte::FRegistry::Lobby.SendKickPartyMemberRequest(UserId);
+        AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+    }
+    return FReply::Handled();
 }
 
 void SLobbyPartyMember::UpdateButtonStyleMode()
 {
-	if (bMySelf)
-	{
-		KickButton->SetButtonStyle(&LeavePartyMemberButton);
-	}
-	else
-	{
-		KickButton->SetButtonStyle(&KickPartyMemberButton);
-	}
+    if (bMySelf)
+    {
+        KickButton->SetButtonStyle(&LeavePartyMemberButton);
+    }
+    else
+    {
+        KickButton->SetButtonStyle(&KickPartyMemberButton);
+    }
 }
 
 bool SLobbyPartyMember::GetIsOccupied() const
 {
-	return bIsOccupied;
+    return bIsOccupied;
 }
