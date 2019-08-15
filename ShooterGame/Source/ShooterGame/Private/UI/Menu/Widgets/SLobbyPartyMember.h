@@ -12,33 +12,37 @@
 class SLobbyPartyMember : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SLobbyPartyMember)
-	{}
-	SLATE_DEFAULT_SLOT(FArguments, Content)
-	SLATE_END_ARGS()
-	
-	const FLobbyStyle* LobbyStyle;
-	TSharedPtr<SImage> LeaderBadge;
+    SLATE_BEGIN_ARGS(SLobbyPartyMember)
+    {}
+    SLATE_DEFAULT_SLOT(FArguments, Content)
+    SLATE_END_ARGS()
+
+    const FLobbyStyle* LobbyStyle;
+    TSharedPtr<SImage> LeaderBadge;
     TSharedPtr<SImage> ProfilePicture;
-	TSharedPtr<STextBlock> Name;
-	TSharedPtr<SButton> KickButton;
-	TSharedPtr<SImage> MemberImage;
-	FString UserId;
-	FButtonStyle LeavePartyMemberButton;
-	FButtonStyle KickPartyMemberButton;
+    TSharedPtr<STextBlock> Name;
+    TSharedPtr<SButton> KickButton;
+    TSharedPtr<SImage> MemberImage;
+    FString UserId;
+    FButtonStyle LeavePartyMemberButton;
+    FButtonStyle KickPartyMemberButton;
 
-	bool bMySelf = false;
-	bool bIsOccupied = false;
+    bool bMySelf = false;
+    bool bIsOccupied = false;
 
-	void Construct(const FArguments& InArgs);
+    void Construct(const FArguments& InArgs);
 
-	void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush);
+    void Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush, bool IsClientPartyLeader);
 
-	void Release();
+    void Release();
 
-	FReply OnKickButtonClicked();
+    FReply OnKickButtonClicked();
 
-	void UpdateButtonStyleMode();
+    void UpdateButtonStyleMode();
 
-	bool GetIsOccupied() const;
+    void UpdateButtonVisibility(const bool bMatchmakingStarted);
+
+    bool GetIsOccupied() const;
+
+    bool bIsClientPartyLeader;
 };
