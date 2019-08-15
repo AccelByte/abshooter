@@ -109,19 +109,13 @@ void SLobbyPartyMember::Construct(const FArguments& InArgs)
 void SLobbyPartyMember::Set(FString ID, bool IsPartyLeader, FString DisplayName, FSlateBrush* AvatarBrush, bool IsClientPartyLeader)
 {
     this->SetVisibility(EVisibility::Visible);
+    this->bIsClientPartyLeader = IsClientPartyLeader;
     UserId = ID;
     Name->SetText(FText::FromString(DisplayName));
     ProfilePicture->SetImage(AvatarBrush);
 
     LeaderBadge->SetVisibility(IsPartyLeader ? EVisibility::Visible : EVisibility::Hidden);
-    if (IsClientPartyLeader)
-    {
-        KickButton->SetVisibility(EVisibility::Visible);
-    }
-    else
-    {
-        KickButton->SetVisibility(bMySelf ? EVisibility::Visible : EVisibility::Hidden);
-    }
+    SLobbyPartyMember::UpdateButtonVisibility(false);
     MemberImage->SetImage(IsPartyLeader ? &LobbyStyle->LeaderBoxPartySlot : &LobbyStyle->MemberBoxPartySlot);
     bIsOccupied = true;
 }
@@ -158,6 +152,25 @@ void SLobbyPartyMember::UpdateButtonStyleMode()
     else
     {
         KickButton->SetButtonStyle(&KickPartyMemberButton);
+    }
+}
+
+void SLobbyPartyMember::UpdateButtonVisibility(const bool bMatchmakingStarted)
+{
+    if (bMatchmakingStarted)
+    {
+        KickButton->SetVisibility(EVisibility::Hidden);
+    }
+    else
+    {
+        if (this->bIsClientPartyLeader)
+        {
+            KickButton->SetVisibility(EVisibility::Visible);
+        }
+        else
+        {
+            KickButton->SetVisibility(bMySelf ? EVisibility::Visible : EVisibility::Hidden);
+        }
     }
 }
 

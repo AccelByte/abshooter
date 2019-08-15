@@ -116,6 +116,14 @@ int32 SParty::GetCurrentPartySize()
     return Counter;
 }
 
+void SParty::UpdateMatchmakingStatus(const bool bMatchmakingStatus)
+{
+    for (auto a : PartyMembers)
+    {
+        a->UpdateButtonVisibility(bMatchmakingStatus);
+    }
+}
+
 FReply SParty::OnCreatePartyClicked() const
 {
     for (auto a : PartyMembers)

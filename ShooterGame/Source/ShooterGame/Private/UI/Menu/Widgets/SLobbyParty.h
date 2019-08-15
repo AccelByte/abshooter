@@ -35,5 +35,7 @@ public:
 
     int32 GetCurrentPartySize();
 
+    void UpdateMatchmakingStatus(const bool bMatchmakingStatus);
+
     FReply OnCreatePartyClicked() const;
 };

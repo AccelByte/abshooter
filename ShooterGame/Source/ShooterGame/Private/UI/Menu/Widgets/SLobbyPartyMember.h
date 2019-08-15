@@ -40,5 +40,9 @@ public:
 
     void UpdateButtonStyleMode();
 
+    void UpdateButtonVisibility(const bool bMatchmakingStarted);
+
     bool GetIsOccupied() const;
+
+    bool bIsClientPartyLeader;
 };

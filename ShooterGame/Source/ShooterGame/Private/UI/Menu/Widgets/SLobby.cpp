@@ -148,6 +148,7 @@ void SLobby::Construct(const FArguments& InArgs)
         if (Response.Code != "0")
         {
             bMatchmakingStarted = false;
+            PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         }
     }));
     AccelByte::FRegistry::Lobby.SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([&](const FAccelByteModelsMatchmakingNotice& Response)
@@ -170,6 +171,7 @@ void SLobby::Construct(const FArguments& InArgs)
         else if (Response.Status == EAccelByteMatchmakingStatus::Start)
         {
             bMatchmakingStarted = true;
+            PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         }
         else
         {
@@ -191,11 +193,13 @@ void SLobby::Construct(const FArguments& InArgs)
             }
 
             bMatchmakingStarted = false;
+            PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         }
     }));
     AccelByte::FRegistry::Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
     {
         bMatchmakingStarted = false;
+        PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
     }));
     AccelByte::FRegistry::Lobby.SetDsNotifDelegate(AccelByte::Api::Lobby::FDsNotif::CreateLambda([&](const FAccelByteModelsDsNotice& Notice)
     {
@@ -257,6 +261,7 @@ void SLobby::Construct(const FArguments& InArgs)
                     if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, *ErrorMessage);
                 }
                 bMatchmakingStarted = false;
+                PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
             });
             UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking..."));
             Request->ProcessRequest();
@@ -271,6 +276,7 @@ void SLobby::Construct(const FArguments& InArgs)
             ShowMessageDialog("Your Opponent's Party Have been Banned Because of Long Term Inactivity. We'll Rematch You with Another Party.", FOnClicked::CreateLambda([this]()
             {
                 bMatchmakingStarted = true;
+                PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
                 CloseMessageDialog();
                 return FReply::Handled();
             }));
@@ -281,6 +287,7 @@ void SLobby::Construct(const FArguments& InArgs)
             ShowMessageDialog(FString::Printf(TEXT("You're Banned for %d sec Because of Long Term Inactivity. You Can Search for A Match Again After the Ban is Lifted."), Notice.BanDuration), FOnClicked::CreateLambda([this]()
             {
                 bMatchmakingStarted = false;
+                PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
                 CloseMessageDialog();
                 return FReply::Handled();
             }));
@@ -540,9 +547,12 @@ void SLobby::Construct(const FArguments& InArgs)
         .ButtonStyle(&LobbyStyle->StartMatchButton)
         .Visibility(TAttribute<EVisibility>::Create([&]
     {
-        if (bIsPartyLeader && !bMatchmakingStarted)
+        if (CurrentPartyID != "")
         {
-            return EVisibility::Visible;
+            if (bIsPartyLeader && !bMatchmakingStarted)
+            {
+                return EVisibility::Visible;
+            }
         }
 
         return EVisibility::Collapsed;
@@ -550,6 +560,7 @@ void SLobby::Construct(const FArguments& InArgs)
         .OnClicked(FOnClicked::CreateLambda([&]
     {
         bMatchmakingStarted = true;
+        PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         bReadyConsent = false;
         GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
         AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
@@ -892,6 +903,7 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 
     if (LeaveInfo.UserID == CurrentUserID)
     {
+        bIsPartyLeader = false;
         LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
         CurrentPartyID = TEXT("");
     }
