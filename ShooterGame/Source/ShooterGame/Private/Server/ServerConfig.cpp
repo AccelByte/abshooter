@@ -12,7 +12,7 @@
 
 //#define SERVER_CLIENT_ID "<PUT_SERVER_CLIENT_ID_HERE>"
 //#define SERVER_CLIENT_SECRET "<PUT_SERVER_CLIENT_SECRET_HERE>"
-#define MATCHMAKING_SERVER_URL "https://alpha.justice.accelbyte.net/matchmaking"
+#define MATCHMAKING_SERVER_URL "http://justice-matchmaking/matchmaking"
 
 #ifndef SERVER_CLIENT_ID
 #error Server Client Id is undefined
