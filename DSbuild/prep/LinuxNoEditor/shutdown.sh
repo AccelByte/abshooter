@@ -1,7 +1,8 @@
 #!/bin/sh
-BASE_URL="<INSERT-YOUR-BASE-URL-HERE>"
 BASIC_CREDS="<INSERT-YOUR-BASIC-CREDS-HERE>"
 namespace="<INSERT-YOUR-NAMESPACE-HERE>"
+DSM_SERVICE_URL="http://justice-dsm-service/dsm"
+IAM_SERVICE_URL="http://justice-iam-service/iam"
 
 count=0
 
@@ -31,6 +32,6 @@ done
 
 echo "There is no one in the match, DS will terminated..!"
 
-response=$(curl -X POST --header "Content-Type: application/x-www-form-urlencoded" --header "Accept: application/json" --header "Authorization: Basic $BASIC_CREDS" -d "grant_type=client_credentials" "$BASE_URL/iam/oauth/token")
+response=$(curl -X POST --header "Content-Type: application/x-www-form-urlencoded" --header "Accept: application/json" --header "Authorization: Basic $BASIC_CREDS" -d "grant_type=client_credentials" "$IAM_SERVICE_URL/oauth/token")
 token=$(echo "$response" | grep access_token | cut -d ':' -f 2 | cut -d '"' -f 2)
-curl -X POST --header "Content-Type: application/json" --header "Authorization: Bearer $token" -d "{ \"kill_me\": true, \"pod_name\": \"$POD_NAME\", \"session_id\": \"$match_id\" }" "$BASE_URL/dsm/namespaces/$namespace/servers/shutdown"
+curl -X POST --header "Content-Type: application/json" --header "Authorization: Bearer $token" -d "{ \"kill_me\": true, \"pod_name\": \"$POD_NAME\", \"session_id\": \"$match_id\" }" "$DSM_SERVICE_URL/namespaces/$namespace/servers/shutdown"
