@@ -1528,6 +1528,7 @@ void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
                 break;
             }
         }
+        SaveScreenshotMetadata();
     }),
         AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
