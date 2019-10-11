@@ -1,10 +1,17 @@
 # Changelog
 
-## v1.2.1 (2019-10-08)
+## 1.3.0 (2019-10-14)
+## Fixed
+- Follow IAM API Standardization
+- Default User Profile not filling 'firstname' field
+- Change CurrencyCode from `ShooterGameCoin` to `SGC`
+- Change notification topic from `0004` to `SHOOTER_GAME`
+
+## 1.2.1 (2019-10-08)
 ## Fixed
 - Metadata are saved after delete screenshot.
 
-## v1.2.0 (2019-10-08)
+## 1.2.0 (2019-10-08)
 ## Added
 - Adding DS Build:
   - DS communicating to DSM
