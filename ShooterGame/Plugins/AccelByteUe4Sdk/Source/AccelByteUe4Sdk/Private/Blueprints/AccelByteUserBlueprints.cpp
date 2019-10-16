@@ -2,9 +2,9 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "AccelByteUserBlueprints.h"
-#include "AccelByteUserApi.h"
-#include "AccelByteRegistry.h"
+#include "Blueprints/AccelByteUserBlueprints.h"
+#include "Api/AccelByteUserApi.h"
+#include "Core/AccelByteRegistry.h"
 
 using AccelByte::THandler;
 using AccelByte::FVoidHandler;
@@ -64,24 +64,14 @@ void UBPUser::ForgetAllCredentials()
 	FRegistry::User.ForgetAllCredentials();
 }
 
-void UBPUser::Register(const FString& Username, const FString& Password, const FString& DisplayName, const FString& Country, const FString& DateOfBirth, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError)
+void UBPUser::Register(const FString& Username, const FString& Password, const FString& DisplayName, const FString& Country, const FString& DateOfBirth, const FDUserRegisterHandler& OnSuccess, const FDErrorHandler& OnError)
 {
 	FRegistry::User.Register(
 		Username, Password, DisplayName, Country, DateOfBirth,
-		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
+		THandler<FRegisterResponse>::CreateLambda([OnSuccess](const FRegisterResponse& Result) { OnSuccess.ExecuteIfBound(Result); }),
 		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }
-
-/*! Commented because can't send PATCH request yet
-void UBPUser::Update(const FUserUpdateRequest& UpdateRequest, const FDUserDataHandler& OnSuccess, const FDErrorHandler & OnError)
-{
-	FRegistry::User.Update(
-		UpdateRequest,
-		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
-		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
-	);
-}*/
 
 
 void UBPUser::Upgrade(const FString& Username, const FString& Password, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError)
@@ -102,14 +92,14 @@ void UBPUser::SendUpgradeVerificationCode(const FString & Username, const FDHand
 	);
 }
 
-//void UBPUser::UpgradeAndVerify(const FString& Username, const FString& Password, const FString& VerificationCode, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError)
-//{
-//	FRegistry::User.UpgradeAndVerify(
-//		Username, Password, VerificationCode,
-//		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
-//		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
-//	);
-//}
+void UBPUser::UpgradeAndVerify(const FString& Username, const FString& Password, const FString& VerificationCode, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError)
+{
+	FRegistry::User.UpgradeAndVerify(
+		Username, Password, VerificationCode,
+		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
+	);
+}
 
 void UBPUser::SendVerificationCode(const FDHandler& OnSuccess, const FDErrorHandler& OnError)
 {
@@ -151,7 +141,7 @@ void UBPUser::ResetPassword(const FString& VerificationCode, const FString& User
 void UBPUser::GetPlatformLinks(const FDPlatformLinksHandler& OnSuccess, const FDErrorHandler& OnError)
 {
 	FRegistry::User.GetPlatformLinks(
-		THandler<TArray<FPlatformLink>>::CreateLambda([OnSuccess](const TArray<FPlatformLink>& Result) { OnSuccess.ExecuteIfBound(Result); }),
+		THandler<FPagedPlatformLinks>::CreateLambda([OnSuccess](const FPagedPlatformLinks& Result) { OnSuccess.ExecuteIfBound(Result); }),
 		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }

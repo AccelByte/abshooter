@@ -2,12 +2,12 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "AccelByteOrderApi.h"
-#include "AccelByteOauth2Api.h"
+#include "Api/AccelByteOrderApi.h"
+#include "Api/AccelByteOauth2Api.h"
 #include "JsonUtilities.h"
-#include "AccelByteRegistry.h"
-#include "AccelByteHttpRetryScheduler.h"
-#include "AccelByteSettings.h"
+#include "Core/AccelByteRegistry.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
+#include "Core/AccelByteSettings.h"
 
 namespace AccelByte
 {
@@ -59,7 +59,7 @@ void Order::GetUserOrder(const FString& OrderNo, const THandler<FAccelByteModels
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void Order::GetUserOrders(int32 Page, int32 Size, const THandler<FAccelByteModelsOrderInfoPaging>& OnSuccess, const FErrorHandler& OnError)
+void Order::GetUserOrders(int32 Page, int32 Size, const THandler<FAccelByteModelsPagedOrderInfo>& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
 	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/orders"), *Settings.PlatformServerUrl, *Credentials.GetUserNamespace(), *Credentials.GetUserId());

@@ -2,12 +2,12 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "AccelByteUserProfileApi.h"
-#include "AccelByteOauth2Api.h"
+#include "Api/AccelByteUserProfileApi.h"
+#include "Api/AccelByteOauth2Api.h"
 #include "JsonUtilities.h"
-#include "AccelByteRegistry.h"
-#include "AccelByteHttpRetryScheduler.h"
-#include "AccelByteSettings.h"
+#include "Core/AccelByteRegistry.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
+#include "Core/AccelByteSettings.h"
 
 namespace AccelByte
 {
@@ -99,14 +99,14 @@ void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateReque
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void UserProfile::CreateDefaultUserProfile(FString DisplayName, const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
+void UserProfile::CreateDefaultUserProfile(const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
 {
     FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
     FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *FRegistry::Credentials.GetUserId());
     FString Verb = TEXT("POST");
     FString ContentType = TEXT("application/json");
     FString Accept = TEXT("application/json");
-    FString Content = FString::Printf(TEXT("{\"firstName\":\"%s\",\"avatarSmallUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\",\"avatarUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\",\"avatarLargeUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\"}"), *DisplayName);
+    FString Content = FString::Printf(TEXT("{\"avatarSmallUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\",\"avatarUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\",\"avatarLargeUrl\":\"https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg\"}"));
 
     FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
     Request->SetURL(Url);

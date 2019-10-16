@@ -1166,10 +1166,10 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
                 if (!DiplayNameListCache->Contains(UserID))
                 {
                     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
-                    FRegistry::User.GetPublicUserInfo(UserID, THandler<FPublicUserInfo>::CreateLambda([this, UserID, UserProfileInfo](const FPublicUserInfo& UserInfo)
+                    FRegistry::User.GetUserByUserId(UserID, THandler<FUserData>::CreateLambda([this, UserID, UserProfileInfo](const FUserData& UserData)
                     {
-                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserInfo.UserId, *UserInfo.DisplayName);
-                        DiplayNameListCache->Add(UserInfo.UserId, UserInfo.DisplayName);
+                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserData.UserId, *UserData.DisplayName);
+                        DiplayNameListCache->Add(UserData.UserId, UserData.DisplayName);
 
                         // save to our cache
                         FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
@@ -1179,7 +1179,7 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
                         TArray<FString> Raw;
                         UserProfileInfo.AvatarSmallUrl.ParseIntoArray(Raw, TEXT("/"), true);
                         FString FileName = Raw.Last();
-                        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserInfo.DisplayName);
+                        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserData.DisplayName);
 
                         if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
                         {
@@ -1338,17 +1338,18 @@ FReply SLobby::OnRequestFriend()
         return FReply::Handled();
     }
 
-    FRegistry::User.GetUserByLoginId(FriendSearchBar->GetText().ToString(),
-        THandler<FUserData>::CreateLambda([&](const FUserData& User)
+    const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
+    FRegistry::User.GetUserByEmailAddress(FriendEmailAddress,
+        THandler<FPagedPublicUsersInfo>::CreateLambda([&](const FPagedPublicUsersInfo& Users)
     {
-        AccelByte::FRegistry::Lobby.RequestFriend(User.UserId);
+        FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);
     }),
-        AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+        FErrorHandler::CreateLambda([&](int32 Code, FString Message)
     {
         FString ErrorMessage = Message;
         if (Code == 404)
         {
-            ErrorMessage = FString::Printf(TEXT("%s does not exist."), *FriendSearchBar->GetText().ToString());
+            ErrorMessage = FString::Printf(TEXT("%s does not exist."), *FriendEmailAddress);
         }
         CloseOverlay(NotificationOverlay);
         TSharedPtr<SShooterConfirmationDialog> Dialog;
@@ -1825,7 +1826,7 @@ void SLobby::OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFrien
     }
     for (int i = 0; i < Length; i++)
     {
-        FRegistry::User.GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, i, Length, Response](const FPublicUserInfo& User)
+        FRegistry::User.GetUserByUserId(Response.friendsId[i], THandler<FUserData>::CreateLambda([&, i, Length, Response](const FUserData& User)
         {
             AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::INCOMING);
             RefreshFriendList();
@@ -1851,7 +1852,7 @@ void SLobby::OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFrien
     int Length = Response.friendsId.Num();
     for (int i = 0; i < Length; i++)
     {
-        FRegistry::User.GetPublicUserInfo(Response.friendsId[i], THandler<FPublicUserInfo>::CreateLambda([&, Length, Response](const FPublicUserInfo& User)
+        FRegistry::User.GetUserByUserId(Response.friendsId[i], THandler<FUserData>::CreateLambda([&, Length, Response](const FUserData& User)
         {
             AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::OUTGOING);
             RefreshFriendList();
@@ -1888,7 +1889,7 @@ void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Re
 
 void SLobby::OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response)
 {
-    FRegistry::User.GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
+    FRegistry::User.GetUserByUserId(Response.friendId, THandler<FUserData>::CreateLambda([&, Response](const FUserData& User)
     {
         RefreshFriendList();
         FSlateBrush* FriendAvatar = GetAvatarOrDefault(Response.friendId);
@@ -1912,7 +1913,7 @@ void SLobby::OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFr
 {
     FString DisplayName = CheckDisplayName(Response.friendId) ? GetDisplayName(Response.friendId) : Response.friendId;
 
-    FRegistry::User.GetPublicUserInfo(Response.friendId, THandler<FPublicUserInfo>::CreateLambda([&, Response](const FPublicUserInfo& User)
+    FRegistry::User.GetUserByUserId(Response.friendId, THandler<FUserData>::CreateLambda([&, Response](const FUserData& User)
     {
         CloseOverlay(NotificationOverlay);
         TSharedPtr<SShooterConfirmationDialog> Dialog;
@@ -1959,7 +1960,7 @@ void SLobby::OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFr
 
 void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification)
 {
-    if (MessageNotification.Topic != TEXT("0004"))
+    if (MessageNotification.Topic != TEXT("SHOOTER_GAME"))
     {
         return;
     }
