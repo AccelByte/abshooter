@@ -25,7 +25,7 @@
 #include "Core/AccelByteRegistry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
-#define SIMULATE_SETUP_MATCHMAKING 1
+#define SIMULATE_SETUP_MATCHMAKING 0
 #include "Server/Models/AccelByteMatchmakingModels.h"
 
 SLobby::SLobby()

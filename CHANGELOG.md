@@ -3,6 +3,7 @@
 ## Unreleased
 ## Fixed
 - Follow Basic API Standardization
+- Follow Statistic API Standardization
 
 ## 1.3.0 (2019-10-14)
 ## Fixed
