@@ -8,8 +8,8 @@
 #include "UObject/NoExportTypes.h"
 #include "Misc/ConfigCacheIni.h"
 #include "Http.h"
-#include "AccelByteUserProfileModels.h"
-#include "AccelByteError.h"
+#include "Models/AccelByteUserProfileModels.h"
+#include "Core/AccelByteError.h"
 
 namespace AccelByte
 {
@@ -70,7 +70,7 @@ public:
 	 */
     void CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError);
 
-	void CreateDefaultUserProfile(FString DisplayName, const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError);
+	void CreateDefaultUserProfile(const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError);
 
 private:
 	UserProfile() = delete;

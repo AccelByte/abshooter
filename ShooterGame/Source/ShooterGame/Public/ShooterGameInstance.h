@@ -10,6 +10,7 @@
 #include "Api/AccelByteUserProfileApi.h"
 #include "Api/AccelByteGameProfileApi.h"
 #include "Api/AccelByteLobbyApi.h"
+#include "Models/AccelByteGeneralModels.h"
 #include "Models/AccelByteLobbyModels.h"
 #include "Models/AccelByteGameProfileModels.h"
 #include "Models/AccelByteOauth2Models.h"

@@ -2,11 +2,11 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "AccelByteOrderBlueprints.h"
-#include "AccelByteSettings.h"
-#include "AccelByteOrderApi.h"
-#include "AccelByteCredentials.h"
-#include "AccelByteRegistry.h"
+#include "Blueprints/AccelByteOrderBlueprints.h"
+#include "Core/AccelByteSettings.h"
+#include "Api/AccelByteOrderApi.h"
+#include "Core/AccelByteCredentials.h"
+#include "Core/AccelByteRegistry.h"
 
 using AccelByte::Api::Order;
 using AccelByte::FErrorHandler;
@@ -38,7 +38,7 @@ void UAccelByteBlueprintsOrder::GetUserOrder(const FString& OrderNo, const FGetU
 
 void UAccelByteBlueprintsOrder::GetUserOrders(int32 Page, int32 Size, const FGetUserOrdersSuccess& OnSuccess, const FBlueprintErrorHandler& OnError)
 {
-	FRegistry::Order.GetUserOrders(Page, Size, THandler<FAccelByteModelsOrderInfoPaging>::CreateLambda([OnSuccess](const FAccelByteModelsOrderInfoPaging& Result)
+	FRegistry::Order.GetUserOrders(Page, Size, THandler<FAccelByteModelsPagedOrderInfo>::CreateLambda([OnSuccess](const FAccelByteModelsPagedOrderInfo& Result)
 	{
 		OnSuccess.ExecuteIfBound(Result);
 	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)

@@ -20,15 +20,15 @@
 #include "Online/ShooterOnlineSessionClient.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
+#include "Core/AccelByteCredentials.h"
+#include "Core/AccelByteSettings.h"
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteStatisticApi.h"
-#include "Core/AccelByteCredentials.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
 
-#include "Core/AccelByteRegistry.h"
-#include "Core/AccelByteHttpRetryScheduler.h"
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -162,8 +162,8 @@ void UShooterGameInstance::Init()
 	
 	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
-	OnGetOnlineUsersResponse = AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
-    AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+	OnGetOnlineUsersResponse = Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
+    FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
     AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
@@ -183,10 +183,10 @@ void UShooterGameInstance::Init()
         UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%d"), StatusCode, *Reason, WasClean);
     });
 
-    AccelByte::FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);
-    AccelByte::FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyErrorConnect);
-    AccelByte::FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
-    AccelByte::FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
+    FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);
+    FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyErrorConnect);
+    FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
+    FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
 
 	if (!IsRunningDedicatedServer())
 	{
@@ -855,7 +855,6 @@ void UShooterGameInstance::BeginMainMenuState()
 			[this](const FAccelByteModelsUserProfileInfo& UserProfileInfo) 
 		{
 			FAccelByteModelsUserProfileInfo ResultGetUserProfile = UserProfileInfo;
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *ResultGetUserProfile.FirstName);
             UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultGetUserProfile.UserId);
 			if (UserToken.Display_name.IsEmpty())
 			{
@@ -867,7 +866,7 @@ void UShooterGameInstance::BeginMainMenuState()
 				if (UserGameProfiles.Num() == 0)
 				{
 					FAccelByteModelsGameProfileRequest gameProfileRequest;
-					gameProfileRequest.profileName = ResultGetUserProfile.FirstName;
+					gameProfileRequest.profileName = UserToken.Display_name;
 					gameProfileRequest.avatarUrl = ResultGetUserProfile.AvatarUrl;
 					AccelByte::FRegistry::GameProfile.CreateGameProfile(gameProfileRequest, AccelByte::THandler<FAccelByteModelsGameProfile>::CreateLambda(
 						[this](const FAccelByteModelsGameProfile& UserGameProfile)
@@ -909,12 +908,11 @@ void UShooterGameInstance::BeginMainMenuState()
 				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
 			}
 
-            FRegistry::UserProfile.CreateDefaultUserProfile(UserToken.Display_name,
+            FRegistry::UserProfile.CreateDefaultUserProfile(
                 AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
 				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile: %s"), *ResultCreateUserProfile.FirstName);
                 UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultCreateUserProfile.UserId);
 				AccelByte::FRegistry::GameProfile.GetAllGameProfiles(AccelByte::THandler<TArray<FAccelByteModelsGameProfile>>::CreateLambda(
 					[this, ResultCreateUserProfile](const TArray<FAccelByteModelsGameProfile>& UserGameProfiles)
@@ -922,7 +920,7 @@ void UShooterGameInstance::BeginMainMenuState()
 					if (UserGameProfiles.Num() == 0)
 					{
 						FAccelByteModelsGameProfileRequest gameProfileRequest;
-						gameProfileRequest.profileName = ResultCreateUserProfile.FirstName;
+						gameProfileRequest.profileName = UserToken.Display_name;
 						gameProfileRequest.avatarUrl = ResultCreateUserProfile.AvatarUrl;
 						AccelByte::FRegistry::GameProfile.CreateGameProfile(gameProfileRequest, AccelByte::THandler<FAccelByteModelsGameProfile>::CreateLambda(
 							[this](const FAccelByteModelsGameProfile& UserGameProfile)
