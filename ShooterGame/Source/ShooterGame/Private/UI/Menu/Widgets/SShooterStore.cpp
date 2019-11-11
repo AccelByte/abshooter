@@ -19,6 +19,7 @@
 #include "SShooterCoinsWidget.h"
 #include "SShooterPaymentDialog.h"
 #include "Runtime/Networking/Public/Common/TcpListener.h"
+#include "Kismet/KismetInternationalizationLibrary.h"
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinimalWindowsApi.h"
@@ -275,8 +276,12 @@ void SShooterStore::BuildInventoryItem()
 	{
 		bRequestInventoryList = true;
 		InventoryList.Empty();
-		FRegistry::Item.GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
-			"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20,
+		FAccelByteModelsItemCriteria Criteria;
+		Criteria.ItemType = EAccelByteItemType::INGAMEITEM;
+		Criteria.Region = Locale;
+		Criteria.Language = GI->UserProfileInfo.Language;
+		Criteria.CategoryPath = "/item";
+		FRegistry::Item.GetItemsByCriteria(Criteria, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterStore::OnGetItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterStore::OnGetItemsByCriteriaError));
 	}
@@ -284,8 +289,12 @@ void SShooterStore::BuildInventoryItem()
 	{
 		bRequestCashInventoryList = true;
 		CashInventoryList.Empty();
-		FRegistry::Item.GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
-			"/coin", EAccelByteItemType::COINS, EAccelByteItemStatus::ACTIVE, 0, 20,
+		FAccelByteModelsItemCriteria Criteria;
+		Criteria.ItemType = EAccelByteItemType::COINS;
+		Criteria.Region = Locale;
+		Criteria.Language = GI->UserProfileInfo.Language;
+		Criteria.CategoryPath = "/coin";
+		FRegistry::Item.GetItemsByCriteria(Criteria, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterStore::OnGetCashItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterStore::OnGetItemsByCriteriaError));
 	}
@@ -335,7 +344,7 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 {
 	SelectedItem = InItem;
 	float FinalPrice = InItem->DiscountedPrice != 0 ? InItem->DiscountedPrice : InItem->Price * (1.f - InItem->DiscountPercentage);
-	if (InItem->CurrencyType != TEXT("REAL") && CoinsWidget.Pin()->Balance < FinalPrice)
+	if (InItem->CurrencyType != EAccelByteItemCurrencyType::REAL && CoinsWidget.Pin()->Balance < FinalPrice)
 	{
 		TSharedPtr<SShooterConfirmationDialog> Dialog;
 		SAssignNew(DialogWidget, SOverlay)
@@ -357,8 +366,8 @@ void SShooterStore::ShowBuyConfirmationDialog(TSharedPtr<FInventoryEntry> InItem
 		return;
 	}
 
-	float Price = (InItem->CurrencyType == TEXT("REAL") ? FinalPrice /100.00f : FinalPrice /1.f);
-	FString PriceString = FString::SanitizeFloat(Price, InItem->CurrencyType == TEXT("REAL")? 2 : 0);
+	float Price = (InItem->CurrencyType == EAccelByteItemCurrencyType::REAL ? FinalPrice /100.00f : FinalPrice /1.f);
+	FString PriceString = FString::SanitizeFloat(Price, InItem->CurrencyType == EAccelByteItemCurrencyType::REAL ? 2 : 0);
 
 	TSharedPtr<SShooterConfirmationDialog> Dialog;
 
@@ -394,11 +403,36 @@ void SShooterStore::CloseConfirmationDialog()
 
 FReply SShooterStore::OnBuyConfirm()
 {
+
+#if PLATFORM_WINDOWS
+	FString Locale = FWindowsPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_MAC
+	FString Locale = FMacPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_LINUX
+	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#endif
+
+	FJsonSerializableArray Split;
+	FString Region;
+	Locale.ParseIntoArray(Split, TEXT("-"), true);
+	if (Split.Num() > 1)
+	{
+		Region = Split[1];
+	}
+	else
+	{
+		Region = Locale;
+	}
+	const FString Language = UKismetInternationalizationLibrary::GetCurrentLanguage();
+
+	
 	FAccelByteModelsOrderCreate OrderCreate;
 	OrderCreate.ItemId = SelectedItem->ItemId;
 	OrderCreate.CurrencyCode = SelectedItem->CurrencyCode;
 	OrderCreate.Price = SelectedItem->Price;
 	OrderCreate.DiscountedPrice = SelectedItem->DiscountedPrice;
+	OrderCreate.Region = Region;
+	OrderCreate.Language = Language;
 	OrderCreate.Quantity = 1;
 	OrderCreate.ReturnUrl = TEXT("http://127.0.0.1:7777/");
 
@@ -484,17 +518,41 @@ TSharedRef< FInventoryEntry > SShooterStore::CreateInventoryItem(const FAccelByt
 	Inventory->ItemId = ItemInfo.ItemId;
 	Inventory->Name = ItemInfo.Title;
 	Inventory->Quantity = 0;
-	Inventory->ImageURL = ItemInfo.ThumbnailImage.ImageUrl;
+	Inventory->ImageURL = ItemInfo.ThumbnailUrl;
 
 	for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
 	{
-		if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL" || ItemInfo.RegionData[j].CurrencyType == "REAL")
+		if (ItemInfo.RegionData[j].CurrencyType == EAccelByteItemCurrencyType::VIRTUAL || ItemInfo.RegionData[j].CurrencyType == EAccelByteItemCurrencyType::REAL)
 		{
-			Inventory->DiscountPercentage = ItemInfo.RegionData[j].DiscountPercentage / 100.f;
 			Inventory->CurrencyCode = ItemInfo.RegionData[j].CurrencyCode;
 			Inventory->Price = ItemInfo.RegionData[j].Price;
-			Inventory->DiscountedPrice = ItemInfo.RegionData[j].DiscountedPrice;
 			Inventory->CurrencyType = ItemInfo.RegionData[j].CurrencyType;
+			UE_LOG(LogTemp, Display, TEXT("Item title: %s"), *ItemInfo.Title);
+			UE_LOG(LogTemp, Display, TEXT("Discount Purchase: %s, Discount Expire: %s"), *ItemInfo.RegionData[j].DiscountPurchaseAt.ToString(), *ItemInfo.RegionData[j].DiscountExpireAt.ToString());
+			UE_LOG(LogTemp, Display, TEXT("Discount Percentage: %d, Discount Amount: %d"), ItemInfo.RegionData[j].DiscountPercentage, ItemInfo.RegionData[j].DiscountAmount);
+			if ((ItemInfo.RegionData[j].DiscountPurchaseAt < FDateTime::Now() && ItemInfo.RegionData[j].DiscountExpireAt > FDateTime::Now())||
+				(ItemInfo.RegionData[j].DiscountPurchaseAt == FDateTime::MinValue() && ItemInfo.RegionData[j].DiscountExpireAt == FDateTime::MinValue()))
+			{
+				Inventory->DiscountedPrice = ItemInfo.RegionData[j].DiscountedPrice;
+				if (ItemInfo.RegionData[j].DiscountAmount == 0)
+				{
+					Inventory->DiscountPercentage = ItemInfo.RegionData[j].DiscountPercentage / 100.f;
+				}
+				else if (ItemInfo.RegionData[j].Price == 0)
+				{
+					Inventory->DiscountPercentage = 0;
+				}
+				else
+				{
+					Inventory->DiscountPercentage = ((ItemInfo.RegionData[j].Price - ItemInfo.RegionData[j].DiscountAmount)/ItemInfo.RegionData[j].Price) * 100.f;
+				}
+			}
+			else
+			{
+				Inventory->DiscountedPrice = ItemInfo.RegionData[j].Price;
+				Inventory->DiscountPercentage = 0;
+			}
+			UE_LOG(LogTemp, Display, TEXT("Discount Percentage: %f"), Inventory->DiscountPercentage);
 			break;
 		}
 	}

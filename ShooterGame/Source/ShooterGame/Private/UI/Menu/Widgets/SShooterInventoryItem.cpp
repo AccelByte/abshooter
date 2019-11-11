@@ -148,10 +148,10 @@ TSharedRef<SWidget> SShooterInventoryItem::GetPriceWidget(const FInventoryEntry*
 	else
 	{
 		// construct the price in string format, different format for REAL and VIRTUAL currency
-		float Price = (item->CurrencyType == TEXT("REAL") ? item->Price / 100.00f : item->Price / 1.f);
+		float Price = (item->CurrencyType == EAccelByteItemCurrencyType::REAL ? item->Price / 100.00f : item->Price / 1.f);
 		FString PriceString;
-		PriceString.Append(item->CurrencyType == TEXT("REAL") ? item->CurrencyCode + TEXT("\n") : TEXT(""));
-		PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == TEXT("REAL") ? 2 : 0));
+		PriceString.Append(item->CurrencyType == EAccelByteItemCurrencyType::REAL ? item->CurrencyCode + TEXT("\n") : TEXT(""));
+		PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == EAccelByteItemCurrencyType::REAL ? 2 : 0));
 
 		return SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -159,7 +159,7 @@ TSharedRef<SWidget> SShooterInventoryItem::GetPriceWidget(const FInventoryEntry*
 		.HAlign(HAlign_Fill)
 		.AutoWidth()
 		[
-			item->CurrencyType != TEXT("REAL") // if VIRTUAL currency then show the coin image
+			item->CurrencyType != EAccelByteItemCurrencyType::REAL // if VIRTUAL currency then show the coin image
 			?
 			SNew(SImage).Image(&InventoryStyle->CoinImage)
 			:

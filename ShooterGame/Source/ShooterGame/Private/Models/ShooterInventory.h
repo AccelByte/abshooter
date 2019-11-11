@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Models/AccelByteEcommerceModels.h"
+
 /** item type*/
 UENUM()
 enum class EInventoryItemType : uint8
@@ -25,7 +27,7 @@ struct FInventoryEntry
 	FString CurrencyCode;
 
 	/** currency type*/
-	FString CurrencyType;
+	EAccelByteItemCurrencyType CurrencyType;
 
 	/** item price*/
 	int32 Price;

@@ -4,6 +4,8 @@
 ## Fixed
 - Follow Basic API Standardization
 - Follow Statistic API Standardization
+- Update changes on Ecommerce
+- Fix discount still appear after expired time
 
 ## 1.3.0 (2019-10-14)
 ## Fixed
