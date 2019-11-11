@@ -20,7 +20,7 @@ UserProfile::~UserProfile(){}
 void UserProfile::GetUserProfile(const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/me/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace());
+	FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/me/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace());
 	FString Verb = TEXT("GET");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -39,19 +39,19 @@ void UserProfile::GetUserProfile(const THandler<FAccelByteModelsUserProfileInfo>
 
 void UserProfile::GetPublicUserProfileInfo(FString UserID, const THandler<FAccelByteModelsPublicUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
 {
-    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles/public"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *UserID);
-    FString Verb = TEXT("GET");
-    FString ContentType = TEXT("application/json");
-    FString Accept = TEXT("application/json");
-    FString Content;
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/%s/profiles/public"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *UserID);
+	FString Verb = TEXT("GET");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+	FString Content;
 
-    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-    Request->SetURL(Url);
-    Request->SetHeader(TEXT("Authorization"), Authorization);
-    Request->SetVerb(Verb);
-    Request->SetHeader(TEXT("Content-Type"), ContentType);
-    Request->SetHeader(TEXT("Accept"), Accept);
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
 
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
@@ -60,7 +60,7 @@ void UserProfile::GetPublicUserProfileInfo(FString UserID, const THandler<FAccel
 void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateRequest& ProfileUpdateRequest, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/me/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace());
+	FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/me/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace());
 	FString Verb = TEXT("PUT");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -81,7 +81,7 @@ void UserProfile::UpdateUserProfile(const FAccelByteModelsUserProfileUpdateReque
 void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateRequest& ProfileCreateRequest, const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
 {
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/me/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace());
+	FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/me/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace());
 	FString Verb = TEXT("POST");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -102,7 +102,7 @@ void UserProfile::CreateUserProfile(const FAccelByteModelsUserProfileCreateReque
 void UserProfile::CreateDefaultUserProfile(const THandler<FAccelByteModelsUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
 {
     FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-    FString Url = FString::Printf(TEXT("%s/public/namespaces/%s/users/%s/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *FRegistry::Credentials.GetUserId());
+    FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/%s/profiles"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *FRegistry::Credentials.GetUserId());
     FString Verb = TEXT("POST");
     FString ContentType = TEXT("application/json");
     FString Accept = TEXT("application/json");

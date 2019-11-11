@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.4.0 (2019-11-11)
+## Fixed
+- Follow Basic API Standardization
+- Follow Statistic API Standardization
+
 ## 1.3.0 (2019-10-14)
 ## Fixed
 - Follow IAM API Standardization
