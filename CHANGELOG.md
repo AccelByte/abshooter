@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0 (2019-11-11)
 ## Fixed
 - Follow Basic API Standardization
 - Follow Statistic API Standardization
