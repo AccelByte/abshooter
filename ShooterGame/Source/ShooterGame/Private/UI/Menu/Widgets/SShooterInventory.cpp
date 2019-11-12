@@ -206,8 +206,12 @@ void SShooterInventory::BuildInventoryItem()
 	{
 		bRequestInventoryList = true;
 		InventoryList.Empty();
-		FRegistry::Item.GetItemsByCriteria(GI->UserProfileInfo.Language, Locale,
-			"/item", EAccelByteItemType::INGAMEITEM, EAccelByteItemStatus::ACTIVE, 0, 20,
+		FAccelByteModelsItemCriteria Criteria;
+		Criteria.ItemType = EAccelByteItemType::INGAMEITEM;
+		Criteria.Region = Locale;
+		Criteria.Language = GI->UserProfileInfo.Language;
+		Criteria.CategoryPath = "/item";
+		FRegistry::Item.GetItemsByCriteria(Criteria, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
 	}
@@ -229,11 +233,11 @@ TSharedRef< FInventoryEntry > SShooterInventory::CreateInventoryItem(const FAcce
 	Inventory->ItemId = ItemInfo.ItemId;
 	Inventory->Name = ItemInfo.Title;
 	Inventory->Quantity = 0;
-	Inventory->ImageURL = ItemInfo.ThumbnailImage.ImageUrl;
+	Inventory->ImageURL = ItemInfo.ThumbnailUrl;
 
 	for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
 	{
-		if (ItemInfo.RegionData[j].CurrencyType == "VIRTUAL" || ItemInfo.RegionData[j].CurrencyType == "REAL")
+		if (ItemInfo.RegionData[j].CurrencyType == EAccelByteItemCurrencyType::VIRTUAL || ItemInfo.RegionData[j].CurrencyType == EAccelByteItemCurrencyType::REAL)
 		{
 			Inventory->CurrencyCode = ItemInfo.RegionData[j].CurrencyCode;
 			Inventory->Price = ItemInfo.RegionData[j].Price;

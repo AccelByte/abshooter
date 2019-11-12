@@ -6,7 +6,7 @@
 #include "SlateExtras.h"
 #include "ShooterGame.h"
 #include "Models/ShooterInventory.h"
-#include "Models/AccelByteEntitlementModels.h"
+#include "Models/AccelByteEcommerceModels.h"
 
 //class declare
 class SShooterInventory : public SCompoundWidget

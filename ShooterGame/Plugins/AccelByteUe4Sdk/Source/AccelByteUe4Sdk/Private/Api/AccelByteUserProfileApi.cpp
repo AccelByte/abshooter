@@ -39,19 +39,19 @@ void UserProfile::GetUserProfile(const THandler<FAccelByteModelsUserProfileInfo>
 
 void UserProfile::GetPublicUserProfileInfo(FString UserID, const THandler<FAccelByteModelsPublicUserProfileInfo>& OnSuccess, const FErrorHandler& OnError)
 {
-	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/%s/profiles/public"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *UserID);
-	FString Verb = TEXT("GET");
-	FString ContentType = TEXT("application/json");
-	FString Accept = TEXT("application/json");
-	FString Content;
+    FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+    FString Url = FString::Printf(TEXT("%s/v1/public/namespaces/%s/users/%s/profiles/public"), *Settings.BasicServerUrl, *Credentials.GetUserNamespace(), *UserID);
+    FString Verb = TEXT("GET");
+    FString ContentType = TEXT("application/json");
+    FString Accept = TEXT("application/json");
+    FString Content;
 
-	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL(Url);
-	Request->SetHeader(TEXT("Authorization"), Authorization);
-	Request->SetVerb(Verb);
-	Request->SetHeader(TEXT("Content-Type"), ContentType);
-	Request->SetHeader(TEXT("Accept"), Accept);
+    FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(Url);
+    Request->SetHeader(TEXT("Authorization"), Authorization);
+    Request->SetVerb(Verb);
+    Request->SetHeader(TEXT("Content-Type"), ContentType);
+    Request->SetHeader(TEXT("Accept"), Accept);
 
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }

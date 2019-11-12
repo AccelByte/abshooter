@@ -29,10 +29,18 @@ void SShooterStoreItem::Construct(const FArguments& InArgs, const TSharedRef<STa
 		TSharedPtr<FInventoryEntry> item = Item.Pin();
 
 		FString DicsountBannerText;
-		int Discount = 
-			(Item.Pin()->DiscountPercentage == 0) ? 
-			(FMath::CeilToInt( (Item.Pin()->Price - Item.Pin()->DiscountedPrice) * 100.00f / (double)Item.Pin()->Price )):
-			FMath::CeilToInt(Item.Pin()->DiscountPercentage * 100.0f);
+		int Discount;
+		if (Item.Pin()->Price == 0)
+		{
+			Discount = 0;
+		}
+		else
+		{
+			Discount =
+				(Item.Pin()->DiscountPercentage == 0) ?
+				(FMath::CeilToInt((Item.Pin()->Price - Item.Pin()->DiscountedPrice) * 100.00f / (double)Item.Pin()->Price)) :
+				FMath::CeilToInt(Item.Pin()->DiscountPercentage * 100.0f);
+		}
 		DicsountBannerText.Append(Discount < 10 ? "  " : "").Append(FString::Printf(TEXT("%d%% OFF  "), Discount));
 		FMargin DiscountBannerTextMargin = FMargin(0, 5, 15, 0);
 
@@ -255,9 +263,9 @@ TSharedRef<SWidget> SShooterStoreItem::GetLeftWidget(const FInventoryEntry* item
 
 FString SShooterStoreItem::GetPriceString(const FInventoryEntry* item) const
 {
-	float Price = (item->CurrencyType == TEXT("REAL") ? item->Price / 100.00f : item->Price / 1.f);
+	float Price = (item->CurrencyType == EAccelByteItemCurrencyType::REAL ? item->Price / 100.00f : item->Price / 1.f);
 	FString PriceString;
-	if (item->CurrencyType == TEXT("REAL"))
+	if (item->CurrencyType == EAccelByteItemCurrencyType::REAL)
 	{
 		PriceString.Append(item->CurrencyCode);
 	}
@@ -266,15 +274,15 @@ FString SShooterStoreItem::GetPriceString(const FInventoryEntry* item) const
 		PriceString.Append("VC");
 	}
 	PriceString.Append(" ");
-	PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == TEXT("REAL") ? 2 : 0));
+	PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == EAccelByteItemCurrencyType::REAL ? 2 : 0));
 	return PriceString;
 }
 
 FString SShooterStoreItem::GetDiscountedPriceString(const FInventoryEntry * item) const
 {
-	float Price = (item->CurrencyType == TEXT("REAL") ? item->DiscountedPrice / 100.00f : item->DiscountedPrice / 1.f);
+	float Price = (item->CurrencyType == EAccelByteItemCurrencyType::REAL ? item->DiscountedPrice / 100.00f : item->DiscountedPrice / 1.f);
 	FString PriceString;
-	if (item->CurrencyType == TEXT("REAL"))
+	if (item->CurrencyType == EAccelByteItemCurrencyType::REAL)
 	{
 		PriceString.Append(item->CurrencyCode);
 	}
@@ -283,7 +291,7 @@ FString SShooterStoreItem::GetDiscountedPriceString(const FInventoryEntry * item
 		PriceString.Append("VC");
 	}
 	PriceString.Append(" ");
-	PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == TEXT("REAL") ? 2 : 0));
+	PriceString.Append(FString::SanitizeFloat(Price, item->CurrencyType == EAccelByteItemCurrencyType::REAL ? 2 : 0));
 	return PriceString;
 }
 

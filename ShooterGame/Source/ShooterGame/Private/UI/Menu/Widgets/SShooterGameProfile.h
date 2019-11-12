@@ -9,7 +9,7 @@
 #include "ShooterGame.h"
 #include "Models/ShooterInventory.h"
 #include "Models/ShooterGameProfile.h"
-#include "Models/AccelByteEntitlementModels.h"
+#include "Models/AccelByteEcommerceModels.h"
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Http.h"
 
