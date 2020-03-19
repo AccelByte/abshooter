@@ -1339,7 +1339,7 @@ FReply SLobby::OnRequestFriend()
     }
 
     const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
-    FRegistry::User.GetUserByEmailAddress(FriendEmailAddress,
+    FRegistry::User.SearchUsers(FriendEmailAddress,
         THandler<FPagedPublicUsersInfo>::CreateLambda([&](const FPagedPublicUsersInfo& Users)
     {
         FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);

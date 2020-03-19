@@ -37,7 +37,8 @@ public class ShooterGame : ModuleRules
                 "JsonUtilities",
                 "WebBrowser",
                 "AccelByteUe4Sdk",
-                //"AvengersSDK"
+                //"AvengersSDK",
+		"Icmp"
 			}
 		);
 

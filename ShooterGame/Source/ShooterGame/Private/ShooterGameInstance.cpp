@@ -908,8 +908,15 @@ void UShooterGameInstance::BeginMainMenuState()
 				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
 			}
 
-            FRegistry::UserProfile.CreateDefaultUserProfile(
-                AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
+			FAccelByteModelsUserProfileCreateRequest defaultCreateProfileRequest;
+			defaultCreateProfileRequest.AvatarUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.AvatarLargeUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.AvatarSmallUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.Language = "en";
+			defaultCreateProfileRequest.Timezone = "Etc/UTC";
+			defaultCreateProfileRequest.DateOfBirth = "1991-01-01";
+
+            FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
 				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
@@ -966,7 +973,7 @@ void UShooterGameInstance::GetStatItems()
 	FNumberFormattingOptions format;
 	format.RoundingMode = HalfToZero;
 	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
-	AccelByte::FRegistry::Statistic.GetUserStatItemsByStatCodes(StatCodes, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
+	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
 		if (Result.Data.Num() != 0)

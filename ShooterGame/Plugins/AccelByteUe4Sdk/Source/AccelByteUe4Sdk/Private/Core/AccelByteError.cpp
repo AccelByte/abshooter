@@ -1,4 +1,4 @@
-// Copyright (c) 2018 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018-2019 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -79,6 +79,8 @@ namespace AccelByte
 		{ static_cast<int32>(ErrorCodes::StatusLoopDetected), TEXT("StatusLoopDetected Reference: RFC 5842, Section 7.2") },
 		{ static_cast<int32>(ErrorCodes::StatusNotExtended), TEXT("StatusNotExtended Reference: RFC 2774, Section 7") },
 		{ static_cast<int32>(ErrorCodes::StatusNetworkAuthenticationRequired), TEXT("StatusNetworkAuthenticationRequired Reference: RFC 6585, Section 6") },
+
+		{ static_cast<int32>(ErrorCodes::UserEmailAlreadyUsedException), TEXT("errors.net.accelbyte.platform.user_email_already_used") },
 
 		// Platform error
 		{ static_cast<int32>(ErrorCodes::UnauthorizedException), TEXT("errors.net.accelbyte.platform.unauthorized") },
@@ -264,9 +266,16 @@ namespace AccelByte
 		OutMessage = "";
 		if (Response.IsValid())
 		{
-			if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0) && Error.NumericErrorCode != -1)
+			if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0))
 			{
-				Code = Error.NumericErrorCode;
+				if (Error.NumericErrorCode != -1)
+				{
+					Code = Error.NumericErrorCode;
+				}
+				else if (Error.ErrorCode != -1)
+				{
+					Code = Error.ErrorCode;
+				}
 			}
 			else
 			{
