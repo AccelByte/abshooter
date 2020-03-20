@@ -8,7 +8,6 @@
 #include "AccelByteMatchmakingModels.generated.h"
 
 // Client send matchmaking info to dedicated server (for testing purpose would be removed in the future)
-#define SIMULATE_SETUP_MATCHMAKING 1
 
 USTRUCT(BlueprintType)
 struct FAccelByteModelsMatchmakingMember

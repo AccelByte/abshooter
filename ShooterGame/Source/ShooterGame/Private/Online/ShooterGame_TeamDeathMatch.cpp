@@ -394,7 +394,7 @@ void AShooterGame_TeamDeathMatch::RestartGame()
 
 void AShooterGame_TeamDeathMatch::EndMatch()
 {
-#if UE_SERVER
+#if UE_SERVER && 0
 	DetermineMatchWinner();
 	TArray<FAccelByteModelsMatchmakingResult> Results;
 
@@ -499,7 +499,7 @@ void AShooterGame_TeamDeathMatch::SetupMatch(const FAccelByteModelsMatchmakingIn
 
 bool AShooterGame_TeamDeathMatch::SetupSecondParty(const FAccelByteModelsMatchmakingInfo& Info)
 {
-#if SIMULATE_SETUP_MATCHMAKING
+#ifdef SIMULATE_SETUP_MATCHMAKING
 	if (MatchmakingInfo.match_id == Info.match_id)
 	{
 		if (JoinedTeam < 2)

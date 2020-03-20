@@ -4,7 +4,7 @@
 
 #include "ServerConfig.h"
 
-#if UE_SERVER
+#if UE_SERVER && 0
 
 #include "AccelByteOauth2Api.h"
 #include "AccelByteOauth2Models.h"

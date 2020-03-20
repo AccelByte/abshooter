@@ -744,6 +744,10 @@ void SLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& Pa
 void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
 {
     PartyWidget->ResetAll();
+	if (PartyInfo.Code != "0")
+	{
+		return;
+	}
     bIsPartyLeader = (PartyInfo.LeaderId == GetCurrentUserID());
 
     FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;

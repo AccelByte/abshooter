@@ -116,7 +116,7 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 					}
 					else
 					{
-#if SIMULATE_SETUP_MATCHMAKING
+#ifdef SIMULATE_SETUP_MATCHMAKING
 						// second party try join to the match
 						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
 						FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &MatchmakingInfo, 0, 0);

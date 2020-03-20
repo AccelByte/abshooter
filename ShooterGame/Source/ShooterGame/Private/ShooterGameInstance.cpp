@@ -26,6 +26,8 @@
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteStatisticApi.h"
+#include "GameServerApi/AccelByteServerOauth2Api.h"
+#include "GameServerApi/AccelByteServerDSMApi.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
 
@@ -230,6 +232,44 @@ void UShooterGameInstance::Init()
 			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
 			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
 			LastTime = AppTime;
+			FPlatformProcess::Sleep(0.5f);
+		}
+	}
+	else
+	{
+		bool bClientLoginSuccess = false;
+		FRegistry::ServerOauth2.LoginWithClientCredentials(
+			FVoidHandler::CreateLambda([&bClientLoginSuccess]()
+			{
+				bClientLoginSuccess = true;
+				UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
+				FRegistry::ServerDSM.RegisterServerToDSM(7777, 
+					FVoidHandler::CreateLambda([&bClientLoginSuccess]()
+					{
+						bClientLoginSuccess = true;
+						UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
+					}),
+					AccelByte::FErrorHandler::CreateLambda([&bClientLoginSuccess](int32 ErrorCode, FString ErrorMessage)
+					{
+						bClientLoginSuccess = false;
+						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+					}));
+			}), 
+			AccelByte::FErrorHandler::CreateLambda([&bClientLoginSuccess](int32 ErrorCode, FString ErrorMessage)
+			{
+				bClientLoginSuccess = false;
+				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to login client.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+			})
+		);
+
+		// Blocking here
+		double lastTime = FPlatformTime::Seconds();
+		while(!bClientLoginSuccess)
+		{
+			const double AppTime = FPlatformTime::Seconds();
+			FHttpModule::Get().GetHttpManager().Tick(AppTime - lastTime);
+			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+			lastTime = AppTime;
 			FPlatformProcess::Sleep(0.5f);
 		}
 	}

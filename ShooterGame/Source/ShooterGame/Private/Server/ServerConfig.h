@@ -5,7 +5,7 @@
 #pragma once
 
 // compiled only for dedicated server
-#if UE_SERVER
+#if UE_SERVER && 0
 
 #include "AccelByteCredentials.h"
 #include "AccelByteError.h"
