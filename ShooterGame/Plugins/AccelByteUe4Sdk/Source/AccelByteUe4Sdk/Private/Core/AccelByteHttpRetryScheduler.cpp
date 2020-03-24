@@ -100,6 +100,10 @@ bool FHttpRetryScheduler::PollRetry(double CurrentTime, Credentials& UserCredent
 			}
 		case EHttpRequestStatus::Failed: //request cancelled
 		case EHttpRequestStatus::Failed_ConnectionError: //network error
+			CurrentTask->ScheduleNextRetry(CurrentTime);
+			CurrentTask->Request->ProcessRequest();
+
+			return false;
 		case EHttpRequestStatus::NotStarted:
 			CompletedTasks.Add(CurrentTask);
 

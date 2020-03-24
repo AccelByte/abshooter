@@ -25,7 +25,6 @@ namespace AccelByte
         {
             Report report;
             report.GetFunctionLog(FString(__FUNCTION__));
-            FString PodName;
 
 #if ENGINE_MINOR_VERSION > 20
 #if PLATFORM_WINDOWS
@@ -52,7 +51,7 @@ namespace AccelByte
             FString ContentType = TEXT("application/json");
             FString Accept = TEXT("application/json");
             const FAccelByteModelsRegisterServerRequest Register{
-                PodName,
+                ServerName,
                 Port
             };
             FString Contents;
@@ -235,7 +234,7 @@ namespace AccelByte
 			Request->SetHeader(TEXT("Content-Type"), ContentType);
 			Request->SetHeader(TEXT("Accept"), Accept);
 			Request->SetContentAsString(Contents);
-			UE_LOG(LogTemp, Log, TEXT("Starting DSM Deregister Request..."));
+			UE_LOG(LogTemp, Log, TEXT("Polling Heartbeat Request..."));
 			FRegistry::HttpRetryScheduler.ProcessRequest(Request, OnHeartBeatResponse, FPlatformTime::Seconds());
 		}
 

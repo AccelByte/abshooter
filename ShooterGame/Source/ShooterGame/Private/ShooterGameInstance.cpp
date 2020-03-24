@@ -18,6 +18,8 @@
 #include "Online/ShooterPlayerState.h"
 #include "Online/ShooterGameSession.h"
 #include "Online/ShooterOnlineSessionClient.h"
+#include "Misc/CommandLine.h"
+#include "ShooterGameConfig.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -237,34 +239,49 @@ void UShooterGameInstance::Init()
 	}
 	else
 	{
-		bool bClientLoginSuccess = false;
+		bool bClientLoginDone = false;
 		FRegistry::ServerOauth2.LoginWithClientCredentials(
-			FVoidHandler::CreateLambda([&bClientLoginSuccess]()
+			FVoidHandler::CreateLambda([&bClientLoginDone]()
 			{
-				bClientLoginSuccess = true;
 				UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
-				FRegistry::ServerDSM.RegisterServerToDSM(7777, 
-					FVoidHandler::CreateLambda([&bClientLoginSuccess]()
-					{
-						bClientLoginSuccess = true;
-						UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
-					}),
-					AccelByte::FErrorHandler::CreateLambda([&bClientLoginSuccess](int32 ErrorCode, FString ErrorMessage)
-					{
-						bClientLoginSuccess = false;
-						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
-					}));
+				FRegistry::ServerDSM.ConfigureHeartBeat();
+
+				auto cmdLineArgs = FCommandLine::Get();
+				TArray<FString> tokens, switches;
+				FCommandLine::Parse(FCommandLine::Get(), tokens, switches);
+				bool isLocalMatch = tokens.Contains(TEXT("localds"));
+
+				FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
+				{
+					bClientLoginDone = true;
+					UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
+				});
+
+				AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
+				{
+					bClientLoginDone = true;
+					UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+				});
+
+				if (isLocalMatch)
+				{
+					FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, TEXT("localds"), onRegisterServerSuccess, onRegisterServerFailed);
+				}
+				else
+				{
+					FRegistry::ServerDSM.RegisterServerToDSM(ShooterGameConfig::Get().ServerPort_, onRegisterServerSuccess,onRegisterServerFailed);
+				}
 			}), 
-			AccelByte::FErrorHandler::CreateLambda([&bClientLoginSuccess](int32 ErrorCode, FString ErrorMessage)
+			AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
 			{
-				bClientLoginSuccess = false;
+				bClientLoginDone = true;
 				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to login client.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
 			})
 		);
 
 		// Blocking here
 		double lastTime = FPlatformTime::Seconds();
-		while(!bClientLoginSuccess)
+		while(!bClientLoginDone)
 		{
 			const double AppTime = FPlatformTime::Seconds();
 			FHttpModule::Get().GetHttpManager().Tick(AppTime - lastTime);

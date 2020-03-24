@@ -18,6 +18,7 @@
 #include "SShooterNotificationPopup.h"
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "SLobbyChat.h"
+#include "ShooterGameConfig.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -563,7 +564,10 @@ void SLobby::Construct(const FArguments& InArgs)
         PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         bReadyConsent = false;
         GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
-        AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
+        AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+			GameMode, 
+			TEXT(""), // TODO: QOS Service implementation
+			ShooterGameConfig::Get().ServerImageVersion_);
         return FReply::Handled();
     }))
         ]
