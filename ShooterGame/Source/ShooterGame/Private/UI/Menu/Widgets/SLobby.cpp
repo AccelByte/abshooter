@@ -206,7 +206,7 @@ void SLobby::Construct(const FArguments& InArgs)
     {
         UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
 
-        if (Notice.Status.Compare(TEXT("READY")) == 0)
+        if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
         {
 
 #if SIMULATE_SETUP_MATCHMAKING

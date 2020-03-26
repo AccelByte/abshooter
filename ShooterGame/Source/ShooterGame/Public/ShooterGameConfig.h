@@ -16,6 +16,7 @@ private:
 	FString LocalServerIP;
 	FString DsLocalModeCommandLineArg;
 	FString ServerImageVersion;
+	bool IsLocalMode;
 
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
@@ -25,4 +26,5 @@ public:
 	const FString &LocalServerIP_;
 	const FString &DsLocalModeCommandLineArg_;
 	const FString &ServerImageVersion_;
+	const bool &IsLocalMode_;
 };
