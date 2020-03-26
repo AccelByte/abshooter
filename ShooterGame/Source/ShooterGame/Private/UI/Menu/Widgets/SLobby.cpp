@@ -19,6 +19,7 @@
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "SLobbyChat.h"
 #include "ShooterGameConfig.h"
+#include "Engine/World.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -706,7 +707,12 @@ void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FS
 {
     OnStartMatch.ExecuteIfBound();
     UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
-    UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *GetCurrentUserID()));
+
+	GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(enterLevelTimerHandle, TFunction<void(void)>([DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
+	{
+		UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
+	}), 1.0f, false, 5.0f);
+
 }
 
 void SLobby::ShowMessageDialog(FString Message, FOnClicked OnClicked)

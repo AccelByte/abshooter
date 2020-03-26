@@ -20,6 +20,7 @@
 #include "Online/ShooterOnlineSessionClient.h"
 #include "Misc/CommandLine.h"
 #include "ShooterGameConfig.h"
+#include "ShooterGame_TeamDeathMatch.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -30,6 +31,7 @@
 #include "Api/AccelByteStatisticApi.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
+#include "Server/Models/AccelByteMatchmakingModels.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
 
@@ -244,12 +246,55 @@ void UShooterGameInstance::Init()
 			FVoidHandler::CreateLambda([&bClientLoginDone]()
 			{
 				UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
+				FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
+				{
+					UE_LOG(LogTemp, Log, TEXT("\tServer got heartbeat match request."));
+					UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+					if (GameEngine)
+					{
+						UWorld* World = GameEngine->GetGameWorld();
+						if (World)
+						{
+							AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
+							if (GameMode)
+							{
+								if (matchRequest.Session_id.IsEmpty()) { return; }
+								if (!GameMode->IsMatchStarted())
+								{
+									FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+									MatchmakingInfo.channel = matchRequest.Game_mode;
+									MatchmakingInfo.match_id = matchRequest.Session_id;
+									for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
+									{
+										FAccelByteModelsMatchmakingParty tmp;
+										tmp.party_id = partyMember.Matching_parties[0].Party_id;
+										tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
+										for (int i = 1; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
+										{
+											tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
+										}
+										MatchmakingInfo.matching_parties.Add(tmp);
+									}
+									GameMode->SetupMatch(MatchmakingInfo);
+									UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
+								}
+							}
+							else
+							{
+								UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameMode not found"));
+							}
+						}
+						else
+						{
+							UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: World not found"));
+						}
+					}
+					else
+					{
+						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameEngine not found"));
+					}
+				}));
 				FRegistry::ServerDSM.ConfigureHeartBeat();
-
-				auto cmdLineArgs = FCommandLine::Get();
-				TArray<FString> tokens, switches;
-				FCommandLine::Parse(FCommandLine::Get(), tokens, switches);
-				bool isLocalMatch = tokens.Contains(TEXT("localds"));
 
 				FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
 				{
@@ -263,7 +308,7 @@ void UShooterGameInstance::Init()
 					UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
 				});
 
-				if (isLocalMatch)
+				if (ShooterGameConfig::Get().IsLocalMode_)
 				{
 					FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, TEXT("localds"), onRegisterServerSuccess, onRegisterServerFailed);
 				}

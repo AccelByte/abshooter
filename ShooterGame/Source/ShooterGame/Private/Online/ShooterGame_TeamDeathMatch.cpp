@@ -217,6 +217,11 @@ void AShooterGame_TeamDeathMatch::PreLogin(const FString& Options, const FString
 					break;
 				}
 			}
+			if (Party.leader_id == UserIdOpt)
+			{
+				UserFound = true;
+				break;
+			}
 		}
 	}
 
