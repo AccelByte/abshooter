@@ -14,9 +14,11 @@ private:
 
 	int32 ServerPort;
 	FString LocalServerIP;
+	FString LocalServerName;
 	FString DsLocalModeCommandLineArg;
 	FString ServerImageVersion;
 	bool IsLocalMode;
+	int ServerHeartbeatInterval;
 
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
@@ -24,7 +26,9 @@ public:
 
 	const int32 &ServerPort_;
 	const FString &LocalServerIP_;
+	const FString &LocalServerName_;
 	const FString &DsLocalModeCommandLineArg_;
 	const FString &ServerImageVersion_;
 	const bool &IsLocalMode_;
+	const int &ServerHeartbeatInterval_;
 };

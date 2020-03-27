@@ -276,6 +276,10 @@ namespace AccelByte
 				{
 					Code = Error.ErrorCode;
 				}
+				else
+				{
+					Code = Response->GetResponseCode();
+				}
 			}
 			else
 			{

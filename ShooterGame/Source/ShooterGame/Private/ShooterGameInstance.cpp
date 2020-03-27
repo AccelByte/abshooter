@@ -294,7 +294,7 @@ void UShooterGameInstance::Init()
 						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameEngine not found"));
 					}
 				}));
-				FRegistry::ServerDSM.ConfigureHeartBeat();
+				FRegistry::ServerDSM.ConfigureHeartBeat(true, ShooterGameConfig::Get().ServerHeartbeatInterval_);
 
 				FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
 				{
@@ -302,15 +302,37 @@ void UShooterGameInstance::Init()
 					UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
 				});
 
-				AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
+				// Deregister & re-register itself IF registration failed on local server due to conflict
+				AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&, onSuccess = onRegisterServerSuccess](int32 ErrorCode, FString ErrorMessage)
 				{
-					bClientLoginDone = true;
-					UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+					if (ErrorCode == 409)
+					{
+						if (ShooterGameConfig::Get().IsLocalMode_)
+						{
+							FRegistry::ServerDSM.DeregisterLocalServerFromDSM(
+								ShooterGameConfig::Get().LocalServerName_,
+								FVoidHandler::CreateLambda([&, onSuccess = onSuccess]() {
+									FRegistry::ServerDSM.RegisterLocalServerToDSM(
+										ShooterGameConfig::Get().LocalServerIP_, 
+										ShooterGameConfig::Get().ServerPort_, 
+										ShooterGameConfig::Get().LocalServerName_, 
+										onSuccess,
+										AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage){ FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); }));
+								}),
+								AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage){ FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode);})
+							);
+						}
+					}
+					else
+					{
+						bClientLoginDone = true;
+						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+					}
 				});
 
 				if (ShooterGameConfig::Get().IsLocalMode_)
 				{
-					FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, TEXT("localds"), onRegisterServerSuccess, onRegisterServerFailed);
+					FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, ShooterGameConfig::Get().LocalServerName_, onRegisterServerSuccess, onRegisterServerFailed);
 				}
 				else
 				{
@@ -1017,6 +1039,8 @@ void UShooterGameInstance::BeginMainMenuState()
 			defaultCreateProfileRequest.Language = "en";
 			defaultCreateProfileRequest.Timezone = "Etc/UTC";
 			defaultCreateProfileRequest.DateOfBirth = "1991-01-01";
+			defaultCreateProfileRequest.FirstName = UserToken.Display_name;
+			defaultCreateProfileRequest.LastName = UserToken.Display_name;
 
             FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
 				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;

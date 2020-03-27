@@ -253,7 +253,7 @@ void SLobby::Construct(const FArguments& InArgs)
 #endif
                     FString ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
                     UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
-                    StartMatch(Notice.MatchId, CurrentPartyID, ServerAddress);
+                    StartMatch(Notice.MatchId, this->CurrentPartyID, ServerAddress);
 #if SIMULATE_SETUP_MATCHMAKING
                 }
                 else
@@ -708,10 +708,11 @@ void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FS
     OnStartMatch.ExecuteIfBound();
     UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
 
+	// Add delay to ensure the server has received a heartbeat response contains matchmaking result
 	GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(enterLevelTimerHandle, TFunction<void(void)>([DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
 	{
 		UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
-	}), 1.0f, false, 5.0f);
+	}), 1.0f, false, ShooterGameConfig::Get().ServerHeartbeatInterval_);
 
 }
 
