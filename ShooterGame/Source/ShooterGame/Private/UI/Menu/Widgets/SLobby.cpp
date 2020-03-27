@@ -251,7 +251,15 @@ void SLobby::Construct(const FArguments& InArgs)
                 {
                     UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
 #endif
-                    FString ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
+					FString ServerAddress;
+					if (ShooterGameConfig::Get().IsLocalMode_)
+					{
+						ServerAddress = FString::Printf(TEXT("%s:%i"), *ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_);
+					}
+					else
+					{
+						ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
+					}
                     UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
                     StartMatch(Notice.MatchId, this->CurrentPartyID, ServerAddress);
 #if SIMULATE_SETUP_MATCHMAKING
@@ -565,10 +573,23 @@ void SLobby::Construct(const FArguments& InArgs)
         PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         bReadyConsent = false;
         GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
-        AccelByte::FRegistry::Lobby.SendStartMatchmaking(
-			GameMode, 
-			TEXT(""), // TODO: QOS Service implementation
-			ShooterGameConfig::Get().ServerImageVersion_);
+		if (ShooterGameConfig::Get().IsLocalMode_)
+		{
+			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+				GameMode,
+				ShooterGameConfig::Get().LocalServerName_
+			);
+        }
+		else
+		{
+			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+				GameMode,
+				TEXT(""),
+				ShooterGameConfig::Get().ServerImageVersion_
+				// TODO: QOS Service implementation
+			);
+		}
+		
         return FReply::Handled();
     }))
         ]
