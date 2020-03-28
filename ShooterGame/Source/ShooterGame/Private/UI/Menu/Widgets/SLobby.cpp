@@ -277,6 +277,10 @@ void SLobby::Construct(const FArguments& InArgs)
             Request->ProcessRequest();
 #endif	
         }
+		else if (Notice.Status.Compare(TEXT("CREATING")) == 0)
+		{
+			bAlreadyEnteringLevel = false;
+		}
     }));
     AccelByte::FRegistry::Lobby.SetRematchmakingNotifDelegate(AccelByte::Api::Lobby::FRematchmakingNotif::CreateLambda([&](const FAccelByteModelsRematchmakingNotice& Notice)
     {
@@ -726,14 +730,20 @@ float SLobby::GetLobbyWidth(float Divider) const
 
 void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FString& DedicatedServerAddress)
 {
-    OnStartMatch.ExecuteIfBound();
-    UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
-
-	// Add delay to ensure the server has received a heartbeat response contains matchmaking result
-	GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(enterLevelTimerHandle, TFunction<void(void)>([DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
+	if (this->bAlreadyEnteringLevel == false)
 	{
-		UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
-	}), 1.0f, false, ShooterGameConfig::Get().ServerHeartbeatInterval_);
+		this->bAlreadyEnteringLevel = true;
+		OnStartMatch.ExecuteIfBound();
+		UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
+
+		// Add delay to ensure the server has received a heartbeat response contains matchmaking result
+		// Player only entering level once
+		FTimerHandle dummyHandle;
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(dummyHandle, TFunction<void(void)>([this, DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
+		{
+				UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
+		}), 1.0f, false, ShooterGameConfig::Get().ServerHeartbeatInterval_);
+	}
 
 }
 

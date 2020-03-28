@@ -173,7 +173,7 @@ protected:
     FString DedicatedServerBaseUrl;
     FString DedicatedServerAddress;
     bool bReadyConsent;
-	FTimerHandle enterLevelTimerHandle;
+	bool bAlreadyEnteringLevel = false;
 #pragma endregion Matchmaking
 
     void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
