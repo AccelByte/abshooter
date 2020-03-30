@@ -415,6 +415,8 @@ private:
 
 	void GetStatItems();
 
+	void GetQos();
+
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
 };

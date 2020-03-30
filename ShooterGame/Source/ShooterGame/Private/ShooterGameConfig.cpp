@@ -10,7 +10,8 @@ ShooterGameConfig::ShooterGameConfig()
 	DsLocalModeCommandLineArg_(DsLocalModeCommandLineArg),
 	ServerImageVersion_(ServerImageVersion),
 	IsLocalMode_(IsLocalMode),
-	ServerHeartbeatInterval_(ServerHeartbeatInterval)
+	ServerHeartbeatInterval_(ServerHeartbeatInterval),
+	ServerLatencies_(ServerLatencies)
 {
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
 
@@ -31,4 +32,9 @@ ShooterGameConfig::ShooterGameConfig()
 	TArray<FString> tokens, switches;
 	FCommandLine::Parse(FCommandLine::Get(), tokens, switches);
 	IsLocalMode = tokens.Contains(TEXT("localds"));
+}
+
+void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)
+{
+	ServerLatencies = value;
 }

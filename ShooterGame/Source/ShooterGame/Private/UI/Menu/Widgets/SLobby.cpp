@@ -589,8 +589,8 @@ void SLobby::Construct(const FArguments& InArgs)
 			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
 				GameMode,
 				TEXT(""),
-				ShooterGameConfig::Get().ServerImageVersion_
-				// TODO: QOS Service implementation
+				ShooterGameConfig::Get().ServerImageVersion_,
+				ShooterGameConfig::Get().ServerLatencies_
 			);
 		}
 		

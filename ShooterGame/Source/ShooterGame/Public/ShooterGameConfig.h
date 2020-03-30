@@ -1,5 +1,6 @@
 #pragma once
 #include "CoreGlobals.h"
+#include "Models/AccelByteQosModels.h"
 
 class ShooterGameConfig
 {
@@ -20,10 +21,13 @@ private:
 	FString ServerImageVersion;
 	bool IsLocalMode;
 	int ServerHeartbeatInterval;
+	TArray<TPair<FString, float>> ServerLatencies;
 
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
 	void operator=(ShooterGameConfig const&) = delete;
+
+	void SetServerLatencies(TArray<TPair<FString, float>> value);
 
 	const int32 &ServerPort_;
 	const FString &LocalServerIP_;
@@ -32,4 +36,5 @@ public:
 	const FString &ServerImageVersion_;
 	const bool &IsLocalMode_;
 	const int &ServerHeartbeatInterval_;
+	const TArray<TPair<FString, float>> &ServerLatencies_;
 };

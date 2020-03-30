@@ -29,6 +29,7 @@
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteStatisticApi.h"
+#include "Api/AccelByteQos.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "Server/Models/AccelByteMatchmakingModels.h"
@@ -196,6 +197,9 @@ void UShooterGameInstance::Init()
 
 	if (!IsRunningDedicatedServer())
 	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get QoS Latencies..."));
+		GetQos();
+
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
 		bool bHasDone = false;
 		FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&] {
@@ -1139,6 +1143,16 @@ void UShooterGameInstance::GetStatItems()
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
 		MainMenuUI->UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
 	}));
+}
+
+void UShooterGameInstance::GetQos()
+{
+	FRegistry::Qos.GetServerLatencies(THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result){
+			ShooterGameConfig::Get().SetServerLatencies(Result);
+		}),
+		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
+			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
+		}));
 }
 
 void UShooterGameInstance::EndMainMenuState()
