@@ -9,9 +9,9 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
 #include "ShooterGameConfig.h"
-#include "Server/ServerConfig.h"
 #include "Core/AccelByteRegistry.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
+#include "GameServerApi/AccelByteServerStatisticApi.h"
 
 #define MOCK_MATCHMAKING 0
 
@@ -402,90 +402,56 @@ void AShooterGame_TeamDeathMatch::RestartGame()
 void AShooterGame_TeamDeathMatch::EndMatch()
 {
 #if UE_SERVER
-	//DetermineMatchWinner();
-	//TArray<FAccelByteModelsMatchmakingResult> Results;
-
-	//for (const auto& party : MatchmakingInfo.matching_parties)
-	//{
-	//	FAccelByteModelsMatchmakingResult Result;
-	//	Result.leader = party.leader_id;
-	//	Result.party_id = party.party_id;
-	//	for (const auto& partyMember : party.party_members)
-	//	{
-	//		int32 Rank = 0;
-	//		FAccelByteModelsMatchmakingMember member;
-	//		member.user_id = partyMember.user_id;
-	//		// Find player
-	//		for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
-	//		{
-	//			const AShooterPlayerState* const TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
-	//			if (TestPlayerState->GetUserId() == member.user_id)
-	//			{
-	//				member.assist = 0;
-	//				member.kill = TestPlayerState->GetKills();
-	//				member.death = TestPlayerState->GetDeaths();
-	//				if (TestPlayerState)
-	//				{
-	//					if (TestPlayerState->GetTeamNum() == WinnerTeam)
-	//					{
-	//						Rank = 1;
-	//					}
-	//					else
-	//					{
-	//						Rank = 2;
-	//					}
-	//				}
-	//				break;
-	//			}
-
-	//		}
-	//		Result.members.Add(member);
-	//		Result.rank = Rank;
-	//	}
-	//	Results.Add(Result);
-	//}
-	//FString Content;
-	//TArrayUStructToJsonString(Results, Content);
-	//
-	//if (MatchmakingInfo.matching_parties.Num() == 2)
-	//{
-	//	UE_LOG(LogOnlineGame, Log, TEXT("[MATCH] Get client access token..."));
-	//	FServerConfig::Get().GetClientAccessToken(FServerConfig::FGetClientAccessTokenSuccess::CreateLambda([Results](const AccelByte::Credentials& Credentials)
-	//	{
-	//		FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetClientAccessToken());
-	//		FString Url = FString::Printf(TEXT("%s/namespaces/%s/matchresult"), *FServerConfig::Get().MatchmakingServerUrl, *Credentials.GetClientNamespace());
-	//		FString Verb = TEXT("POST");
-	//		FString ContentType = TEXT("application/json");
-	//		FString Accept = TEXT("application/json");
-
-	//		FString Content;
-	//		TArrayUStructToJsonString(Results, Content);
-	//		FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-	//		Request->SetURL(Url);
-	//		Request->SetHeader(TEXT("Authorization"), Authorization);
-	//		Request->SetVerb(Verb);
-	//		Request->SetHeader(TEXT("Content-Type"), ContentType);
-	//		Request->SetHeader(TEXT("Accept"), Accept);
-	//		Request->SetContentAsString(Content);
-	//		Request->OnProcessRequestComplete().BindLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful) {
-	//			if (Successful && Request.IsValid())
-	//			{
-	//				UE_LOG(LogOnlineGame, Log, TEXT("AShooterGameSession::OnSendMatchmakingResultResponse : [%d] %s"), Response->GetResponseCode(),  *Response->GetContentAsString());
-	//			}
-	//			else
-	//			{
-	//				UE_LOG(LogOnlineGame, Log, TEXT("[ERROR] Sending match result failed!!!"));
-	//			}
-	//		});
-	//		UE_LOG(LogOnlineGame, Log, TEXT("[MATCH] Sending match result..."));
-	//		Request->ProcessRequest();
-	//	}), AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) {
-	//		UE_LOG(LogOnlineGame, Log, TEXT("[ERROR] SendMatchmakingResultResponse GetClientAccessToken : [%d] %s"), ErrorCode, *ErrorMessage);
-	//	}));
-	//}
-
 	if (MatchmakingInfo.matching_parties.Num() == 2)
 	{
+	DetermineMatchWinner();
+	TArray<FAccelByteModelsBulkUserStatItemInc> matchResults_;
+
+	for (const auto& party : MatchmakingInfo.matching_parties)
+	{
+		FAccelByteModelsMatchmakingResult Result;
+		Result.leader = party.leader_id;
+		Result.party_id = party.party_id;
+		for (const auto& partyMember : party.party_members)
+		{
+			int32 Rank = 0;
+			FAccelByteModelsMatchmakingMember member;
+			member.user_id = partyMember.user_id;
+			// Find player
+			for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
+			{
+				const AShooterPlayerState* const TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
+				if (TestPlayerState->GetUserId() == member.user_id)
+				{
+					member.assist = 0;
+					member.kill = TestPlayerState->GetKills();
+					member.death = TestPlayerState->GetDeaths();
+					if (TestPlayerState)
+					{
+						if (TestPlayerState->GetTeamNum() == WinnerTeam)
+						{
+							Rank = 1;
+						}
+						else
+						{
+							Rank = 2;
+						}
+					}
+					break;
+				}
+			}
+			if (member.kill > 0) { matchResults_.Add({ (float) member.kill, member.user_id, ShooterGameConfig::Get().StatisticCodeKill_ }); }
+			if (member.assist > 0){ matchResults_.Add({ (float)member.assist, member.user_id, ShooterGameConfig::Get().StatisticCodeAssist_ }); }
+			if (member.death > 0) { matchResults_.Add({ (float)member.death, member.user_id, ShooterGameConfig::Get().StatisticCodeDeath_ }); }
+		}
+	}
+
+	//Submit statistic
+	FRegistry::ServerStatistic.IncrementManyUsersStatItems(matchResults_,
+		THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateLambda([](const TArray<FAccelByteModelsBulkStatItemOperationResult>& submittedResult) {}),
+		AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { UE_LOG(LogTemp, Log, TEXT("Failed to submit player's match statistic result.")); }));
+
+	//Shutdown anyway
 	if (ShooterGameConfig::Get().IsLocalMode_)
 	{
 		FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ShooterGameConfig::Get().LocalServerName_, 

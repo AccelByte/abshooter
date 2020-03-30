@@ -11,7 +11,10 @@ ShooterGameConfig::ShooterGameConfig()
 	ServerImageVersion_(ServerImageVersion),
 	IsLocalMode_(IsLocalMode),
 	ServerHeartbeatInterval_(ServerHeartbeatInterval),
-	ServerLatencies_(ServerLatencies)
+	ServerLatencies_(ServerLatencies),
+	StatisticCodeKill_(StatisticCodeKill),
+	StatisticCodeAssist_(StatisticCodeAssist),
+	StatisticCodeDeath_(StatisticCodeDeath)
 {
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
 
@@ -26,7 +29,9 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("ServerImageVersion"), ServerImageVersion, GGameIni);
 	GConfig->GetInt(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("ServerHeartbeatInterval"), ServerHeartbeatInterval, GGameIni);
 
-
+	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeKill"), StatisticCodeKill, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeAssist"), StatisticCodeAssist, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeDeath"), StatisticCodeDeath, GGameIni);
 
 	auto cmdLineArgs = FCommandLine::Get();
 	TArray<FString> tokens, switches;

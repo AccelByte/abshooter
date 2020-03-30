@@ -6,7 +6,6 @@
 #include "WebServer.h"
 #include "Runtime/Core/Public/Misc/CString.h"
 #include "GameDelegates.h"
-#include "Server/ServerConfig.h"
 #include "ShooterGameConfig.h"
 
 FWebServer::FWebServer()

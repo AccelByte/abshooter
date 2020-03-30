@@ -209,73 +209,17 @@ void SLobby::Construct(const FArguments& InArgs)
 
         if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
         {
-
-#if SIMULATE_SETUP_MATCHMAKING
-            // for test only, may not work on the future
-            //brief: send request to ds to claim ds, sending match info with match id and party members on the message content
-            //this function should be done by dsm
-            FString MatchId = Notice.MatchId;
-            FString Url = FString::Printf(TEXT("%s:%i/match"), *Notice.Ip, Notice.Port);
-            FString Verb = TEXT("POST");
-            FString ContentType = TEXT("application/json");
-            FString Accept = TEXT("application/json");
-
-            FString Content;
-
-            GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
-            FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-            MatchmakingInfo.channel = GameMode;
-            MatchmakingInfo.match_id = Notice.MatchId;
-
-            FAccelByteModelsMatchmakingParty Party;
-            for (auto Member : PartyInfo.Members)
-            {
-                FAccelByteModelsMatchmakingPartyMember PartyMember;
-                PartyMember.user_id = Member;
-                Party.party_members.Add(PartyMember);
-            }
-
-            Party.party_id = CurrentPartyID;
-            MatchmakingInfo.matching_parties.Add(Party);
-
-            FJsonObjectConverter::UStructToJsonObjectString(MatchmakingInfo, Content, 0, 0);
-            FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-            Request->SetURL(Url);
-            Request->SetVerb(Verb);
-            Request->SetHeader(TEXT("Content-Type"), ContentType);
-            Request->SetHeader(TEXT("Accept"), Accept);
-            Request->SetContentAsString(Content);
-            Request->OnProcessRequestComplete().BindLambda([&, Notice, MatchId](FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful)
-            {
-                if (Successful && Request.IsValid())
-                {
-                    UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
-#endif
-					FString ServerAddress;
-					if (ShooterGameConfig::Get().IsLocalMode_)
-					{
-						ServerAddress = FString::Printf(TEXT("%s:%i"), *ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_);
-					}
-					else
-					{
-						ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
-					}
-                    UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
-                    StartMatch(Notice.MatchId, this->CurrentPartyID, ServerAddress);
-#if SIMULATE_SETUP_MATCHMAKING
-                }
-                else
-                {
-                    FString ErrorMessage = FString::Printf(TEXT("Can't setup matchmaking to %s"), *DedicatedServerBaseUrl);
-                    UE_LOG(LogOnlineGame, Log, TEXT("%s"), *ErrorMessage);
-                    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, *ErrorMessage);
-                }
-                bMatchmakingStarted = false;
-                PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-            });
-            UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking..."));
-            Request->ProcessRequest();
-#endif	
+			FString ServerAddress;
+			if (ShooterGameConfig::Get().IsLocalMode_)
+			{
+				ServerAddress = FString::Printf(TEXT("%s:%i"), *ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_);
+			}
+			else
+			{
+				ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
+			}
+            UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
+            StartMatch(Notice.MatchId, this->CurrentPartyID, ServerAddress);
         }
 		else if (Notice.Status.Compare(TEXT("CREATING")) == 0)
 		{

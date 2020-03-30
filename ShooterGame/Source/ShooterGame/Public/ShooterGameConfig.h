@@ -23,6 +23,10 @@ private:
 	int ServerHeartbeatInterval;
 	TArray<TPair<FString, float>> ServerLatencies;
 
+	FString StatisticCodeKill;
+	FString StatisticCodeAssist;
+	FString StatisticCodeDeath;
+
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
 	void operator=(ShooterGameConfig const&) = delete;
@@ -37,4 +41,8 @@ public:
 	const bool &IsLocalMode_;
 	const int &ServerHeartbeatInterval_;
 	const TArray<TPair<FString, float>> &ServerLatencies_;
+
+	const FString &StatisticCodeKill_;
+	const FString &StatisticCodeAssist_;
+	const FString &StatisticCodeDeath_;
 };

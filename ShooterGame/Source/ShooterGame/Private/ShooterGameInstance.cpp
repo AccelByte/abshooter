@@ -211,6 +211,8 @@ void UShooterGameInstance::Init()
 			AccelByte::FRegistry::Lobby.Connect();
 			bHasDone = true;
 
+			InitStatistic();
+
 			/*UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
 			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
 				TEXT("ext-userid-001"),
@@ -273,7 +275,7 @@ void UShooterGameInstance::Init()
 										FAccelByteModelsMatchmakingParty tmp;
 										tmp.party_id = partyMember.Matching_parties[0].Party_id;
 										tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
-										for (int i = 1; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
+										for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
 										{
 											tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
 										}
@@ -1153,6 +1155,29 @@ void UShooterGameInstance::GetQos()
 		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
 			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
 		}));
+}
+
+// Setup my statistic code, server can not update our stats if we don't have any.
+void UShooterGameInstance::InitStatistic()
+{
+	TArray<FString> statCodes = { 
+		ShooterGameConfig::Get().StatisticCodeAssist_, 
+		ShooterGameConfig::Get().StatisticCodeKill_, 
+		ShooterGameConfig::Get().StatisticCodeDeath_ };
+
+	FRegistry::Statistic.CreateUserStatItems(statCodes,
+		THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateLambda([](TArray<FAccelByteModelsBulkStatItemOperationResult> createResult) {}),
+		FErrorHandler::CreateLambda([](int32 ErrorCode, FString ErrorString)
+		{
+			if ((ErrorCodes)ErrorCode == ErrorCodes::UserStatAlreadyExistException || ErrorCode == 409) {
+				UE_LOG(LogTemp, Log, TEXT("User already has statistic code. OK."));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("Can not update user statistic code."));
+			}
+		})
+	);
 }
 
 void UShooterGameInstance::EndMainMenuState()
