@@ -8,4 +8,4 @@ RUN apt-get update && \
     chmod +x LinuxNoEditor/ShooterGame/Binaries/Linux/ShooterGameServer && \
     chown -R shooter .
 USER shooter
-ENTRYPOINT ["/bin/bash", "./LinuxNoEditor/ShooterGame/Binaries/Linux/ShooterGameServer"]
+ENTRYPOINT ["./LinuxNoEditor/ShooterGame/Binaries/Linux/ShooterGameServer"]
