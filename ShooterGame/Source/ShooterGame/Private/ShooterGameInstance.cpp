@@ -981,86 +981,13 @@ void UShooterGameInstance::BeginMainMenuState()
     }
     else
     {
-        FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
-			[this](const FAccelByteModelsUserProfileInfo& UserProfileInfo) 
-		{
-			FAccelByteModelsUserProfileInfo ResultGetUserProfile = UserProfileInfo;
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultGetUserProfile.UserId);
-			if (UserToken.Display_name.IsEmpty())
-			{
-				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
-			}
-			AccelByte::FRegistry::GameProfile.GetAllGameProfiles(AccelByte::THandler<TArray<FAccelByteModelsGameProfile>>::CreateLambda(
-				[this, ResultGetUserProfile](const TArray<FAccelByteModelsGameProfile>& UserGameProfiles)
-			{
-				if (UserGameProfiles.Num() == 0)
-				{
-					FAccelByteModelsGameProfileRequest gameProfileRequest;
-					gameProfileRequest.profileName = UserToken.Display_name;
-					gameProfileRequest.avatarUrl = ResultGetUserProfile.AvatarUrl;
-					AccelByte::FRegistry::GameProfile.CreateGameProfile(gameProfileRequest, AccelByte::THandler<FAccelByteModelsGameProfile>::CreateLambda(
-						[this](const FAccelByteModelsGameProfile& UserGameProfile)
-					{
-						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default Game Profile...SUCCESS"));
-
-						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Game Profile: %s"), *UserGameProfile.profileName);
-						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserGameProfile.profileId);
-						MainMenuUI->UpdateUserProfile(UserGameProfile.profileId, UserGameProfile.profileName, UserGameProfile.userId, UserGameProfile.avatarUrl);
-						this->UserGameProfile = UserGameProfile; // save our own
-						GetStatItems();
-					}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-					{
-						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default Game Profile...Error: %s"), *Message);
-					}));
-				}
-				else
-				{
-					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game Profile: %s"), *UserGameProfiles[0].profileName);
-					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
-					MainMenuUI->UpdateUserProfile(UserGameProfiles[0].profileId, UserGameProfiles[0].profileName, ResultGetUserProfile.UserId, UserGameProfiles[0].avatarUrl);
-					this->UserGameProfile = UserGameProfiles[0];
-					GetStatItems();
-				}
-			}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-			{
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to get Game Profile...Error: %s"), *Message);
-			}));
-            this->UserProfileInfo = ResultGetUserProfile; // save our own
-
-        }),
-            AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
-
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
-
-			if (UserToken.Display_name.IsEmpty())
-			{
-				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
-			}
-
-			FAccelByteModelsUserProfileCreateRequest defaultCreateProfileRequest;
-			defaultCreateProfileRequest.AvatarUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-			defaultCreateProfileRequest.AvatarLargeUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-			defaultCreateProfileRequest.AvatarSmallUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-			defaultCreateProfileRequest.Language = "en";
-			defaultCreateProfileRequest.Timezone = "Etc/UTC";
-			defaultCreateProfileRequest.DateOfBirth = "1991-01-01";
-			defaultCreateProfileRequest.FirstName = UserToken.Display_name;
-			defaultCreateProfileRequest.LastName = UserToken.Display_name;
-
-            FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
-				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
-
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultCreateUserProfile.UserId);
-				AccelByte::FRegistry::GameProfile.GetAllGameProfiles(AccelByte::THandler<TArray<FAccelByteModelsGameProfile>>::CreateLambda(
-					[this, ResultCreateUserProfile](const TArray<FAccelByteModelsGameProfile>& UserGameProfiles)
-				{
+		THandler<FAccelByteModelsUserProfileInfo> OnUserProfileObtained = THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this](const FAccelByteModelsUserProfileInfo& UserProfileInfo){
+			AccelByte::FRegistry::GameProfile.GetAllGameProfiles(AccelByte::THandler<TArray<FAccelByteModelsGameProfile>>::CreateLambda([this, ResultGetUserProfile = UserProfileInfo](const TArray<FAccelByteModelsGameProfile>& UserGameProfiles){
 					if (UserGameProfiles.Num() == 0)
 					{
 						FAccelByteModelsGameProfileRequest gameProfileRequest;
 						gameProfileRequest.profileName = UserToken.Display_name;
-						gameProfileRequest.avatarUrl = ResultCreateUserProfile.AvatarUrl;
+						gameProfileRequest.avatarUrl = ResultGetUserProfile.AvatarUrl;
 						AccelByte::FRegistry::GameProfile.CreateGameProfile(gameProfileRequest, AccelByte::THandler<FAccelByteModelsGameProfile>::CreateLambda(
 							[this](const FAccelByteModelsGameProfile& UserGameProfile)
 						{
@@ -1080,7 +1007,7 @@ void UShooterGameInstance::BeginMainMenuState()
 					{
 						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game Profile: %s"), *UserGameProfiles[0].profileName);
 						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
-						MainMenuUI->UpdateUserProfile(UserGameProfiles[0].profileId, UserGameProfiles[0].profileName, ResultCreateUserProfile.UserId, UserGameProfiles[0].avatarUrl);
+						MainMenuUI->UpdateUserProfile(UserGameProfiles[0].profileId, UserGameProfiles[0].profileName, ResultGetUserProfile.UserId, UserGameProfiles[0].avatarUrl);
 						this->UserGameProfile = UserGameProfiles[0];
 						GetStatItems();
 					}
@@ -1088,9 +1015,52 @@ void UShooterGameInstance::BeginMainMenuState()
 				{
 					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to get Game Profile...Error: %s"), *Message);
 				}));
+			});
+
+        FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
+			[this, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
+		{
+			FAccelByteModelsUserProfileInfo ResultGetUserProfile = UserProfileInfo;
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultGetUserProfile.UserId);
+			if (UserToken.Display_name.IsEmpty())
+			{
+				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
+			}
+
+			OnUserProfileObtained.ExecuteIfBound(UserProfileInfo);
+            this->UserProfileInfo = ResultGetUserProfile; // save our own
+
+        }),
+            AccelByte::FErrorHandler::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](int32 Code, FString Message) {
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
+
+            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
+
+			if (UserToken.Display_name.IsEmpty())
+			{
+				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
+			}
+
+			FAccelByteModelsUserProfileCreateRequest defaultCreateProfileRequest;
+			defaultCreateProfileRequest.AvatarUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.AvatarLargeUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.AvatarSmallUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.Language = "en";
+			defaultCreateProfileRequest.Timezone = "Etc/UTC";
+			defaultCreateProfileRequest.DateOfBirth = "1991-01-01";
+			defaultCreateProfileRequest.FirstName = UserToken.Display_name;
+			defaultCreateProfileRequest.LastName = UserToken.Display_name;
+
+            FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& Result) {
+				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
+
+                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultCreateUserProfile.UserId);
+				OnUserProfileObtained.ExecuteIfBound(Result);
                 this->UserProfileInfo = ResultCreateUserProfile; // save our own
 
-            }), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
+            }), AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message) {
+                MainMenuUI->UpdateUserProfile("", UserToken.Display_name, UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
                 UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
             }));
 
