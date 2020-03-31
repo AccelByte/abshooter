@@ -14,7 +14,8 @@ ShooterGameConfig::ShooterGameConfig()
 	ServerLatencies_(ServerLatencies),
 	StatisticCodeKill_(StatisticCodeKill),
 	StatisticCodeAssist_(StatisticCodeAssist),
-	StatisticCodeDeath_(StatisticCodeDeath)
+	StatisticCodeDeath_(StatisticCodeDeath),
+	ItemImageSetAs_(ItemImageSetAs)
 {
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
 
@@ -37,6 +38,10 @@ ShooterGameConfig::ShooterGameConfig()
 	TArray<FString> tokens, switches;
 	FCommandLine::Parse(FCommandLine::Get(), tokens, switches);
 	IsLocalMode = tokens.Contains(TEXT("localds"));
+
+
+	FString ACCELBYTE_CONFIG_STORE_SECTION = "/Script/ShooterGame.AccelByteConfig.Store";
+	GConfig->GetString(*ACCELBYTE_CONFIG_STORE_SECTION, TEXT("ItemImageSetAs"), ItemImageSetAs, GGameIni);
 }
 
 void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)

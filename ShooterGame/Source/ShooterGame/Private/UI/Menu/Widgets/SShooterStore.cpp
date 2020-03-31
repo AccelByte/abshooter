@@ -20,6 +20,7 @@
 #include "SShooterPaymentDialog.h"
 #include "Runtime/Networking/Public/Common/TcpListener.h"
 #include "Kismet/KismetInternationalizationLibrary.h"
+#include "ShooterGameConfig.h"
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "Windows/MinimalWindowsApi.h"
@@ -518,7 +519,14 @@ TSharedRef< FInventoryEntry > SShooterStore::CreateInventoryItem(const FAccelByt
 	Inventory->ItemId = ItemInfo.ItemId;
 	Inventory->Name = ItemInfo.Title;
 	Inventory->Quantity = 0;
-	Inventory->ImageURL = ItemInfo.ThumbnailUrl;
+	for (auto& image : ItemInfo.Images)
+	{
+		if (image.As == ShooterGameConfig::Get().ItemImageSetAs_)
+		{
+			Inventory->ImageURL = image.ImageUrl;
+			break;
+		}
+	}
 
 	for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
 	{
