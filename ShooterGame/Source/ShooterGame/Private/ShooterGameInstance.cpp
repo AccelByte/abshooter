@@ -18,6 +18,9 @@
 #include "Online/ShooterPlayerState.h"
 #include "Online/ShooterGameSession.h"
 #include "Online/ShooterOnlineSessionClient.h"
+#include "Misc/CommandLine.h"
+#include "ShooterGameConfig.h"
+#include "ShooterGame_TeamDeathMatch.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -26,6 +29,10 @@
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteStatisticApi.h"
+#include "Api/AccelByteQos.h"
+#include "GameServerApi/AccelByteServerOauth2Api.h"
+#include "GameServerApi/AccelByteServerDSMApi.h"
+#include "Server/Models/AccelByteMatchmakingModels.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
 
@@ -190,6 +197,9 @@ void UShooterGameInstance::Init()
 
 	if (!IsRunningDedicatedServer())
 	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get QoS Latencies..."));
+		GetQos();
+
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
 		bool bHasDone = false;
 		FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&] {
@@ -200,6 +210,8 @@ void UShooterGameInstance::Init()
 			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
 			AccelByte::FRegistry::Lobby.Connect();
 			bHasDone = true;
+
+			InitStatistic();
 
 			/*UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
 			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
@@ -230,6 +242,124 @@ void UShooterGameInstance::Init()
 			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
 			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
 			LastTime = AppTime;
+			FPlatformProcess::Sleep(0.5f);
+		}
+	}
+	else
+	{
+		bool bClientLoginDone = false;
+		FRegistry::ServerOauth2.LoginWithClientCredentials(
+			FVoidHandler::CreateLambda([&bClientLoginDone]()
+			{
+				UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
+				FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
+				{
+					UE_LOG(LogTemp, Log, TEXT("\tServer got heartbeat match request."));
+					UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+					if (GameEngine)
+					{
+						UWorld* World = GameEngine->GetGameWorld();
+						if (World)
+						{
+							AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
+							if (GameMode)
+							{
+								if (matchRequest.Session_id.IsEmpty()) { return; }
+								if (!GameMode->IsMatchStarted())
+								{
+									FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+									MatchmakingInfo.channel = matchRequest.Game_mode;
+									MatchmakingInfo.match_id = matchRequest.Session_id;
+									for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
+									{
+										FAccelByteModelsMatchmakingParty tmp;
+										tmp.party_id = partyMember.Matching_parties[0].Party_id;
+										tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
+										for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
+										{
+											tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
+										}
+										MatchmakingInfo.matching_parties.Add(tmp);
+									}
+									GameMode->SetupMatch(MatchmakingInfo);
+									UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
+								}
+							}
+							else
+							{
+								UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameMode not found"));
+							}
+						}
+						else
+						{
+							UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: World not found"));
+						}
+					}
+					else
+					{
+						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameEngine not found"));
+					}
+				}));
+				FRegistry::ServerDSM.ConfigureHeartBeat(true, ShooterGameConfig::Get().ServerHeartbeatInterval_);
+
+				FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
+				{
+					bClientLoginDone = true;
+					UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
+				});
+
+				// Deregister & re-register itself IF registration failed on local server due to conflict
+				AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&, onSuccess = onRegisterServerSuccess](int32 ErrorCode, FString ErrorMessage)
+				{
+					if (ErrorCode == 409)
+					{
+						if (ShooterGameConfig::Get().IsLocalMode_)
+						{
+							FRegistry::ServerDSM.DeregisterLocalServerFromDSM(
+								ShooterGameConfig::Get().LocalServerName_,
+								FVoidHandler::CreateLambda([&, onSuccess = onSuccess]() {
+									FRegistry::ServerDSM.RegisterLocalServerToDSM(
+										ShooterGameConfig::Get().LocalServerIP_, 
+										ShooterGameConfig::Get().ServerPort_, 
+										ShooterGameConfig::Get().LocalServerName_, 
+										onSuccess,
+										AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage){ FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); }));
+								}),
+								AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage){ FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode);})
+							);
+						}
+					}
+					else
+					{
+						bClientLoginDone = true;
+						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+					}
+				});
+
+				if (ShooterGameConfig::Get().IsLocalMode_)
+				{
+					FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, ShooterGameConfig::Get().LocalServerName_, onRegisterServerSuccess, onRegisterServerFailed);
+				}
+				else
+				{
+					FRegistry::ServerDSM.RegisterServerToDSM(ShooterGameConfig::Get().ServerPort_, onRegisterServerSuccess,onRegisterServerFailed);
+				}
+			}), 
+			AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
+			{
+				bClientLoginDone = true;
+				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to login client.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+			})
+		);
+
+		// Blocking here
+		double lastTime = FPlatformTime::Seconds();
+		while(!bClientLoginDone)
+		{
+			const double AppTime = FPlatformTime::Seconds();
+			FHttpModule::Get().GetHttpManager().Tick(AppTime - lastTime);
+			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+			lastTime = AppTime;
 			FPlatformProcess::Sleep(0.5f);
 		}
 	}
@@ -908,8 +1038,17 @@ void UShooterGameInstance::BeginMainMenuState()
 				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
 			}
 
-            FRegistry::UserProfile.CreateDefaultUserProfile(
-                AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
+			FAccelByteModelsUserProfileCreateRequest defaultCreateProfileRequest;
+			defaultCreateProfileRequest.AvatarUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.AvatarLargeUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.AvatarSmallUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
+			defaultCreateProfileRequest.Language = "en";
+			defaultCreateProfileRequest.Timezone = "Etc/UTC";
+			defaultCreateProfileRequest.DateOfBirth = "1991-01-01";
+			defaultCreateProfileRequest.FirstName = UserToken.Display_name;
+			defaultCreateProfileRequest.LastName = UserToken.Display_name;
+
+            FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&](const FAccelByteModelsUserProfileInfo& Result) {
 				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
@@ -966,7 +1105,7 @@ void UShooterGameInstance::GetStatItems()
 	FNumberFormattingOptions format;
 	format.RoundingMode = HalfToZero;
 	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
-	AccelByte::FRegistry::Statistic.GetUserStatItemsByStatCodes(StatCodes, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
+	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
 		if (Result.Data.Num() != 0)
@@ -1006,6 +1145,39 @@ void UShooterGameInstance::GetStatItems()
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
 		MainMenuUI->UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
 	}));
+}
+
+void UShooterGameInstance::GetQos()
+{
+	FRegistry::Qos.GetServerLatencies(THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result){
+			ShooterGameConfig::Get().SetServerLatencies(Result);
+		}),
+		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
+			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
+		}));
+}
+
+// Setup my statistic code, server can not update our stats if we don't have any.
+void UShooterGameInstance::InitStatistic()
+{
+	TArray<FString> statCodes = { 
+		ShooterGameConfig::Get().StatisticCodeAssist_, 
+		ShooterGameConfig::Get().StatisticCodeKill_, 
+		ShooterGameConfig::Get().StatisticCodeDeath_ };
+
+	FRegistry::Statistic.CreateUserStatItems(statCodes,
+		THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateLambda([](TArray<FAccelByteModelsBulkStatItemOperationResult> createResult) {}),
+		FErrorHandler::CreateLambda([](int32 ErrorCode, FString ErrorString)
+		{
+			if ((ErrorCodes)ErrorCode == ErrorCodes::UserStatAlreadyExistException || ErrorCode == 409) {
+				UE_LOG(LogTemp, Log, TEXT("User already has statistic code. OK."));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("Can not update user statistic code."));
+			}
+		})
+	);
 }
 
 void UShooterGameInstance::EndMainMenuState()

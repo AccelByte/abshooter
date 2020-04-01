@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - 2019 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018 - 2020 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -24,12 +24,14 @@ class FAccelByteUe4SdkModule : public IAccelByteUe4SdkModuleInterface
 	void UnregisterSettings();
 
 	bool LoadSettingsFromConfigUobject();
+	bool LoadServerSettingsFromConfigUobject();
 };
 
 void FAccelByteUe4SdkModule::StartupModule()
 {
 	RegisterSettings();
 	LoadSettingsFromConfigUobject();
+	LoadServerSettingsFromConfigUobject();
 	FTicker& Ticker = FTicker::GetCoreTicker();
 
 	Ticker.AddTicker(
@@ -54,14 +56,24 @@ void FAccelByteUe4SdkModule::RegisterSettings()
 #if WITH_EDITOR
 	if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 	{
-		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings(TEXT("Project"), TEXT("Plugins"), TEXT("AccelByte Unreal Engine 4 SDK"),
-			FText::FromName(TEXT("AccelByte Unreal Engine 4 SDK")),
+		ISettingsSectionPtr SettingsSection = SettingsModule->RegisterSettings(TEXT("Project"), TEXT("Plugins"), TEXT("AccelByte Unreal Engine 4 Client SDK"),
+			FText::FromName(TEXT("AccelByte Unreal Engine 4 Client SDK")),
 			FText::FromName(TEXT("Setup your plugin.")),
 			GetMutableDefault<UAccelByteSettings>()
 		);
 		if (SettingsSection.IsValid())
 		{
 			SettingsSection->OnModified().BindRaw(this, &FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject);
+		}
+
+		ISettingsSectionPtr ServerSettingsSection = SettingsModule->RegisterSettings(TEXT("Project"), TEXT("Plugins"), TEXT("AccelByte Unreal Engine 4 Server SDK"),
+			FText::FromName(TEXT("AccelByte Unreal Engine 4 Server SDK")),
+			FText::FromName(TEXT("Setup your plugin.")),
+			GetMutableDefault<UAccelByteServerSettings>()
+		);
+		if (ServerSettingsSection.IsValid())
+		{
+			ServerSettingsSection->OnModified().BindRaw(this, &FAccelByteUe4SdkModule::LoadServerSettingsFromConfigUobject);
 		}
 	}
 #endif
@@ -92,8 +104,26 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.CloudStorageServerUrl = GetDefault<UAccelByteSettings>()->CloudStorageServerUrl;
 	FRegistry::Settings.GameProfileServerUrl = GetDefault<UAccelByteSettings>()->GameProfileServerUrl;
 	FRegistry::Settings.StatisticServerUrl = GetDefault<UAccelByteSettings>()->StatisticServerUrl;
+	FRegistry::Settings.QosManagerServerUrl = GetDefault<UAccelByteSettings>()->QosManagerServerUrl;
 	FRegistry::Credentials.SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 	
+	return true;
+}
+
+bool FAccelByteUe4SdkModule::LoadServerSettingsFromConfigUobject()
+{
+#if WITH_EDITOR || UE_SERVER
+	FRegistry::ServerSettings.ClientId = GetDefault<UAccelByteServerSettings>()->ClientId;
+	FRegistry::ServerSettings.ClientSecret = GetDefault<UAccelByteServerSettings>()->ClientSecret;
+	FRegistry::ServerSettings.Namespace = GetDefault<UAccelByteServerSettings>()->Namespace;
+	FRegistry::ServerSettings.PublisherNamespace = GetDefault<UAccelByteServerSettings>()->PublisherNamespace;
+	FRegistry::ServerSettings.RedirectURI = GetDefault<UAccelByteServerSettings>()->RedirectURI;
+	FRegistry::ServerSettings.IamServerUrl = GetDefault<UAccelByteServerSettings>()->IamServerUrl;
+	FRegistry::ServerSettings.DSMServerUrl = GetDefault<UAccelByteServerSettings>()->DSMServerUrl;
+	FRegistry::ServerSettings.StatisticServerUrl = GetDefault<UAccelByteServerSettings>()->StatisticServerUrl;
+	FRegistry::ServerSettings.PlatformServerUrl = GetDefault<UAccelByteServerSettings>()->PlatformServerUrl;
+	FRegistry::ServerCredentials.SetClientCredentials(FRegistry::ServerSettings.ClientId, FRegistry::ServerSettings.ClientSecret);
+#endif
 	return true;
 }
 

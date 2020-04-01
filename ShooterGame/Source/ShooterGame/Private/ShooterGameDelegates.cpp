@@ -8,7 +8,6 @@
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
 #include "ShooterGame_TeamDeathMatch.h"
-#include "Server/ServerConfig.h"
 
 //#include "Runtime/RHI/Public/RHICommandlist.h"
 
@@ -86,82 +85,6 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 			}
 		}
 	}
-	else if (Action == "POST" && URL == "/match")
-	{
-		Code = "500";
-
-		UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
-		if (GameEngine)
-		{
-			UWorld* World = GameEngine->GetGameWorld();
-			if (World)
-			{
-				AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
-				if (GameMode)
-				{
-					if (!GameMode->IsMatchStarted())
-					{
-						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-						FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &MatchmakingInfo, 0, 0);
-						bool Initialized = false;
-						AsyncTask(ENamedThreads::GameThread, [&]() {
-							GameMode->SetupMatch(MatchmakingInfo);
-							Initialized = true;
-						});
-
-						while(!Initialized) FPlatformProcess::Sleep(0.1f);
-
-						Code = "200";
-						Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
-					}
-					else
-					{
-#if SIMULATE_SETUP_MATCHMAKING
-						// second party try join to the match
-						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-						FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &MatchmakingInfo, 0, 0);
-						bool Initialized = false;
-						bool Success = false;
-						AsyncTask(ENamedThreads::GameThread, [&]() {
-							Success = GameMode->SetupSecondParty(MatchmakingInfo);
-							Initialized = true;
-						});
-
-						while (!Initialized) FPlatformProcess::Sleep(0.1f);
-
-						if (Success)
-						{
-							Code = "200";
-							Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
-						}
-						else
-						{
-							Code = "409";
-							Body = FString::Printf(MessageFormat, 1100, TEXT("Match already started"));
-						}
-
-#else
-						Code = "409";
-						Body = FString::Printf(MessageFormat, 1100, TEXT("Match already started"));
-#endif
-
-					}
-				}
-				else
-				{
-					Body = FString::Printf(MessageFormat, 1002, TEXT("Wrong game mode"));
-				}
-			}
-			else
-			{
-				Body = FString::Printf(MessageFormat, 1001, TEXT("Server not ready: World not found!"));
-			}
-		}
-		else
-		{
-			Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
-		}
-	}
 	else if (Action == "GET" && URL == "/match/status")
 	{
 		Code = "500";
@@ -232,71 +155,6 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 		{
 			Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
 		}
-	}
-	else if (Action == "POST" && URL == "/claim")
-	{
-	Code = "500";
-
-	UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
-	if (GameEngine)
-	{
-		UWorld* World = GameEngine->GetGameWorld();
-		if (World)
-		{
-			AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
-			if (GameMode)
-			{
-				if (!GameMode->IsMatchStarted())
-				{
-					FAccelByteModelsDSMessage DSMessage;
-					bool parsed = FJsonObjectConverter::JsonObjectStringToUStruct(Params["Body"], &DSMessage, 0, 0);
-					if (parsed)
-					{
-						FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-						MatchmakingInfo.channel = DSMessage.message.game_mode;
-						MatchmakingInfo.match_id = DSMessage.message.session_id;
-						for (FAccelByteModelsMatchingAllies partyMember : DSMessage.message.matching_allies)
-						{
-							MatchmakingInfo.matching_parties.Add(partyMember.matching_parties[0]);
-						}
-						bool Initialized = false;
-						AsyncTask(ENamedThreads::GameThread, [&]()
-						{
-							GameMode->SetupMatch(MatchmakingInfo);
-							Initialized = true;
-						});
-
-						while (!Initialized) FPlatformProcess::Sleep(0.1f);
-
-						Code = "200";
-						Body = FString::Printf(MessageFormat, 0, TEXT("Success"));
-					}
-					else
-					{
-						Code = "400";
-						Body = FString::Printf(MessageFormat, 1003, TEXT("Wrong JSON format"));
-					}
-				}
-				else
-				{
-					Code = "409";
-					Body = FString::Printf(MessageFormat, 1100, TEXT("Match already started"));
-				}
-			}
-			else
-			{
-				Body = FString::Printf(MessageFormat, 1002, TEXT("Wrong game mode"));
-			}
-		}
-		else
-		{
-			Body = FString::Printf(MessageFormat, 1001, TEXT("Server not ready: World not found!"));
-		}
-	}
-	else
-	{
-		Body = FString::Printf(MessageFormat, 1000, TEXT("Server not ready: GameEngine not found!"));
-	}
 	}
 
 	Response.Add(TEXT("Content-Type"), ContentType);

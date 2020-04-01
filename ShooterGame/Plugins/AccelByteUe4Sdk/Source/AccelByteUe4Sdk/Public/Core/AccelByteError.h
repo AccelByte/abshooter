@@ -1,4 +1,4 @@
-// Copyright (c) 2018 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018-2019 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -12,6 +12,7 @@
 
 #include <unordered_map>
 
+#include "Core/AccelByteReport.h"
 #include "AccelByteError.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE(FDHandler);
@@ -24,7 +25,7 @@ struct ACCELBYTEUE4SDK_API FErrorInfo
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
 		int32 NumericErrorCode = -1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
-		FString ErrorCode;
+		int32 ErrorCode = -1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
 		FString ErrorMessage;
 };
@@ -37,7 +38,7 @@ namespace AccelByte
 	using FErrorHandler = TBaseDelegate<void, int32 /*ErrorCode*/, const FString& /* ErrorMessage */>;
 
 	UENUM(BlueprintType)
-		enum class ErrorCodes : int32
+	enum class ErrorCodes : int32
 	{
 		// If there are no error models, then we just use these HTTP codes
 		StatusContinue = 100, // Reference: RFC 7231, Section 6.2.1
@@ -105,6 +106,8 @@ namespace AccelByte
 		StatusLoopDetected = 508, // Reference: RFC 5842, Section 7.2
 		StatusNotExtended = 510, // Reference: RFC 2774, Section 7
 		StatusNetworkAuthenticationRequired = 511, // Reference: RFC 6585, Section 6
+
+		UserEmailAlreadyUsedException = 10133,
 
 		// Platform error
 		PlatformInternalServerErrorException = 20000,
@@ -273,7 +276,7 @@ namespace AccelByte
 		//
 		//Statistic Error Code List
 		//
-		StatisticNotFoundException = 70131,
+		StatisticNotFoundException = 70331,
 		InvalidStatOperatorException = 70330,
 		StatNotDecreasableException = 70334,
 		UserStatsNotFoundException = 70335,
@@ -345,6 +348,9 @@ namespace AccelByte
 			[OnSuccess, OnError]
 		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
 		{
+			Report report;
+			report.GetHttpResponse(Request, Response);
+
 			if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 			{
 				HandleHttpResultOk(Response, OnSuccess);

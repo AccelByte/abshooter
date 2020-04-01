@@ -617,7 +617,7 @@ void SShooterStore::OnGetCashItemsByCriteriaError(int32 Code, const FString& Mes
 
 void SShooterStore::GetUserEntitlements() 
 {
-	FRegistry::Entitlement.QueryUserEntitlement("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
+	FRegistry::Entitlement.QueryUserEntitlements("", "", 0, 100, AccelByte::THandler<FAccelByteModelsEntitlementPagingSlicedResult>::CreateLambda([&](const FAccelByteModelsEntitlementPagingSlicedResult& Result)
 	{
 		TMap<FString, int> Quantities;
 		for (int i = 0; i < Result.Data.Num(); i++)

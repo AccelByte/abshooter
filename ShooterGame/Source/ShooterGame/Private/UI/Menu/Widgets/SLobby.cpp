@@ -18,6 +18,8 @@
 #include "SShooterNotificationPopup.h"
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "SLobbyChat.h"
+#include "ShooterGameConfig.h"
+#include "Engine/World.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -205,68 +207,24 @@ void SLobby::Construct(const FArguments& InArgs)
     {
         UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
 
-        if (Notice.Status.Compare(TEXT("READY")) == 0)
+        if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
         {
-
-#if SIMULATE_SETUP_MATCHMAKING
-            // for test only, may not work on the future
-            //brief: send request to ds to claim ds, sending match info with match id and party members on the message content
-            //this function should be done by dsm
-            FString MatchId = Notice.MatchId;
-            FString Url = FString::Printf(TEXT("%s:%i/match"), *Notice.Ip, Notice.Port);
-            FString Verb = TEXT("POST");
-            FString ContentType = TEXT("application/json");
-            FString Accept = TEXT("application/json");
-
-            FString Content;
-
-            GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
-            FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-            MatchmakingInfo.channel = GameMode;
-            MatchmakingInfo.match_id = Notice.MatchId;
-
-            FAccelByteModelsMatchmakingParty Party;
-            for (auto Member : PartyInfo.Members)
-            {
-                FAccelByteModelsMatchmakingPartyMember PartyMember;
-                PartyMember.user_id = Member;
-                Party.party_members.Add(PartyMember);
-            }
-
-            Party.party_id = CurrentPartyID;
-            MatchmakingInfo.matching_parties.Add(Party);
-
-            FJsonObjectConverter::UStructToJsonObjectString(MatchmakingInfo, Content, 0, 0);
-            FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
-            Request->SetURL(Url);
-            Request->SetVerb(Verb);
-            Request->SetHeader(TEXT("Content-Type"), ContentType);
-            Request->SetHeader(TEXT("Accept"), Accept);
-            Request->SetContentAsString(Content);
-            Request->OnProcessRequestComplete().BindLambda([&, Notice, MatchId](FHttpRequestPtr Request, FHttpResponsePtr Response, bool Successful)
-            {
-                if (Successful && Request.IsValid())
-                {
-                    UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking : [%d] %s"), Response->GetResponseCode(), *Response->GetContentAsString());
-#endif
-                    FString ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
-                    UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
-                    StartMatch(Notice.MatchId, CurrentPartyID, ServerAddress);
-#if SIMULATE_SETUP_MATCHMAKING
-                }
-                else
-                {
-                    FString ErrorMessage = FString::Printf(TEXT("Can't setup matchmaking to %s"), *DedicatedServerBaseUrl);
-                    UE_LOG(LogOnlineGame, Log, TEXT("%s"), *ErrorMessage);
-                    if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 20.0f, FColor::Red, *ErrorMessage);
-                }
-                bMatchmakingStarted = false;
-                PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-            });
-            UE_LOG(LogOnlineGame, Log, TEXT("SetupMatchmaking..."));
-            Request->ProcessRequest();
-#endif	
+			FString ServerAddress;
+			if (ShooterGameConfig::Get().IsLocalMode_)
+			{
+				ServerAddress = FString::Printf(TEXT("%s:%i"), *ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_);
+			}
+			else
+			{
+				ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
+			}
+            UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
+            StartMatch(Notice.MatchId, this->CurrentPartyID, ServerAddress);
         }
+		else if (Notice.Status.Compare(TEXT("CREATING")) == 0)
+		{
+			bAlreadyEnteringLevel = false;
+		}
     }));
     AccelByte::FRegistry::Lobby.SetRematchmakingNotifDelegate(AccelByte::Api::Lobby::FRematchmakingNotif::CreateLambda([&](const FAccelByteModelsRematchmakingNotice& Notice)
     {
@@ -563,7 +521,23 @@ void SLobby::Construct(const FArguments& InArgs)
         PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         bReadyConsent = false;
         GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
-        AccelByte::FRegistry::Lobby.SendStartMatchmaking(GameMode);
+		if (ShooterGameConfig::Get().IsLocalMode_)
+		{
+			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+				GameMode,
+				ShooterGameConfig::Get().LocalServerName_
+			);
+        }
+		else
+		{
+			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+				GameMode,
+				TEXT(""),
+				ShooterGameConfig::Get().ServerImageVersion_,
+				ShooterGameConfig::Get().ServerLatencies_
+			);
+		}
+		
         return FReply::Handled();
     }))
         ]
@@ -700,9 +674,21 @@ float SLobby::GetLobbyWidth(float Divider) const
 
 void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FString& DedicatedServerAddress)
 {
-    OnStartMatch.ExecuteIfBound();
-    UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
-    UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *GetCurrentUserID()));
+	if (this->bAlreadyEnteringLevel == false)
+	{
+		this->bAlreadyEnteringLevel = true;
+		OnStartMatch.ExecuteIfBound();
+		UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
+
+		// Add delay to ensure the server has received a heartbeat response contains matchmaking result
+		// Player only entering level once
+		FTimerHandle dummyHandle;
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(dummyHandle, TFunction<void(void)>([this, DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
+		{
+				UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
+		}), 1.0f, false, ShooterGameConfig::Get().ServerHeartbeatInterval_);
+	}
+
 }
 
 void SLobby::ShowMessageDialog(FString Message, FOnClicked OnClicked)
@@ -744,6 +730,10 @@ void SLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& Pa
 void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
 {
     PartyWidget->ResetAll();
+	if (PartyInfo.Code != "0")
+	{
+		return;
+	}
     bIsPartyLeader = (PartyInfo.LeaderId == GetCurrentUserID());
 
     FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;
@@ -1339,7 +1329,7 @@ FReply SLobby::OnRequestFriend()
     }
 
     const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
-    FRegistry::User.GetUserByEmailAddress(FriendEmailAddress,
+    FRegistry::User.SearchUsers(FriendEmailAddress,
         THandler<FPagedPublicUsersInfo>::CreateLambda([&](const FPagedPublicUsersInfo& Users)
     {
         FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);

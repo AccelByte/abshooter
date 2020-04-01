@@ -9,7 +9,7 @@ public class ShooterGameServerTarget : TargetRules
 	public ShooterGameServerTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Server;
-		bUsesSteam = true;
+		bUsesSteam = false;
 
 		ExtraModuleNames.Add("ShooterGame");
 	}

@@ -173,6 +173,7 @@ protected:
     FString DedicatedServerBaseUrl;
     FString DedicatedServerAddress;
     bool bReadyConsent;
+	bool bAlreadyEnteringLevel = false;
 #pragma endregion Matchmaking
 
     void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);

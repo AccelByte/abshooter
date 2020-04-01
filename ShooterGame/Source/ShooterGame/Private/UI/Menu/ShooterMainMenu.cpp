@@ -1696,7 +1696,7 @@ void FShooterMainMenu::GetStatItems()
 	format.RoundingMode = HalfToZero;
 	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
 	const FString profileId = GameProfileWidget->GetProfileId();
-	AccelByte::FRegistry::Statistic.GetUserStatItemsByStatCodes(StatCodes, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
+	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
 		if (Result.Data.Num() != 0)
