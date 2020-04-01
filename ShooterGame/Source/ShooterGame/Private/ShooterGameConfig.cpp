@@ -15,6 +15,7 @@ ShooterGameConfig::ShooterGameConfig()
 	StatisticCodeKill_(StatisticCodeKill),
 	StatisticCodeAssist_(StatisticCodeAssist),
 	StatisticCodeDeath_(StatisticCodeDeath),
+	StatisticCodeMVP_(StatisticCodeMVP),
 	ItemImageSetAs_(ItemImageSetAs)
 {
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
@@ -33,6 +34,7 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeKill"), StatisticCodeKill, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeAssist"), StatisticCodeAssist, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeDeath"), StatisticCodeDeath, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeMvp"), StatisticCodeMVP, GGameIni);
 
 	auto cmdLineArgs = FCommandLine::Get();
 	TArray<FString> tokens, switches;
