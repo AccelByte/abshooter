@@ -26,6 +26,7 @@ private:
 	FString StatisticCodeKill;
 	FString StatisticCodeAssist;
 	FString StatisticCodeDeath;
+	FString StatisticCodeMVP;
 
 	FString ItemImageSetAs;
 
@@ -47,6 +48,7 @@ public:
 	const FString &StatisticCodeKill_;
 	const FString &StatisticCodeAssist_;
 	const FString &StatisticCodeDeath_;
+	const FString &StatisticCodeMVP_;
 
 	const FString &ItemImageSetAs_;
 };

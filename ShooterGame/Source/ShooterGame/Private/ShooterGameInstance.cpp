@@ -1133,7 +1133,9 @@ void UShooterGameInstance::InitStatistic()
 	TArray<FString> statCodes = { 
 		ShooterGameConfig::Get().StatisticCodeAssist_, 
 		ShooterGameConfig::Get().StatisticCodeKill_, 
-		ShooterGameConfig::Get().StatisticCodeDeath_ };
+		ShooterGameConfig::Get().StatisticCodeDeath_,
+		ShooterGameConfig::Get().StatisticCodeMVP_
+	};
 
 	FRegistry::Statistic.CreateUserStatItems(statCodes,
 		THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateLambda([](TArray<FAccelByteModelsBulkStatItemOperationResult> createResult) {}),

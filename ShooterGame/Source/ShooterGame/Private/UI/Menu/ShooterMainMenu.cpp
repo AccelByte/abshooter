@@ -20,6 +20,7 @@
 #include "Player/ShooterLocalPlayer.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/World.h"
+#include "ShooterGameConfig.h"
 // accelbyte
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
@@ -1694,7 +1695,13 @@ void FShooterMainMenu::GetStatItems()
 {
 	FNumberFormattingOptions format;
 	format.RoundingMode = HalfToZero;
-	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
+	TArray<FString> StatCodes =
+	{
+		ShooterGameConfig::Get().StatisticCodeMVP_,
+		ShooterGameConfig::Get().StatisticCodeAssist_,
+		ShooterGameConfig::Get().StatisticCodeDeath_,
+		ShooterGameConfig::Get().StatisticCodeKill_
+	};
 	const FString profileId = GameProfileWidget->GetProfileId();
 	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
 	{
