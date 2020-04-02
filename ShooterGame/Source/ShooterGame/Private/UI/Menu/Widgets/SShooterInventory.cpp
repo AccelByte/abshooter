@@ -16,6 +16,7 @@
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "Core/AccelByteRegistry.h"
+#include "ShooterGameConfig.h"
 
 using namespace AccelByte::Api;
 
@@ -233,7 +234,14 @@ TSharedRef< FInventoryEntry > SShooterInventory::CreateInventoryItem(const FAcce
 	Inventory->ItemId = ItemInfo.ItemId;
 	Inventory->Name = ItemInfo.Title;
 	Inventory->Quantity = 0;
-	Inventory->ImageURL = ItemInfo.ThumbnailUrl;
+	for (auto& image : ItemInfo.Images)
+	{
+		if (image.As == ShooterGameConfig::Get().ItemImageSetAs_)
+		{
+			Inventory->ImageURL = image.ImageUrl;
+			break;
+		}
+	}
 
 	for (int j = 0; j < ItemInfo.RegionData.Num(); j++)
 	{

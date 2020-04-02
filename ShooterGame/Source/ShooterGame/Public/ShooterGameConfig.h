@@ -27,6 +27,8 @@ private:
 	FString StatisticCodeAssist;
 	FString StatisticCodeDeath;
 
+	FString ItemImageSetAs;
+
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
 	void operator=(ShooterGameConfig const&) = delete;
@@ -45,4 +47,6 @@ public:
 	const FString &StatisticCodeKill_;
 	const FString &StatisticCodeAssist_;
 	const FString &StatisticCodeDeath_;
+
+	const FString &ItemImageSetAs_;
 };
