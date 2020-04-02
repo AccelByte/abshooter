@@ -406,12 +406,10 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 	{
 	DetermineMatchWinner();
 	TArray<FAccelByteModelsBulkUserStatItemInc> matchResults_;
+	AShooterPlayerState* MVP = nullptr;
 
 	for (const auto& party : MatchmakingInfo.matching_parties)
 	{
-		FAccelByteModelsMatchmakingResult Result;
-		Result.leader = party.leader_id;
-		Result.party_id = party.party_id;
 		for (const auto& partyMember : party.party_members)
 		{
 			int32 Rank = 0;
@@ -420,12 +418,24 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 			// Find player
 			for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
 			{
-				const AShooterPlayerState* const TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
+				AShooterPlayerState* TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
 				if (TestPlayerState->GetUserId() == member.user_id)
 				{
 					member.assist = 0;
 					member.kill = TestPlayerState->GetKills();
 					member.death = TestPlayerState->GetDeaths();
+
+					if (TestPlayerState->GetScore() > 0)
+					{
+						if (MVP == nullptr)
+						{
+							MVP = TestPlayerState;
+						} else if (MVP->GetScore() < TestPlayerState->GetScore())
+						{
+							MVP = TestPlayerState;
+						}
+					}
+
 					if (TestPlayerState)
 					{
 						if (TestPlayerState->GetTeamNum() == WinnerTeam)
@@ -445,6 +455,7 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 			if (member.death > 0) { matchResults_.Add({ (float)member.death, member.user_id, ShooterGameConfig::Get().StatisticCodeDeath_ }); }
 		}
 	}
+	matchResults_.Add({ 1.0f, MVP->GetUserId(), ShooterGameConfig::Get().StatisticCodeMVP_});
 
 	//Submit statistic
 	FRegistry::ServerStatistic.IncrementManyUsersStatItems(matchResults_,
