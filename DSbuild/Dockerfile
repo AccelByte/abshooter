@@ -8,4 +8,4 @@ RUN apt-get update && \
     chmod +x LinuxNoEditor/ShooterGame.sh && \
     chown -R shooter .
 USER shooter
-ENTRYPOINT ["bash", "./LinuxNoEditor/ShooterGame.sh", "Highrise"]
+ENTRYPOINT ["bash", "./LinuxNoEditor/ShooterGame.sh"]

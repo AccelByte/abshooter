@@ -13,7 +13,7 @@ ShooterGameConfig::ShooterGameConfig()
 	ServerHeartbeatInterval_(ServerHeartbeatInterval),
 	ServerLatencies_(ServerLatencies),
 	StatisticCodeKill_(StatisticCodeKill),
-	StatisticCodeAssist_(StatisticCodeAssist),
+	StatisticCodeMatch_(StatisticCodeMatch),
 	StatisticCodeDeath_(StatisticCodeDeath),
 	StatisticCodeMVP_(StatisticCodeMVP),
 	ItemImageSetAs_(ItemImageSetAs)
@@ -32,7 +32,7 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetInt(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("ServerHeartbeatInterval"), ServerHeartbeatInterval, GGameIni);
 
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeKill"), StatisticCodeKill, GGameIni);
-	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeAssist"), StatisticCodeAssist, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeMatch"), StatisticCodeMatch, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeDeath"), StatisticCodeDeath, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeMvp"), StatisticCodeMVP, GGameIni);
 

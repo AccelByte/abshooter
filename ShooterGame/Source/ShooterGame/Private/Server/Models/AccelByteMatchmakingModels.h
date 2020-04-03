@@ -16,7 +16,7 @@ struct FAccelByteModelsMatchmakingMember
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | Member")
-	int32 assist;
+	int32 match;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | Member")
 	int32 death;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Matchmaking | Models | Member")
