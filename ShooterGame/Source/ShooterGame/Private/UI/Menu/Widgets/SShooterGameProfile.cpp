@@ -286,7 +286,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 								]
 							]
 #pragma endregion KILLS
-#pragma region ASSISTS
+#pragma region TOTAL_MATCH
 							+ SHorizontalBox::Slot()
 							.FillWidth(.25)
 							.HAlign(HAlign_Fill)
@@ -315,7 +315,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											.Stretch(EStretch::ScaleToFitX)
 											[
 												SNew(SImage)
-												.Image(&ProfileStyle->IconAssists)
+												.Image(&ProfileStyle->IconMatchPlayed)
 											]
 										]
 									]
@@ -332,7 +332,7 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											[
 												SNew(STextBlock)
 												.TextStyle(FShooterStyle::Get(), "ShooterGame.ProfileStatNameTextStyle")
-												.Text(FText::FromString("TOTAL ASSISTS"))
+												.Text(FText::FromString("TOTAL MATCH"))
 											]
 										]
 										+ SVerticalBox::Slot()
@@ -342,13 +342,13 @@ void SShooterGameProfile::Construct(const FArguments& InArgs)
 											[
 												SNew(STextBlock)
 												.TextStyle(FShooterStyle::Get(), "ShooterGame.ProfileStatNumTextStyle")
-												.Text(this, &SShooterGameProfile::GetTotalAssistsScore)
+												.Text(this, &SShooterGameProfile::GetTotalMatch)
 											]
 										]
 									]
 								]
 							]
-#pragma endregion ASSISTS
+#pragma endregion TOTAL_MATCH
 #pragma region DEATHS
 							+ SHorizontalBox::Slot()
 							.FillWidth(.25)
@@ -782,9 +782,9 @@ FText SShooterGameProfile::GetTotalDeathsScore() const
 	return TotalDeathsScore;
 }
 
-FText SShooterGameProfile::GetTotalAssistsScore() const
+FText SShooterGameProfile::GetTotalMatch() const
 {
-	return TotalAssistsScore;
+	return TotalMatch;
 }
 
 FText SShooterGameProfile::GetTotalKillsScore() const
@@ -807,9 +807,9 @@ void SShooterGameProfile::SetMVPScore(FText MVPScore)
 	SShooterGameProfile::MVPScore = MVPScore;
 }
 
-void SShooterGameProfile::SetTotalAssistsScore(FText TotalAssistsScore)
+void SShooterGameProfile::SetTotalMatch(FText TotalMatch)
 {
-	SShooterGameProfile::TotalAssistsScore = TotalAssistsScore;
+	SShooterGameProfile::TotalMatch = TotalMatch;
 }
 
 void SShooterGameProfile::SetTotalDeathsScore(FText TotalDeathsScore)

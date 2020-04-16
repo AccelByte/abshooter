@@ -510,10 +510,10 @@ void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileId, FString Pro
 	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
 }
 
-void FShooterMainMenu::UpdateProfileStatItem(FText MVPScore, FText TotalAssistScore, FText TotalDeathsScore, FText TotalKillsScore)
+void FShooterMainMenu::UpdateProfileStatItem(FText MVPScore, FText TotalMatch, FText TotalDeathsScore, FText TotalKillsScore)
 {
 	GameProfileWidget->SetMVPScore(MVPScore);
-	GameProfileWidget->SetTotalAssistsScore(TotalAssistScore);
+	GameProfileWidget->SetTotalMatch(TotalMatch);
 	GameProfileWidget->SetTotalDeathsScore(TotalDeathsScore);
 	GameProfileWidget->SetTotalKillsScore(TotalKillsScore);
 }
@@ -1698,7 +1698,7 @@ void FShooterMainMenu::GetStatItems()
 	TArray<FString> StatCodes =
 	{
 		ShooterGameConfig::Get().StatisticCodeMVP_,
-		ShooterGameConfig::Get().StatisticCodeAssist_,
+		ShooterGameConfig::Get().StatisticCodeMatch_,
 		ShooterGameConfig::Get().StatisticCodeDeath_,
 		ShooterGameConfig::Get().StatisticCodeKill_
 	};

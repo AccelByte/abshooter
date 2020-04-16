@@ -67,7 +67,7 @@ struct FGameProfileStyle : public FSlateWidgetStyle
 	FSlateBrush IconMVP;
 
 	UPROPERTY(EditAnywhere, Category = StoreItem)
-	FSlateBrush IconAssists;
+	FSlateBrush IconMatchPlayed;
 
 	UPROPERTY(EditAnywhere, Category = StoreItem)
 	FSlateBrush IconKills;

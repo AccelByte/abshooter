@@ -24,7 +24,7 @@ private:
 	TArray<TPair<FString, float>> ServerLatencies;
 
 	FString StatisticCodeKill;
-	FString StatisticCodeAssist;
+	FString StatisticCodeMatch;
 	FString StatisticCodeDeath;
 	FString StatisticCodeMVP;
 
@@ -46,7 +46,7 @@ public:
 	const TArray<TPair<FString, float>> &ServerLatencies_;
 
 	const FString &StatisticCodeKill_;
-	const FString &StatisticCodeAssist_;
+	const FString &StatisticCodeMatch_;
 	const FString &StatisticCodeDeath_;
 	const FString &StatisticCodeMVP_;
 

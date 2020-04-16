@@ -1074,7 +1074,13 @@ void UShooterGameInstance::GetStatItems()
 {
 	FNumberFormattingOptions format;
 	format.RoundingMode = HalfToZero;
-	TArray<FString> StatCodes = { "MVP", "TOTAL_ASSISTS","TOTAL_DEATHS", "TOTAL_KILLS" };
+	TArray<FString> StatCodes =
+	{
+		ShooterGameConfig::Get().StatisticCodeMVP_,
+		ShooterGameConfig::Get().StatisticCodeMatch_,
+		ShooterGameConfig::Get().StatisticCodeDeath_,
+		ShooterGameConfig::Get().StatisticCodeKill_
+	};
 	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
@@ -1131,7 +1137,7 @@ void UShooterGameInstance::GetQos()
 void UShooterGameInstance::InitStatistic()
 {
 	TArray<FString> statCodes = { 
-		ShooterGameConfig::Get().StatisticCodeAssist_, 
+		ShooterGameConfig::Get().StatisticCodeMatch_, 
 		ShooterGameConfig::Get().StatisticCodeKill_, 
 		ShooterGameConfig::Get().StatisticCodeDeath_,
 		ShooterGameConfig::Get().StatisticCodeMVP_

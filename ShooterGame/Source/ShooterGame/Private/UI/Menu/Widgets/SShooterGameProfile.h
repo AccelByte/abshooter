@@ -54,7 +54,7 @@ public:
 
 	void SetMVPScore(FText MVPScore);
 
-	void SetTotalAssistsScore(FText TotalAssistsScore);
+	void SetTotalMatch(FText TotalMatch);
 
 	void SetTotalDeathsScore(FText TotalDeathsScore);
 
@@ -136,7 +136,7 @@ protected:
 
 	FText GetTotalDeathsScore() const;
 
-	FText GetTotalAssistsScore() const;
+	FText GetTotalMatch() const;
 
 private:
 
@@ -156,7 +156,7 @@ private:
 
 	FText TotalDeathsScore;
 
-	FText TotalAssistsScore;
+	FText TotalMatch;
 };
 
 

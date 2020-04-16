@@ -421,7 +421,7 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 				AShooterPlayerState* TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
 				if (TestPlayerState->GetUserId() == member.user_id)
 				{
-					member.assist = 0;
+					member.match = 1;
 					member.kill = TestPlayerState->GetKills();
 					member.death = TestPlayerState->GetDeaths();
 
@@ -451,11 +451,11 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 				}
 			}
 			if (member.kill > 0) { matchResults_.Add({ (float) member.kill, member.user_id, ShooterGameConfig::Get().StatisticCodeKill_ }); }
-			if (member.assist > 0){ matchResults_.Add({ (float)member.assist, member.user_id, ShooterGameConfig::Get().StatisticCodeAssist_ }); }
-			if (member.death > 0) { matchResults_.Add({ (float)member.death, member.user_id, ShooterGameConfig::Get().StatisticCodeDeath_ }); }
+			if (member.match > 0){ matchResults_.Add({ (float) member.match, member.user_id, ShooterGameConfig::Get().StatisticCodeMatch_ }); }
+			if (member.death > 0) { matchResults_.Add({ (float) member.death, member.user_id, ShooterGameConfig::Get().StatisticCodeDeath_ }); }
 		}
 	}
-	matchResults_.Add({ 1.0f, MVP->GetUserId(), ShooterGameConfig::Get().StatisticCodeMVP_});
+	if (MVP != nullptr) { matchResults_.Add({ 1.0f, MVP->GetUserId(), ShooterGameConfig::Get().StatisticCodeMVP_}); }
 
 	//Submit statistic
 	FRegistry::ServerStatistic.IncrementManyUsersStatItems(matchResults_,
