@@ -143,16 +143,13 @@ public:
 
 	void UpdateAvatar(FString Url);
 
-    void SetCurrentUserFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath);
+    void SetCurrentUserFromCache(FString UserId, FString DisplayName, FString AvatarPath);
 
 	const FSlateBrush* GetProfileAvatar() const;
 
 	FText GetProfileName() const;
 
-	FText GetProfileUserId() const;
-
 	void SetProfileName(FString ProfileName);
-	void SetProfileId(FString ProfileId);
 	void SetUserId(FString UserId);
 
 private:
@@ -290,6 +287,5 @@ private:
 
 	FText UserId;
 	FText ProfileName;
-	FText ProfileId;
 
 };

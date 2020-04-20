@@ -8,11 +8,9 @@
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
 #include "Api/AccelByteUserProfileApi.h"
-#include "Api/AccelByteGameProfileApi.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteGeneralModels.h"
 #include "Models/AccelByteLobbyModels.h"
-#include "Models/AccelByteGameProfileModels.h"
 #include "Models/AccelByteOauth2Models.h"
 #include "ShooterGameInstance.generated.h"
 
@@ -217,7 +215,6 @@ public:
 	void ResetPlayTogetherInfo() { PlayTogetherInfo = FShooterPlayTogetherInfo(); }
 
 	FAccelByteModelsUserProfileInfo UserProfileInfo;
-	FAccelByteModelsGameProfile UserGameProfile;
 	FOauth2Token UserToken;
 
 private:

@@ -46,11 +46,7 @@ public:
 
 	FText GetProfileName() const;
 
-	FString GetProfileId() const;
-
 	void SetProfileName(FText ProfileName);
-
-	void SetProfileId(FString ProfileId);
 
 	void SetMVPScore(FText MVPScore);
 
@@ -60,7 +56,7 @@ public:
 
 	void SetTotalKillsScore(FText TotalKillsScore);
 
-	void SetCurrentProfileFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath);
+	void SetCurrentProfileFromCache(FString UserId, FString DisplayName, FString AvatarPath);
 
 	void UpdateAvatar(FString Url);
 
@@ -145,8 +141,6 @@ private:
 	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
 
 	bool bProfileUpdated;
-
-	FString ProfileId;
 	
 	FText ProfileName;
 

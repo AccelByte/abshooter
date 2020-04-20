@@ -144,19 +144,9 @@ FText SShooterUserProfileWidget::GetProfileName() const
 	return ProfileName;
 }
 
-FText SShooterUserProfileWidget::GetProfileUserId() const
-{
-	return ProfileId;
-}
-
 void SShooterUserProfileWidget::SetProfileName(FString ProfileName)
 {
 	SShooterUserProfileWidget::ProfileName = FText::FromString(ProfileName);
-}
-
-void SShooterUserProfileWidget::SetProfileId(FString ProfileId)
-{
-	SShooterUserProfileWidget::ProfileId = FText::FromString(ProfileId);
 }
 
 void SShooterUserProfileWidget::SetUserId(FString UserId)
@@ -255,7 +245,6 @@ void SShooterUserProfileWidget::BuildAndShowMenu()
 	FSlateApplication::Get().PlaySound(MenuStyle->MenuEnterSound, GetOwnerUserIndex());
 
 	ProfileName = FText::FromString(TEXT("[Username]"));
-	ProfileId = FText::FromString(TEXT("[+]"));
 }
 
 void SShooterUserProfileWidget::UpdateAvatar(FString Url)
@@ -272,12 +261,11 @@ void SShooterUserProfileWidget::UpdateAvatar(FString Url)
 
 }
 
-void SShooterUserProfileWidget::SetCurrentUserFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath)
+void SShooterUserProfileWidget::SetCurrentUserFromCache(FString UserId, FString DisplayName, FString AvatarPath)
 {
 	if (!bProfileUpdated)
 	{
 		ProfileName = FText::FromString(DisplayName);
-		SShooterUserProfileWidget::ProfileId = FText::FromString(ProfileId);
 		SShooterUserProfileWidget::UserId = FText::FromString(UserId);
 
 		TArray<uint8> ImageData;
@@ -743,7 +731,7 @@ FMargin SShooterUserProfileWidget::GetMenuOffset() const
 	const TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	const FSlateFontInfo PlayerNameFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.UsernameTextStyle").Font;
 	const FSlateFontInfo ProfileSwapFontInfo = FShooterStyle::Get().GetWidgetStyle<FTextBlockStyle>("ShooterGame.UserIDTextStyle").Font;
-	const float MenuProfileWidth = FMath::Max(FontMeasure->Measure(ProfileName, PlayerNameFontInfo, 1.0f).X, FontMeasure->Measure(ProfileId.ToString(), ProfileSwapFontInfo, 1.0f).X) + 32.0f;
+	const float MenuProfileWidth = FMath::Max(FontMeasure->Measure(ProfileName, PlayerNameFontInfo, 1.0f).X, FontMeasure->Measure(TEXT("PLACEHOLDER_TEXT"), ProfileSwapFontInfo, 1.0f).X) + 32.0f;
 
 	const float OffsetX = (ScreenRes.X - MenuProfileWidth - 200); // 84 avatar width	
 	FMargin Result = FMargin(OffsetX, 53.0f, 0, 0);

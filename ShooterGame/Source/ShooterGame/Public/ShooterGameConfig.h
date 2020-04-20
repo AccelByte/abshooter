@@ -30,6 +30,8 @@ private:
 
 	FString ItemImageSetAs;
 
+	FString MessageNotificationTopic;
+
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
 	void operator=(ShooterGameConfig const&) = delete;
@@ -51,4 +53,6 @@ public:
 	const FString &StatisticCodeMVP_;
 
 	const FString &ItemImageSetAs_;
+
+	const FString &MessageNotificationTopic_;
 };
