@@ -12,6 +12,7 @@ ShooterGameConfig::ShooterGameConfig()
 	IsLocalMode_(IsLocalMode),
 	ServerHeartbeatInterval_(ServerHeartbeatInterval),
 	ServerLatencies_(ServerLatencies),
+	SelectedRegion_(SelectedRegion),
 	StatisticCodeKill_(StatisticCodeKill),
 	StatisticCodeMatch_(StatisticCodeMatch),
 	StatisticCodeDeath_(StatisticCodeDeath),
@@ -53,4 +54,9 @@ ShooterGameConfig::ShooterGameConfig()
 void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)
 {
 	ServerLatencies = value;
+}
+
+void ShooterGameConfig::SelectRegion(TPair<FString, float> value)
+{
+	SelectedRegion = TArray<TPair<FString, float>>{ value };
 }
