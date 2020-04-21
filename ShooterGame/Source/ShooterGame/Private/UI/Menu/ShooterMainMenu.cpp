@@ -491,22 +491,20 @@ void FShooterMainMenu::AddMenuToGameViewport()
 	}
 }
 
-void FShooterMainMenu::UpdateUserProfile(FString ProfileId, FString ProfileName, FString UserID, FString AvatarURL)
+void FShooterMainMenu::UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL)
 {
 	UserProfileWidget->SetProfileName(ProfileName);
 	UserProfileWidget->SetUserId(UserID);
-	UserProfileWidget->SetProfileId(ProfileId);
 	UserProfileWidget->UpdateAvatar(AvatarURL);
-	GameProfileWidget->SetProfileId(ProfileId);
 	GameProfileWidget->SetProfileName(FText::FromString(ProfileName));
 	GameProfileWidget->UpdateAvatar(AvatarURL);
     LobbyWidget->SetCurrentUser(UserID, ProfileName, AvatarURL);
 }
 
-void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileId, FString ProfileName, FString UserId, FString AvatarPath)
+void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath)
 {
-	UserProfileWidget->SetCurrentUserFromCache(ProfileId, UserId, ProfileName, AvatarPath);
-	GameProfileWidget->SetCurrentProfileFromCache(ProfileId, UserId, ProfileName, AvatarPath);
+	UserProfileWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
+	GameProfileWidget->SetCurrentProfileFromCache(UserId, ProfileName, AvatarPath);
 	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
 }
 
@@ -1702,7 +1700,6 @@ void FShooterMainMenu::GetStatItems()
 		ShooterGameConfig::Get().StatisticCodeDeath_,
 		ShooterGameConfig::Get().StatisticCodeKill_
 	};
-	const FString profileId = GameProfileWidget->GetProfileId();
 	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
 	{
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));

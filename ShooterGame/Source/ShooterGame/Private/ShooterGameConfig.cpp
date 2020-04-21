@@ -16,7 +16,8 @@ ShooterGameConfig::ShooterGameConfig()
 	StatisticCodeMatch_(StatisticCodeMatch),
 	StatisticCodeDeath_(StatisticCodeDeath),
 	StatisticCodeMVP_(StatisticCodeMVP),
-	ItemImageSetAs_(ItemImageSetAs)
+	ItemImageSetAs_(ItemImageSetAs),
+	MessageNotificationTopic_(MessageNotificationTopic)
 {
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
 
@@ -44,6 +45,9 @@ ShooterGameConfig::ShooterGameConfig()
 
 	FString ACCELBYTE_CONFIG_STORE_SECTION = "/Script/ShooterGame.AccelByteConfig.Store";
 	GConfig->GetString(*ACCELBYTE_CONFIG_STORE_SECTION, TEXT("ItemImageSetAs"), ItemImageSetAs, GGameIni);
+
+	FString ACCELBYTE_CONFIG_NOTIFICATION_SECTION = "/Script/ShooterGame.AccelByteConfig.Notification";
+	GConfig->GetString(*ACCELBYTE_CONFIG_NOTIFICATION_SECTION, TEXT("MessageNotificationTopic"), MessageNotificationTopic, GGameIni);
 }
 
 void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)

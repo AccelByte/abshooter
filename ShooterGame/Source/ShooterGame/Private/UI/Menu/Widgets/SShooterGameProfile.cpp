@@ -767,11 +767,6 @@ FText SShooterGameProfile::GetProfileName() const
 	return ProfileName;
 }
 
-FString SShooterGameProfile::GetProfileId() const
-{
-	return ProfileId;
-}
-
 FText SShooterGameProfile::GetMVPScore() const
 {
 	return MVPScore;
@@ -797,11 +792,6 @@ void SShooterGameProfile::SetProfileName(FText ProfileName)
 	SShooterGameProfile::ProfileName = ProfileName;
 }
 
-void SShooterGameProfile::SetProfileId(FString ProfileId)
-{
-	SShooterGameProfile::ProfileId = ProfileId;
-}
-
 void SShooterGameProfile::SetMVPScore(FText MVPScore)
 {
 	SShooterGameProfile::MVPScore = MVPScore;
@@ -822,12 +812,11 @@ void SShooterGameProfile::SetTotalKillsScore(FText TotalKillsScore)
 	SShooterGameProfile::TotalKillsScore = TotalKillsScore;
 }
 
-void SShooterGameProfile::SetCurrentProfileFromCache(FString ProfileId, FString UserId, FString DisplayName, FString AvatarPath)
+void SShooterGameProfile::SetCurrentProfileFromCache(FString UserId, FString DisplayName, FString AvatarPath)
 {
 	if (!bProfileUpdated)
 	{
 		ProfileName = FText::FromString(DisplayName);
-		SShooterGameProfile::ProfileId = ProfileId;
 
 		TArray<uint8> ImageData;
 		if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))

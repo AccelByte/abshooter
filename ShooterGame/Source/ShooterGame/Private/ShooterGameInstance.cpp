@@ -942,7 +942,6 @@ void UShooterGameInstance::BeginMainMenuState()
     FString CurrentUserID = UserProfileInfo.UserId = UserToken.User_id;
     IFileManager& FileManager = IFileManager::Get();
     FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *CurrentUserID);
-	FAccelByteModelsGameProfile ResultCreateProfile;
 	if (FileManager.FileExists(*CacheTextDir))
     {
         UE_LOG(LogTemp, Log, TEXT("cache meta found"));
@@ -957,24 +956,14 @@ void UShooterGameInstance::BeginMainMenuState()
                 FString CachedDisplayName = Raw.Last();
 
                 FString ImageCache = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
-				AccelByte::FRegistry::GameProfile.GetAllGameProfiles(AccelByte::THandler<TArray<FAccelByteModelsGameProfile>>::CreateLambda(
-					[this, CachedDisplayName, ImageCache, CurrentUserID](const TArray<FAccelByteModelsGameProfile>& UserGameProfiles)
-				{
 
-					if (UserToken.Display_name.IsEmpty())
-					{
-						UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
-					}
-					
-					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game Profile: %s"), *UserGameProfiles[0].profileName);
-					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
-					MainMenuUI->UpdateUserProfileFromCache(UserGameProfiles[0].profileId, CachedDisplayName, CurrentUserID, ImageCache);
-					this->UserGameProfile = UserGameProfiles[0];
-					GetStatItems();
-				}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+				if (UserToken.Display_name.IsEmpty())
 				{
-					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to get Game Profile...Error: %s"), *Message);
-				})); 
+					UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
+				}
+
+				MainMenuUI->UpdateUserProfileFromCache(CachedDisplayName, CurrentUserID, ImageCache);
+				GetStatItems();
             }
             UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
         }
@@ -982,39 +971,8 @@ void UShooterGameInstance::BeginMainMenuState()
     else
     {
 		THandler<FAccelByteModelsUserProfileInfo> OnUserProfileObtained = THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this](const FAccelByteModelsUserProfileInfo& UserProfileInfo){
-			AccelByte::FRegistry::GameProfile.GetAllGameProfiles(AccelByte::THandler<TArray<FAccelByteModelsGameProfile>>::CreateLambda([this, ResultGetUserProfile = UserProfileInfo](const TArray<FAccelByteModelsGameProfile>& UserGameProfiles){
-					if (UserGameProfiles.Num() == 0)
-					{
-						FAccelByteModelsGameProfileRequest gameProfileRequest;
-						gameProfileRequest.profileName = UserToken.Display_name;
-						gameProfileRequest.avatarUrl = ResultGetUserProfile.AvatarUrl;
-						AccelByte::FRegistry::GameProfile.CreateGameProfile(gameProfileRequest, AccelByte::THandler<FAccelByteModelsGameProfile>::CreateLambda(
-							[this](const FAccelByteModelsGameProfile& UserGameProfile)
-						{
-							UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default Game Profile...SUCCESS"));
-
-							UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Game Profile: %s"), *UserGameProfile.profileName);
-							UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *UserGameProfile.profileId);
-							MainMenuUI->UpdateUserProfile(UserGameProfile.profileId, UserGameProfile.profileName, UserGameProfile.userId, UserGameProfile.avatarUrl);
-							this->UserGameProfile = UserGameProfile; // save our own
-							GetStatItems();
-						}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-						{
-							UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default Game Profile...Error: %s"), *Message);
-						}));
-					}
-					else
-					{
-						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game Profile: %s"), *UserGameProfiles[0].profileName);
-						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Game ID: %s"), *UserGameProfiles[0].profileId);
-						MainMenuUI->UpdateUserProfile(UserGameProfiles[0].profileId, UserGameProfiles[0].profileName, ResultGetUserProfile.UserId, UserGameProfiles[0].avatarUrl);
-						this->UserGameProfile = UserGameProfiles[0];
-						GetStatItems();
-					}
-				}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-				{
-					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to get Game Profile...Error: %s"), *Message);
-				}));
+			MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, UserProfileInfo.AvatarUrl);
+			GetStatItems();
 			});
 
         FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
@@ -1060,7 +1018,7 @@ void UShooterGameInstance::BeginMainMenuState()
                 this->UserProfileInfo = ResultCreateUserProfile; // save our own
 
             }), AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message) {
-                MainMenuUI->UpdateUserProfile("", UserToken.Display_name, UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
+                MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
                 UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
             }));
 

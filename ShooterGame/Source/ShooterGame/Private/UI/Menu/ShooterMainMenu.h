@@ -31,8 +31,8 @@ public:
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
 
-	void UpdateUserProfile(FString ProfileId, FString ProfileName, FString UserID, FString AvatarURL);
-    void UpdateUserProfileFromCache(FString ProfileId, FString ProfileName, FString UserId, FString AvatarPath);
+	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
+    void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
 
 	void UpdateProfileStatItem(FText MVPScore, FText TotalMatch, FText TotalDeathsScore, FText TotalKillsScore);
 
