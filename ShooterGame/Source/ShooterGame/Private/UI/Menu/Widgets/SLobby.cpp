@@ -534,7 +534,7 @@ void SLobby::Construct(const FArguments& InArgs)
 				GameMode,
 				TEXT(""),
 				ShooterGameConfig::Get().ServerImageVersion_,
-				ShooterGameConfig::Get().ServerLatencies_
+				ShooterGameConfig::Get().SelectedRegion_
 			);
 		}
 		

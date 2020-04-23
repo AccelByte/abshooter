@@ -27,8 +27,11 @@
 #include "Api/AccelByteWalletApi.h"
 #include "Api/AccelByteGameProfileApi.h"
 #include "Api/AccelByteStatisticApi.h"
+#include "Api/AccelByteQos.h"
 #include "Core/AccelByteCredentials.h"
 #include "Core/AccelByteRegistry.h"
+#include "ShooterGameConfig.h"
+
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
 #define MAX_BOT_COUNT 8
@@ -172,7 +175,6 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 			.PossiblyNullContent(UserProfileWidget);
 
 		TSharedPtr<FShooterMenuItem> RootMenuItem;
-
 				
 		SAssignNew(SplitScreenLobbyWidget, SShooterSplitScreenLobby)
 			.PlayerOwner(GetPlayerOwner())
@@ -369,7 +371,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		}
 
 #else
-		FMargin StylizedMargin = FMargin(640, 10, 0, 10);
+		FMargin StylizedMargin = FMargin(0, 10, 0, 10);
 		TSharedPtr<FShooterMenuItem> MenuItem;
 
 		// HOST menu option
@@ -419,6 +421,13 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		// Leaderboards
 		//MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Leaderboards", "LEADERBOARDS"), this, &FShooterMainMenu::OnShowLeaderboard);
 		//MenuHelper::AddCustomMenuItem(LeaderboardItem,SAssignNew(LeaderboardWidget,SShooterLeaderboard).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
+
+		// DS Region Selection
+		PopulateRegionLatencies(ShooterGameConfig::Get().ServerLatencies_);
+		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("RefreshQoS", "REGION ↺"), this, &FShooterMainMenu::GetQoS, StylizedMargin);
+		DsRegionOption = MenuHelper::AddMenuOptionSP(RootMenuItem, LOCTEXT("", ""), DsRegionLatenciesText, this, &FShooterMainMenu::DsRegionOptionChanged, StylizedMargin);
+		// Initial selection
+		DsRegionOptionChanged(DsRegionOption, DsRegionOption->SelectedMultiChoice);
 
 #if !SHOOTER_CONSOLE_UI
 
@@ -1167,6 +1176,7 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
 
+	GetQoS();
 	UserProfileWidget->SetVisibility(EVisibility::Visible);
 }
 
@@ -1740,5 +1750,57 @@ void FShooterMainMenu::GetStatItems()
 		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
 		UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
 	}));
+}
+
+void FShooterMainMenu::DsRegionOptionChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex)
+{
+	if (DsRegionLatencies.Num() > 0 && DsRegionLatencies.Num() > MultiOptionIndex && MultiOptionIndex >= 0)
+	{
+		auto selection = DsRegionLatencies[MultiOptionIndex];
+		ShooterGameConfig::Get().SelectRegion(selection);
+	}
+}
+
+void FShooterMainMenu::GetQoS()
+{
+	FRegistry::Qos.GetServerLatencies(
+		THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result) {
+			ShooterGameConfig::Get().SetServerLatencies(Result);
+			PopulateRegionLatencies(Result);
+			}),
+		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+				UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
+			}));
+}
+
+void FShooterMainMenu::PopulateRegionLatencies(TArray<TPair<FString, float>> value)
+{
+	DsRegionLatencies = value;
+	DsRegionLatenciesText.Empty();
+	for (auto& server : ShooterGameConfig::Get().ServerLatencies_)
+	{
+		FString serverAsString = FString::Printf(TEXT("%s - %.0fms"), *server.Key, server.Value);
+		DsRegionLatenciesText.Add(FText::FromString(serverAsString));
+	}
+
+	// IF there's no available region
+	if (DsRegionLatencies.Num() == 0)
+	{
+		ShooterGameConfig::Get().SetServerLatencies({ TPair<FString, float>{ "UNAVAILABLE", -1.f } });
+	}
+
+	// If valid, select the left-most region
+	if (DsRegionOption.IsValid())
+	{
+		// Update Value
+		DsRegionOption->SelectedMultiChoice = 0;
+		ShooterGameConfig::Get().SelectRegion(DsRegionLatencies[0]);
+
+		// Update visible UI & the values
+		DsRegionOption->Widget->LeftArrowVisible = EVisibility::Collapsed;
+		DsRegionOption->Widget->RightArrowVisible = EVisibility::Visible;
+		DsRegionOption->MultiChoice.Reset();
+		DsRegionOption->MultiChoice = DsRegionLatenciesText;
+	}
 }
 #undef LOCTEXT_NAMESPACE

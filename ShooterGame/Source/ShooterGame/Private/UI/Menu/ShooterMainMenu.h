@@ -110,6 +110,14 @@ protected:
 	/** yet another custom menu */
 	TSharedPtr<class FShooterMenuItem> LobbyMenuItem;
 
+	/** dedicated server region selection */
+	TSharedPtr<FShooterMenuItem> DsRegionOption;
+	TArray<TPair<FString, float>> DsRegionLatencies;
+	TArray<FText> DsRegionLatenciesText;
+	void DsRegionOptionChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex);
+	void GetQoS();
+	void PopulateRegionLatencies(TArray<TPair<FString, float>> value);
+
 	/** demo list widget */
 	TSharedPtr<class SShooterDemoList> DemoListWidget;
 

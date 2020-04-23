@@ -22,6 +22,7 @@ private:
 	bool IsLocalMode;
 	int ServerHeartbeatInterval;
 	TArray<TPair<FString, float>> ServerLatencies;
+	TArray<TPair<FString, float>> SelectedRegion;
 
 	FString StatisticCodeKill;
 	FString StatisticCodeMatch;
@@ -37,6 +38,7 @@ public:
 	void operator=(ShooterGameConfig const&) = delete;
 
 	void SetServerLatencies(TArray<TPair<FString, float>> value);
+	void SelectRegion(TPair<FString, float> value);
 
 	const int32 &ServerPort_;
 	const FString &LocalServerIP_;
@@ -46,6 +48,7 @@ public:
 	const bool &IsLocalMode_;
 	const int &ServerHeartbeatInterval_;
 	const TArray<TPair<FString, float>> &ServerLatencies_;
+	const TArray<TPair<FString, float>> &SelectedRegion_;
 
 	const FString &StatisticCodeKill_;
 	const FString &StatisticCodeMatch_;
