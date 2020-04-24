@@ -7,6 +7,7 @@
 #include "OnlineSessionInterface.h"
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
+#include "UMG/MenuInterface.h"
 #include "Api/AccelByteUserProfileApi.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteGeneralModels.h"
@@ -28,6 +29,7 @@ namespace ShooterGameInstanceState
 	extern const FName MainMenu;
 	extern const FName MessageMenu;
 	extern const FName Playing;
+	extern const FName LoginMenu;
 }
 
 /** This class holds the value of what message to display when we are in the "MessageMenu" state */
@@ -96,15 +98,12 @@ enum class EOnlineMode : uint8
 	Online
 };
 
-
 UCLASS(config=Game)
-class UShooterGameInstance : public UGameInstance
+class UShooterGameInstance : public UGameInstance, public IMenuInterface
 {
-public:
 	GENERATED_UCLASS_BODY()
 
 public:
-
 	bool Tick(float DeltaSeconds);
 
 	AShooterGameSession* GetGameSession() const;
@@ -114,6 +113,18 @@ public:
 	virtual void StartGameInstance() override;
 	virtual void ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate) override;
 	virtual void ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate) override;
+
+	/** Make main menu callable from blueprint */
+	UFUNCTION(BlueprintCallable, Category = "AB Shooter")
+	void ForceGotoMainMenu();
+
+	/** After login game client will connect to lobby*/
+	UFUNCTION(BlueprintCallable, Category = "AB Shooter")
+	void ConnectToLobby();
+
+	/** Handle disconnect from lobby*/
+	UFUNCTION(BlueprintCallable, Category = "AB Shooter")
+	void DisconnectFromLobby();
 
 	bool HostGame(ULocalPlayer* LocalPlayer, const FString& GameType, const FString& InTravelURL);
 	bool JoinSession(ULocalPlayer* LocalPlayer, int32 SessionIndexInSearchResults);
@@ -214,24 +225,26 @@ public:
 	/** Resets Play Together PS4 system event info after it's been handled */
 	void ResetPlayTogetherInfo() { PlayTogetherInfo = FShooterPlayTogetherInfo(); }
 
+	#pragma region Override Menu Interface
+	/** Login with username and password */
+	void LoginWithUsername(FString Username, FString Password) override;
+	#pragma endregion Override Menu Interface
+
 	FAccelByteModelsUserProfileInfo UserProfileInfo;
 	FOauth2Token UserToken;
 
 private:
-
 	UPROPERTY(config)
 	FString WelcomeScreenMap;
 
 	UPROPERTY(config)
 	FString MainMenuMap;
 
-
 	FName CurrentState;
 	FName PendingState;
 
 	FShooterPendingMessage PendingMessage;
 	FShooterPendingInvite PendingInvite;
-
 
 	/** URL to travel to after pending network operations */
 	FString TravelURL;
@@ -244,6 +257,12 @@ private:
 
 	/** Whether the user has an active license to play the game */
 	bool bIsLicensed;
+
+	/** To check if the game instance already done the init */
+	bool bIsInitialized;
+
+	/** Whether the mainmenu triggered from PIE*/
+	bool bIsActiveFromPIE;
 
 	/** Main menu UI */
 	TSharedPtr<FShooterMainMenu> MainMenuUI;
@@ -285,7 +304,6 @@ private:
 	/** A hard-coded encryption key used to try out the encryption code. This is NOT SECURE, do not use this technique in production! */
 	TArray<uint8> DebugTestEncryptionKey;
 
-
 	void HandleNetworkConnectionStatusChanged(const FString& ServiceName, EOnlineServerConnectionStatus::Type LastConnectionStatus, EOnlineServerConnectionStatus::Type ConnectionStatus );
 
 	void HandleSessionFailure( const FUniqueNetId& NetId, ESessionFailure::Type FailureType );
@@ -293,6 +311,15 @@ private:
 	void OnPreLoadMap(const FString& MapName);
 	void OnPostLoadMap(UWorld*);
 	void OnPostDemoPlay();
+
+	/** Do setup delegates on init*/
+	void SetupCallbacks();
+
+	/** Game client login with launcher on init*/
+	void GameClientLogin();
+
+	/** Game server login with credentials on init*/
+	void GameServerLogin();
 
 	virtual void HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString ) override;
 
@@ -311,17 +338,21 @@ private:
 	void EndCurrentState(FName NextState);
 	void BeginNewState(FName NewState, FName PrevState);
 
+	/** Begin State */
 	void BeginPendingInviteState();
 	void BeginWelcomeScreenState();
 	void BeginMainMenuState();
 	void BeginMessageMenuState();
 	void BeginPlayingState();
+	void BeginLoginMenuState();
 
+	/** End State */
 	void EndPendingInviteState();
 	void EndWelcomeScreenState();
 	void EndMainMenuState();
 	void EndMessageMenuState();
 	void EndPlayingState();
+	void EndLoginMenuState();
 
 	void ShowLoadingScreen();
 	void AddNetworkFailureHandlers();
@@ -416,8 +447,17 @@ private:
 
 	void InitStatistic();
 
+	/** Setup user setting after succesfully logins */
+	void SetupUser();
+
+	#pragma region UMG menu
+	/** Hold login menu from UMG */
+	TSubclassOf<class UUserWidget> LoginMenuClass;
+
+	/** Login Menu UI widget */
+	class ULoginMenuUI* LoginMenuUI;
+	#pragma endregion UMG menu
+
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);
 };
-
-

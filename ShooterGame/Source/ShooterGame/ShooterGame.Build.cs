@@ -14,18 +14,18 @@ public class ShooterGame : ModuleRules
 				"ShooterGame/Private",
 				"ShooterGame/Private/UI",
 				"ShooterGame/Private/UI/Menu",
-                "ShooterGame/Private/UI/Style",
+				"ShooterGame/Private/UI/Style",
 				"ShooterGame/Private/UI/Widgets",
-                "ShooterGame/Private/Models",
-            }
+				"ShooterGame/Private/Models",
+			}
 		);
 
-        PublicDependencyModuleNames.AddRange(
+		PublicDependencyModuleNames.AddRange(
 			new string[] {
 				"Core",
 				"CoreUObject",
 				"Engine",
-                "EngineSettings",
+				"EngineSettings",
 				"OnlineSubsystem",
 				"OnlineSubsystemUtils",
 				"AssetRegistry",
@@ -33,16 +33,17 @@ public class ShooterGame : ModuleRules
 				"AIModule",
 				"GameplayTasks",
 				"Http",
-                "InputCore",
-                "JsonUtilities",
-                "WebBrowser",
-                "AccelByteUe4Sdk",
-                //"AvengersSDK",
-		"Icmp"
+				"InputCore",
+				"JsonUtilities",
+				"WebBrowser",
+				"AccelByteUe4Sdk",
+				//"AvengersSDK",
+		"Icmp",
+		"UMG"
 			}
 		);
 
-        PrivateDependencyModuleNames.AddRange(
+		PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"InputCore",
 				"Slate",
@@ -74,10 +75,10 @@ public class ShooterGame : ModuleRules
 		);
 
 		if (Target.bBuildDeveloperTools || (Target.Configuration != UnrealTargetConfiguration.Shipping && Target.Configuration != UnrealTargetConfiguration.Test))
-        {
-            PrivateDependencyModuleNames.Add("GameplayDebugger");
-            PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
-        }
+		{
+			PrivateDependencyModuleNames.Add("GameplayDebugger");
+			PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=1");
+		}
 		else
 		{
 			PublicDefinitions.Add("WITH_GAMEPLAY_DEBUGGER=0");
@@ -86,6 +87,6 @@ public class ShooterGame : ModuleRules
 
 		// Accelbyte SDK
 		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
-        //PublicIncludePaths.AddRange(new string[] { "AvengersSDK" });   
+		//PublicIncludePaths.AddRange(new string[] { "AvengersSDK" });   
 	}
 }

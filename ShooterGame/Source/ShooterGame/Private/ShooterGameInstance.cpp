@@ -4,6 +4,11 @@
 	ShooterGameInstance.cpp
 =============================================================================*/
 
+#define FORCE_PROVIDER_AWS
+
+#include "UObject/ConstructorHelpers.h"
+#include "Blueprint/UserWidget.h"
+// shootergame
 #include "ShooterGame.h"
 #include "ShooterGameInstance.h"
 #include "ShooterMainMenu.h"
@@ -35,7 +40,7 @@
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
-
+#include "UMG/LoginMenuUI.h"
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -96,6 +101,7 @@ namespace ShooterGameInstanceState
 	const FName MainMenu = FName(TEXT("MainMenu"));
 	const FName MessageMenu = FName(TEXT("MessageMenu"));
 	const FName Playing = FName(TEXT("Playing"));
+	const FName LoginMenu = FName(TEXT("LoginMenu"));
 }
 
 
@@ -103,26 +109,62 @@ UShooterGameInstance::UShooterGameInstance(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 	, OnlineMode(EOnlineMode::Online) // Default to online
 	, bIsLicensed(true) // Default to licensed (should have been checked by OS on boot)
+	, bIsInitialized(false)
+	, bIsActiveFromPIE(false)
 {
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] UShooterGameInstance() Constructor!"));
+
 	CurrentState = ShooterGameInstanceState::None;
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> LoginMenuBPClass(TEXT("/Game/UMG/LoginMenu/WB_LoginMenu"));
+	if (!ensure(LoginMenuBPClass.Class != nullptr))
+	{
+		return;
+	}
+
+	// place off the reference to the menu variable
+	LoginMenuClass = LoginMenuBPClass.Class;
+
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *LoginMenuClass->GetName());
 }
 
 void UShooterGameInstance::Init() 
 {
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Init"));
+
 	Super::Init();
 	IgnorePairingChangeForControllerId = -1;
 	CurrentConnectionStatus = EOnlineServerConnectionStatus::Connected;
 
 	LocalPlayerOnlineStatus.InsertDefaulted(0, MAX_LOCAL_PLAYERS);
 
+	//moved to setupcallbacks()
+	SetupCallbacks();
+
+	if (!IsRunningDedicatedServer())
+	{
+		// Login with launcher
+		GameClientLogin();
+	}
+	else
+	{
+		// Login with credentials
+		GameServerLogin();
+	}
+
+	bIsInitialized = true;
+}
+
+void UShooterGameInstance::SetupCallbacks()
+{
 	// game requires the ability to ID users.
 	const auto OnlineSub = IOnlineSubsystem::Get();
 	check(OnlineSub);
 	const auto IdentityInterface = OnlineSub->GetIdentityInterface();
 	check(IdentityInterface.IsValid());
 
- 	const auto SessionInterface = OnlineSub->GetSessionInterface();
- 	check(SessionInterface.IsValid());
+	const auto SessionInterface = OnlineSub->GetSessionInterface();
+	check(SessionInterface.IsValid());
 
 	// bind any OSS delegates we needs to handle
 	for (int i = 0; i < MAX_LOCAL_PLAYERS; ++i)
@@ -148,13 +190,13 @@ void UShooterGameInstance::Init()
 
 	bPendingEnableSplitscreen = false;
 
-	OnlineSub->AddOnConnectionStatusChangedDelegate_Handle( FOnConnectionStatusChangedDelegate::CreateUObject( this, &UShooterGameInstance::HandleNetworkConnectionStatusChanged ) );
+	OnlineSub->AddOnConnectionStatusChangedDelegate_Handle(FOnConnectionStatusChangedDelegate::CreateUObject(this, &UShooterGameInstance::HandleNetworkConnectionStatusChanged));
 
 	if (SessionInterface.IsValid())
 	{
-		SessionInterface->AddOnSessionFailureDelegate_Handle( FOnSessionFailureDelegate::CreateUObject( this, &UShooterGameInstance::HandleSessionFailure ) );
+		SessionInterface->AddOnSessionFailureDelegate_Handle(FOnSessionFailureDelegate::CreateUObject(this, &UShooterGameInstance::HandleSessionFailure));
 	}
-	
+
 	OnEndSessionCompleteDelegate = FOnEndSessionCompleteDelegate::CreateUObject(this, &UShooterGameInstance::OnEndSessionComplete);
 
 	TickDelegate = FTickerDelegate::CreateUObject(this, &UShooterGameInstance::Tick);
@@ -166,207 +208,216 @@ void UShooterGameInstance::Init()
 	{
 		DebugTestEncryptionKey[i] = uint8(i);
 	}
-	
+
 	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
 	OnGetOnlineUsersResponse = Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
-    FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
+	FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
-    AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected =  AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
-        AccelByte::FRegistry::Lobby.SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
+	AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected = AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
+		AccelByte::FRegistry::Lobby.SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
 		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
-    });
+	});
 
 
-    AccelByte::FErrorHandler OnLobbyErrorConnect =  AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-    });
-    AccelByte::FErrorHandler OnLobbyParsingError = AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Parsing Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-    });
+	AccelByte::FErrorHandler OnLobbyErrorConnect = AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+	});
+	AccelByte::FErrorHandler OnLobbyParsingError = AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Parsing Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+	});
 
-    AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%d"), StatusCode, *Reason, WasClean);
-    });
+	AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%d"), StatusCode, *Reason, WasClean);
+	});
 
-    FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);
-    FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyErrorConnect);
-    FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
-    FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
+	FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);
+	FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyErrorConnect);
+	FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
+	FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
+}
 
-	if (!IsRunningDedicatedServer())
+void UShooterGameInstance::GameClientLogin()
+{
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get QoS Latencies..."));
+	GetQos();
+
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login starts..."));
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher"));
+	bool bHasDone = false;
+	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&]()
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get QoS Latencies..."));
-		GetQos();
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher success"));
+		SetupUser();
+		bHasDone = true;
+	});
+	AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher error: %s"), *Message);
+		// Open login menu with username & password
+		GotoState(ShooterGameInstanceState::LoginMenu);
+		bHasDone = true;
+	});
+	FRegistry::User.LoginWithLauncher(OnLoginSuccess, OnLoginError);
 
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login Started..."));
-		bool bHasDone = false;
-		FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&] {
-			UserToken.User_id = AccelByte::FRegistry::Credentials.GetUserId();
-			UserToken.Display_name = AccelByte::FRegistry::Credentials.GetUserDisplayName();
-
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login With username password success"));
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login..."));
-			AccelByte::FRegistry::Lobby.Connect();
-			bHasDone = true;
-
-			InitStatistic();
-
-			/*UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
-			AccelByte::Api::UserProfile::CreateEntitlementReceiver(UserToken.User_id,
-				TEXT("ext-userid-001"),
-				TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
-				AccelByte::THandler<FString>::CreateLambda([&bHasDone](FString Result) mutable {
-				bHasDone = true;
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
-
-			}), AccelByte::FErrorHandler::CreateLambda([&bHasDone](int32 Code, FString Message) mutable {
-				bHasDone = true;
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
-			}));*/
-		});
-
-		AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message) {
-			bHasDone = true;
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher Error: %s"), *Message);
-		});
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login From Launcher"));
-		FRegistry::User.LoginWithLauncher(OnLoginSuccess, OnLoginError);
-
-		// Blocking here
-		double LastTime = FPlatformTime::Seconds();
-		while (!bHasDone)
-		{
-			const double AppTime = FPlatformTime::Seconds();
-			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
-			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
-			LastTime = AppTime;
-			FPlatformProcess::Sleep(0.5f);
-		}
+	// Blocking here
+	double LastTime = FPlatformTime::Seconds();
+	while (!bHasDone)
+	{
+		const double AppTime = FPlatformTime::Seconds();
+		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+		FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+		LastTime = AppTime;
+		FPlatformProcess::Sleep(0.5f);
 	}
-	else
+}
+
+void UShooterGameInstance::GameServerLogin()
+{
+	bool bClientLoginDone = false;
+	FRegistry::ServerOauth2.LoginWithClientCredentials(
+		FVoidHandler::CreateLambda([&bClientLoginDone]()
 	{
-		bool bClientLoginDone = false;
-		FRegistry::ServerOauth2.LoginWithClientCredentials(
-			FVoidHandler::CreateLambda([&bClientLoginDone]()
+		UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
+		FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
+		{
+			UE_LOG(LogTemp, Log, TEXT("\tServer got heartbeat match request."));
+			UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
+			if (GameEngine)
 			{
-				UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
-				FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
+				UWorld* World = GameEngine->GetGameWorld();
+				if (World)
 				{
-					UE_LOG(LogTemp, Log, TEXT("\tServer got heartbeat match request."));
-					UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
-					if (GameEngine)
+					AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
+					if (GameMode)
 					{
-						UWorld* World = GameEngine->GetGameWorld();
-						if (World)
+						if (matchRequest.Session_id.IsEmpty()) { return; }
+						if (!GameMode->IsMatchStarted())
 						{
-							AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
-							if (GameMode)
+							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+							MatchmakingInfo.channel = matchRequest.Game_mode;
+							MatchmakingInfo.match_id = matchRequest.Session_id;
+							for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
 							{
-								if (matchRequest.Session_id.IsEmpty()) { return; }
-								if (!GameMode->IsMatchStarted())
+								FAccelByteModelsMatchmakingParty tmp;
+								tmp.party_id = partyMember.Matching_parties[0].Party_id;
+								tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
+								for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
 								{
-									FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-									MatchmakingInfo.channel = matchRequest.Game_mode;
-									MatchmakingInfo.match_id = matchRequest.Session_id;
-									for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
-									{
-										FAccelByteModelsMatchmakingParty tmp;
-										tmp.party_id = partyMember.Matching_parties[0].Party_id;
-										tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
-										for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
-										{
-											tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
-										}
-										MatchmakingInfo.matching_parties.Add(tmp);
-									}
-									GameMode->SetupMatch(MatchmakingInfo);
-									UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
+									tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
 								}
+								MatchmakingInfo.matching_parties.Add(tmp);
 							}
-							else
-							{
-								UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameMode not found"));
-							}
-						}
-						else
-						{
-							UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: World not found"));
+							GameMode->SetupMatch(MatchmakingInfo);
+							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
 						}
 					}
 					else
 					{
-						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameEngine not found"));
+						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameMode not found"));
 					}
-				}));
-				FRegistry::ServerDSM.ConfigureHeartBeat(true, ShooterGameConfig::Get().ServerHeartbeatInterval_);
-
-				FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
-				{
-					bClientLoginDone = true;
-					UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
-				});
-
-				// Deregister & re-register itself IF registration failed on local server due to conflict
-				AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&, onSuccess = onRegisterServerSuccess](int32 ErrorCode, FString ErrorMessage)
-				{
-					if (ErrorCode == 409)
-					{
-						if (ShooterGameConfig::Get().IsLocalMode_)
-						{
-							FRegistry::ServerDSM.DeregisterLocalServerFromDSM(
-								ShooterGameConfig::Get().LocalServerName_,
-								FVoidHandler::CreateLambda([&, onSuccess = onSuccess]() {
-									FRegistry::ServerDSM.RegisterLocalServerToDSM(
-										ShooterGameConfig::Get().LocalServerIP_, 
-										ShooterGameConfig::Get().ServerPort_, 
-										ShooterGameConfig::Get().LocalServerName_, 
-										onSuccess,
-										AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage){ FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); }));
-								}),
-								AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage){ FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode);})
-							);
-						}
-					}
-					else
-					{
-						bClientLoginDone = true;
-						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
-					}
-				});
-
-				if (ShooterGameConfig::Get().IsLocalMode_)
-				{
-					FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, ShooterGameConfig::Get().LocalServerName_, onRegisterServerSuccess, onRegisterServerFailed);
 				}
 				else
 				{
-					FRegistry::ServerDSM.RegisterServerToDSM(ShooterGameConfig::Get().ServerPort_, onRegisterServerSuccess,onRegisterServerFailed);
+					UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: World not found"));
 				}
-			}), 
-			AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
+			}
+			else
+			{
+				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameEngine not found"));
+			}
+		}));
+		FRegistry::ServerDSM.ConfigureHeartBeat(true, ShooterGameConfig::Get().ServerHeartbeatInterval_);
+
+		FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
+		{
+			bClientLoginDone = true;
+			UE_LOG(LogTemp, Log, TEXT("\t\tServer successfully registers to DSM."));
+		});
+
+		// Deregister & re-register itself IF registration failed on local server due to conflict
+		AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&, onSuccess = onRegisterServerSuccess](int32 ErrorCode, FString ErrorMessage)
+		{
+			if (ErrorCode == 409)
+			{
+				if (ShooterGameConfig::Get().IsLocalMode_)
+				{
+					FRegistry::ServerDSM.DeregisterLocalServerFromDSM(
+						ShooterGameConfig::Get().LocalServerName_,
+						FVoidHandler::CreateLambda([&, onSuccess = onSuccess]() {
+						FRegistry::ServerDSM.RegisterLocalServerToDSM(
+							ShooterGameConfig::Get().LocalServerIP_,
+							ShooterGameConfig::Get().ServerPort_,
+							ShooterGameConfig::Get().LocalServerName_,
+							onSuccess,
+							AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); }));
+					}),
+						AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); })
+						);
+				}
+			}
+			else
 			{
 				bClientLoginDone = true;
-				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to login client.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
-			})
+				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to register server to DSM.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+			}
+		});
+
+		if (ShooterGameConfig::Get().IsLocalMode_)
+		{
+			FRegistry::ServerDSM.RegisterLocalServerToDSM(ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_, ShooterGameConfig::Get().LocalServerName_, onRegisterServerSuccess, onRegisterServerFailed);
+		}
+		else
+		{
+			FRegistry::ServerDSM.RegisterServerToDSM(ShooterGameConfig::Get().ServerPort_, onRegisterServerSuccess, onRegisterServerFailed);
+		}
+	}),
+		AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
+	{
+		bClientLoginDone = true;
+		UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to login client.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
+	})
 		);
 
-		// Blocking here
-		double lastTime = FPlatformTime::Seconds();
-		while(!bClientLoginDone)
-		{
-			const double AppTime = FPlatformTime::Seconds();
-			FHttpModule::Get().GetHttpManager().Tick(AppTime - lastTime);
-			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
-			lastTime = AppTime;
-			FPlatformProcess::Sleep(0.5f);
-		}
+	// Blocking here
+	double lastTime = FPlatformTime::Seconds();
+	while (!bClientLoginDone)
+	{
+		const double AppTime = FPlatformTime::Seconds();
+		FHttpModule::Get().GetHttpManager().Tick(AppTime - lastTime);
+		FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+		lastTime = AppTime;
+		FPlatformProcess::Sleep(0.5f);
+	}
+}
+
+void UShooterGameInstance::ConnectToLobby()
+{
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Connecting to Lobby..."));
+	AccelByte::FRegistry::Lobby.Connect();
+}
+
+void UShooterGameInstance::DisconnectFromLobby()
+{
+	if (AccelByte::FRegistry::Lobby.IsConnected())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Disconnect from Lobby..."));
+		AccelByte::FRegistry::Lobby.Disconnect();
 	}
 }
 
 void UShooterGameInstance::Shutdown()
 {
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Shutdown ..."));
+
+	// TODO: All widget must be removed
+	//EndLoginMenuState();
+	if (ensure(LoginMenuClass != nullptr))
+	{
+		LoginMenuClass = nullptr;
+	}
+
 	Super::Shutdown();
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
@@ -516,6 +567,7 @@ void UShooterGameInstance::HandleDemoPlaybackFailure( EDemoPlayFailure::Type Fai
 
 void UShooterGameInstance::StartGameInstance()
 {
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] StartGameInstance"));
 #if PLATFORM_PS4 == 0
 	TCHAR Parm[4096] = TEXT("");
 
@@ -559,8 +611,29 @@ void UShooterGameInstance::StartGameInstance()
 		}
 	}
 #endif
+	// Commented this, go to login menu first (after login with launcher failed) instead of main menu
+	//GotoInitialState();
+}
 
-	GotoInitialState();
+void UShooterGameInstance::ForceGotoMainMenu()
+{
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu"));
+	if (bIsInitialized)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu bIsInitialized = true"));
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu Pendingstate : %s & Currentstate : %s"), *PendingState.ToString(), *CurrentState.ToString());
+		if (PendingState == CurrentState || PendingState == ShooterGameInstanceState::None)
+		{
+			// Go ahead and go into loading state now
+			// If we fail, the delegate will handle showing the proper messaging and move to the correct state
+			bIsActiveFromPIE = true;
+			GotoState(ShooterGameInstanceState::MainMenu);
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu bIsInitialized = false"));
+	}
 }
 
 FName UShooterGameInstance::GetInitialState()
@@ -780,6 +853,10 @@ void UShooterGameInstance::EndCurrentState(FName NextState)
 	{
 		EndPlayingState();
 	}
+	else if (CurrentState == ShooterGameInstanceState::LoginMenu)
+	{
+		EndLoginMenuState();
+	}
 
 	CurrentState = ShooterGameInstanceState::None;
 }
@@ -807,6 +884,10 @@ void UShooterGameInstance::BeginNewState(FName NewState, FName PrevState)
 	else if (NewState == ShooterGameInstanceState::Playing)
 	{
 		BeginPlayingState();
+	}
+	else if (NewState == ShooterGameInstanceState::LoginMenu)
+	{
+		BeginLoginMenuState();
 	}
 
 	CurrentState = NewState;
@@ -881,6 +962,86 @@ void UShooterGameInstance::SetPresenceForLocalPlayers(const FString& StatusStr, 
 	}
 }
 
+void UShooterGameInstance::BeginLoginMenuState()
+{
+	// Make sure we're not showing the loadscreen
+	UShooterGameViewportClient * ShooterViewport = Cast<UShooterGameViewportClient>(GetGameViewportClient());
+
+	if (ShooterViewport != NULL)
+	{
+		ShooterViewport->HideLoadingScreen();
+	}
+
+	SetOnlineMode(EOnlineMode::Offline);
+
+	// Disallow splitscreen
+	UGameViewportClient* GameViewportClient = GetGameViewportClient();
+
+	if (GameViewportClient)
+	{
+		GetGameViewportClient()->SetDisableSplitscreenOverride(true);
+	}
+
+	// Remove any possible splitscren players
+	RemoveSplitScreenPlayers();
+
+	// Set presence to menu state for the owning player
+	SetPresenceForLocalPlayers(FString(TEXT("In Menu")), FVariantData(FString(TEXT("OnMenu"))));
+
+	// load startup map
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState Loading startup map"));
+	UWorld* const World = GetWorld();
+	if (World->IsPlayInEditor())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is PIE the mainmenu map is already loaded"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is NOT PIE start loading the mainmenu map"));
+		LoadFrontEndMap(MainMenuMap);
+	}
+
+	if (!ensure(LoginMenuClass != nullptr))
+	{
+		return;
+	}
+
+	LoginMenuUI = CreateWidget<ULoginMenuUI>(this, LoginMenuClass);
+
+	if (!ensure(LoginMenuUI != nullptr))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState LoginMenuUI is null"));
+		return;
+	}
+
+	// add the widget to viewport
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState setup LoginMenuUI to viewport"));
+	LoginMenuUI->Setup();
+
+	/*AShooterPlayerController* playerController = nullptr;
+	if(LocalPlayers.Num() > 1)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState get player controller cast it to AShooterPlayerController"));
+		playerController = Cast<AShooterPlayerController>(LocalPlayers[0]->PlayerController);
+	}*/
+
+	LoginMenuUI->SetMenuInterface(this);
+
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState END"));
+}
+
+void UShooterGameInstance::EndLoginMenuState()
+{
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] EndLoginMenuState"));
+
+	if (LoginMenuUI != nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] EndLoginMenuState teardon LoginMenuUI"));
+		LoginMenuUI->Teardown();
+		LoginMenuUI = nullptr;
+	}
+}
+
 void UShooterGameInstance::BeginMainMenuState()
 {
 	// Make sure we're not showing the loadscreen
@@ -908,7 +1069,17 @@ void UShooterGameInstance::BeginMainMenuState()
 	SetPresenceForLocalPlayers(FString(TEXT("In Menu")), FVariantData(FString(TEXT("OnMenu"))));
 
 	// load startup map
-	LoadFrontEndMap(MainMenuMap);
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState Loading startup map"));
+	UWorld* const World = GetWorld();
+	if (World->IsPlayInEditor())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is PIE the mainmenu map is already loaded"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is NOT PIE start loading the mainmenu map"));
+		LoadFrontEndMap(MainMenuMap);
+	}
 
 	// player 0 gets to own the UI
 	ULocalPlayer* const Player = GetFirstGamePlayer();
@@ -937,25 +1108,25 @@ void UShooterGameInstance::BeginMainMenuState()
 
 
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Started"));
-    
-    // check cache first
-    FString CurrentUserID = UserProfileInfo.UserId = UserToken.User_id;
-    IFileManager& FileManager = IFileManager::Get();
-    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *CurrentUserID);
+	
+	// check cache first
+	FString CurrentUserID = UserProfileInfo.UserId = UserToken.User_id;
+	IFileManager& FileManager = IFileManager::Get();
+	FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *CurrentUserID);
 	if (FileManager.FileExists(*CacheTextDir))
-    {
-        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
-        FString FileToLoad;
-        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
-        {
-            TArray<FString> Raw;
-            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
-            if (Raw.Num() > 0)
-            {
-                FString ImagePath = Raw[0];
-                FString CachedDisplayName = Raw.Last();
+	{
+		UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+		FString FileToLoad;
+		if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+		{
+			TArray<FString> Raw;
+			FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+			if (Raw.Num() > 0)
+			{
+				FString ImagePath = Raw[0];
+				FString CachedDisplayName = Raw.Last();
 
-                FString ImageCache = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
+				FString ImageCache = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
 
 				if (UserToken.Display_name.IsEmpty())
 				{
@@ -964,35 +1135,35 @@ void UShooterGameInstance::BeginMainMenuState()
 
 				MainMenuUI->UpdateUserProfileFromCache(CachedDisplayName, CurrentUserID, ImageCache);
 				GetStatItems();
-            }
-            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
-        }
-    }
-    else
-    {
+			}
+			UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+		}
+	}
+	else
+	{
 		THandler<FAccelByteModelsUserProfileInfo> OnUserProfileObtained = THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this](const FAccelByteModelsUserProfileInfo& UserProfileInfo){
 			MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, UserProfileInfo.AvatarUrl);
 			GetStatItems();
 			});
 
-        FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
+		FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
 			[this, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
 		{
 			FAccelByteModelsUserProfileInfo ResultGetUserProfile = UserProfileInfo;
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultGetUserProfile.UserId);
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultGetUserProfile.UserId);
 			if (UserToken.Display_name.IsEmpty())
 			{
 				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
 			}
 
 			OnUserProfileObtained.ExecuteIfBound(UserProfileInfo);
-            this->UserProfileInfo = ResultGetUserProfile; // save our own
+			this->UserProfileInfo = ResultGetUserProfile; // save our own
 
-        }),
-            AccelByte::FErrorHandler::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](int32 Code, FString Message) {
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
+		}),
+			AccelByte::FErrorHandler::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](int32 Code, FString Message) {
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
 
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
 
 			if (UserToken.Display_name.IsEmpty())
 			{
@@ -1009,21 +1180,21 @@ void UShooterGameInstance::BeginMainMenuState()
 			defaultCreateProfileRequest.FirstName = UserToken.Display_name;
 			defaultCreateProfileRequest.LastName = UserToken.Display_name;
 
-            FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& Result) {
+			FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& Result) {
 				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
 				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
 
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultCreateUserProfile.UserId);
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultCreateUserProfile.UserId);
 				OnUserProfileObtained.ExecuteIfBound(Result);
-                this->UserProfileInfo = ResultCreateUserProfile; // save our own
+				this->UserProfileInfo = ResultCreateUserProfile; // save our own
 
-            }), AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message) {
-                MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
-            }));
+			}), AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message) {
+				MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
+			}));
 
-        }));
-    }
+		}));
+	}
 
 	RemoveNetworkFailureHandlers();
 }
@@ -1084,7 +1255,24 @@ void UShooterGameInstance::GetStatItems()
 void UShooterGameInstance::GetQos()
 {
 	FRegistry::Qos.GetServerLatencies(THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result){
-			ShooterGameConfig::Get().SetServerLatencies(Result);
+#ifdef FORCE_PROVIDER_AWS
+		TArray<TPair<FString, float>> aws_only;
+		for(TPair<FString, float> region : Result)
+		{
+			UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] GetQos region : %s"), *region.Key);
+			const FString sg_str = "ap-southeast-1";
+			const FString us_str = "us-west-2";
+			if (region.Key == sg_str || region.Key == us_str)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] GetQos add aws : %s"));
+				aws_only.Add(region);
+			}
+		}
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] GetQos set aws_only"));
+		ShooterGameConfig::Get().SetServerLatencies(aws_only);
+#else
+		ShooterGameConfig::Get().SetServerLatencies(Result);
+#endif // FORCE_PROVIDER_AWS
 		}),
 		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
 			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
@@ -2218,7 +2406,6 @@ bool UShooterGameInstance::ValidatePlayerIsSignedIn(ULocalPlayer* LocalPlayer)
 	return true;
 }
 
-
 FReply UShooterGameInstance::OnConfirmGeneric()
 {
 	UShooterGameViewportClient * ShooterViewport = Cast<UShooterGameViewportClient>(GetGameViewportClient());
@@ -2496,4 +2683,64 @@ void UShooterGameInstance::ReceivedNetworkEncryptionAck(const FOnEncryptionKeyRe
 	Response.EncryptionKey = DebugTestEncryptionKey;
 
 	Delegate.ExecuteIfBound(Response);
+}
+
+#pragma region Override Menu Interface
+void UShooterGameInstance::LoginWithUsername(FString Username, FString Password)
+{
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username"));
+	bool bHasDone = false;
+	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&]()
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username success"));
+		SetupUser();
+		bHasDone = true;
+	});
+	AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username error: %s"), *Message);
+		LoginMenuUI->SetErrorLoginMessage(TEXT("Failed to Login"));
+		bHasDone = true;
+	});
+	FRegistry::User.LoginWithUsername(Username, Password, OnLoginSuccess, OnLoginError);
+
+	// Blocking here
+	double LastTime = FPlatformTime::Seconds();
+	while (!bHasDone)
+	{
+		const double AppTime = FPlatformTime::Seconds();
+		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+		FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+		LastTime = AppTime;
+		FPlatformProcess::Sleep(0.5f);
+	}
+}
+#pragma endregion Override Menu Interface
+
+void UShooterGameInstance::SetupUser()
+{
+	UserToken.User_id = AccelByte::FRegistry::Credentials.GetUserId();
+	UserToken.Display_name = AccelByte::FRegistry::Credentials.GetUserDisplayName();
+
+	ConnectToLobby();
+
+	InitStatistic();
+
+	GotoState(ShooterGameInstanceState::MainMenu);
+
+	/*UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
+	AccelByte::Api::UserProfile::CreateEntitlementReceiver(
+		UserToken.User_id,
+		TEXT("ext-userid-001"),
+		TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
+		AccelByte::THandler<FString>::CreateLambda([&bHasDone](FString Result) mutable
+	{
+		bHasDone = true;
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
+
+	}), AccelByte::FErrorHandler::CreateLambda([&bHasDone](int32 Code, FString Message) mutable
+	{
+		bHasDone = true;
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
+	}));*/
 }
