@@ -128,6 +128,17 @@ UShooterGameInstance::UShooterGameInstance(const FObjectInitializer& ObjectIniti
 	LoginMenuClass = LoginMenuBPClass.Class;
 
 	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *LoginMenuClass->GetName());
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> MainMenuBPClass(TEXT("/Game/UMG/MainMenu/WB_MainMenu"));
+	if (!ensure(MainMenuBPClass.Class != nullptr))
+	{
+		return;
+	}
+
+	// place off the reference to the menu variable
+	MainMenuClass = MainMenuBPClass.Class;
+
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *MainMenuClass->GetName());
 }
 
 void UShooterGameInstance::Init() 
@@ -440,6 +451,11 @@ void UShooterGameInstance::Shutdown()
 	}
 
 	ShooterGameTelemetry::Get().Logout();
+	if (ensure(MainMenuClass != nullptr))
+	{
+		MainMenuClass = nullptr;
+	}
+	DisconnectFromLobby();
 	Super::Shutdown();
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
@@ -1095,14 +1111,35 @@ void UShooterGameInstance::BeginMainMenuState()
 	UWorld* const World = GetWorld();
 	if (World->IsPlayInEditor())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is PIE the mainmenu map is already loaded"));
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState is PIE the mainmenu map is already loaded"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is NOT PIE start loading the mainmenu map"));
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState is NOT PIE start loading the mainmenu map"));
 		LoadFrontEndMap(MainMenuMap);
 	}
 
+	if (!ensure(MainMenuClass != nullptr))
+	{
+		return;
+	}
+
+	MainMenuUMGUI = CreateWidget<UMainMenuUI>(this, MainMenuClass);
+
+	if (!ensure(MainMenuUMGUI != nullptr))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState MainMenuUMGUI is null"));
+		return;
+	}
+
+	// add the widget to viewport
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState setup MainMenuUMGUI to viewport"));
+	MainMenuUMGUI->Setup();
+
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState END"));
+
+	// TODO: Migrate from SlateUI into UMG
+	/*
 	// player 0 gets to own the UI
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
@@ -1219,6 +1256,7 @@ void UShooterGameInstance::BeginMainMenuState()
 	}
 
 	RemoveNetworkFailureHandlers();
+	*/
 }
 
 void UShooterGameInstance::GetStatItems()
@@ -1328,11 +1366,21 @@ void UShooterGameInstance::InitStatistic()
 
 void UShooterGameInstance::EndMainMenuState()
 {
+	// TODO: Migrate from SlateUI into UMG
+	/*
 	if (MainMenuUI.IsValid())
 	{
 		MainMenuUI->RemoveMenuFromGameViewport();
 		MainMenuUI = nullptr;
 	}
+	*/
+	if (MainMenuUMGUI != nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] EndMainMenuState teardon MainMenuUMGUI"));
+		MainMenuUMGUI->Teardown();
+		MainMenuUMGUI = nullptr;
+	}
+	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] EndMainMenuState"));
 }
 
 void UShooterGameInstance::BeginMessageMenuState()

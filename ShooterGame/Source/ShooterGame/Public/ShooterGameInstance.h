@@ -453,9 +453,14 @@ private:
 	#pragma region UMG menu
 	/** Hold login menu from UMG */
 	TSubclassOf<class UUserWidget> LoginMenuClass;
+	/** Hold main menu from UMG */
+	TSubclassOf<class UUserWidget> MainMenuClass;
 
 	/** Login Menu UI widget */
 	class ULoginMenuUI* LoginMenuUI;
+	/** Main Menu UI widget */
+	// TODO: Rename into MainMenuUI after MainMenuUI of Slate UI is completely removed.
+	class UMainMenuUI* MainMenuUMGUI;
 	#pragma endregion UMG menu
 
 protected:
