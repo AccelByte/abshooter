@@ -521,6 +521,29 @@ void SLobby::Construct(const FArguments& InArgs)
         PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
         bReadyConsent = false;
         GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
+
+		TSharedPtr<FTimerHandle> DummyHandle = MakeShared<FTimerHandle>();
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*DummyHandle, TFunction<void(void)>([&, DummyHandle]()
+		{
+			if (!FRegistry::Lobby.IsConnected())
+			{
+				bMatchmakingStarted = false;
+				GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*DummyHandle);
+				ShowMessageDialog("Connection lost when finding match!", FOnClicked::CreateLambda([&]()
+				{
+					CloseMessageDialog();
+					return FReply::Handled();
+				}));
+			}
+			else
+			{
+				if (bAlreadyEnteringLevel)
+				{
+					GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*DummyHandle);
+				}
+			}
+		}), 1.0f, true, 0.f);
+
 		if (ShooterGameConfig::Get().IsLocalMode_)
 		{
 			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
