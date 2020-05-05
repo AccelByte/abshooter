@@ -1329,46 +1329,55 @@ FReply SLobby::OnRequestFriend()
     }
 
     const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
-    FRegistry::User.SearchUsers(FriendEmailAddress,
-        THandler<FPagedPublicUsersInfo>::CreateLambda([&](const FPagedPublicUsersInfo& Users)
-    {
-        FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);
-    }),
-        FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-    {
-        FString ErrorMessage = Message;
-        if (Code == 404)
-        {
-            ErrorMessage = FString::Printf(TEXT("%s does not exist."), *FriendEmailAddress);
-        }
-        CloseOverlay(NotificationOverlay);
-        TSharedPtr<SShooterConfirmationDialog> Dialog;
-        SAssignNew(NotificationOverlay, SOverlay)
-            + SOverlay::Slot()
-            [
-                SNew(SBox)
-                .HAlign(HAlign_Fill)
-            .VAlign(VAlign_Fill)
-            [
-                SNew(SImage)
-                .Image(&OverlayBackgroundBrush)
-            ]
-            ]
-        + SOverlay::Slot()
-            [
-                SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-                .MessageText(FText::FromString(ErrorMessage))
-            .ConfirmText(FText::FromString("OK"))
-            .OnConfirmClicked(FOnClicked::CreateLambda([&]()
-        {
-            CloseOverlay(NotificationOverlay);
-            return FReply::Handled();
-        }))
-            ];
 
-        GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-        FSlateApplication::Get().SetKeyboardFocus(Dialog);
-    }));
+	FErrorHandler OnSearchUserFailed = FErrorHandler::CreateLambda([&, FriendEmailAddress](int32 Code, FString Message)
+		{
+			FString ErrorMessage = Message;
+			if (Code == 404)
+			{
+				ErrorMessage = FString::Printf(TEXT("%s does not exist."), *FriendEmailAddress);
+			}
+			CloseOverlay(NotificationOverlay);
+			TSharedPtr<SShooterConfirmationDialog> Dialog;
+			SAssignNew(NotificationOverlay, SOverlay)
+				+ SOverlay::Slot()
+				[
+					SNew(SBox)
+					.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SImage)
+					.Image(&OverlayBackgroundBrush)
+				]
+				]
+			+ SOverlay::Slot()
+				[
+					SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
+					.MessageText(FText::FromString(ErrorMessage))
+				.ConfirmText(FText::FromString("OK"))
+				.OnConfirmClicked(FOnClicked::CreateLambda([&]()
+					{
+						CloseOverlay(NotificationOverlay);
+						return FReply::Handled();
+					}))
+				];
+
+			GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
+			FSlateApplication::Get().SetKeyboardFocus(Dialog);
+		});
+
+	FRegistry::User.SearchUsers(FriendEmailAddress,
+		THandler<FPagedPublicUsersInfo>::CreateLambda([&, OnSearchUserFailed](const FPagedPublicUsersInfo& Users)
+	{
+		if (Users.Data.Num() == 0)
+		{
+			OnSearchUserFailed.Execute(404, "Email not found");
+		}
+		else
+		{
+			FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);
+		}
+	}), OnSearchUserFailed);
     return FReply::Handled();
 }
 
