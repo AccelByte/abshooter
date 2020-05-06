@@ -177,22 +177,28 @@ void SLobby::Construct(const FArguments& InArgs)
         }
         else
         {
-            if (Response.Status == EAccelByteMatchmakingStatus::Cancel)
-            {
-                GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Matchmaking canceled by party leader"), true, FVector2D(2.0f, 2.0f));
-            }
-            else if (Response.Status == EAccelByteMatchmakingStatus::Timeout)
-            {
-                GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Matchmaking failed: Timeout"), true, FVector2D(2.0f, 2.0f));
-            }
-            else if (Response.Status == EAccelByteMatchmakingStatus::Unavailable)
-            {
-                GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, TEXT("Matchmaking failed: Dedicated server unavailable"), true, FVector2D(2.0f, 2.0f));
-            }
-            else
-            {
-                GEngine->AddOnScreenDebugMessage(0, 3, FColor::Cyan, FString::Printf(TEXT("Matchmaking failed: %d"), (int32)Response.Status), true, FVector2D(2.0f, 2.0f));
-            }
+			FString FailMatchmakingReason = "UNKNOWN";
+			switch (Response.Status)
+			{
+			case EAccelByteMatchmakingStatus::Cancel:
+				FailMatchmakingReason = "Matchmaking canceled by party leader";
+				break;
+			case EAccelByteMatchmakingStatus::Timeout:
+				FailMatchmakingReason = "Timeout";
+				break;
+			case EAccelByteMatchmakingStatus::Unavailable :
+				FailMatchmakingReason = "Dedicated server unavailable";
+				break;
+			default:
+				FailMatchmakingReason = FString::Printf(TEXT("Code: %d"), (int32)Response.Status);
+				break;
+			}
+
+			ShowMessageDialog(FString::Printf(TEXT("Failed to do matchmaking\nReason: %s"), *FailMatchmakingReason), FOnClicked::CreateLambda([&]()
+			{
+				CloseMessageDialog();
+				return FReply::Handled();
+			}));
 
             bMatchmakingStarted = false;
             PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
