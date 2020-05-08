@@ -13,7 +13,6 @@
 #include "ShooterCharacter.h"
 #include "ShooterCharacterMovement.h"
 #include "ShooterPlayerController.h"
-#include "ShooterGameClasses.h"
 
 
 class UBehaviorTreeComponent;

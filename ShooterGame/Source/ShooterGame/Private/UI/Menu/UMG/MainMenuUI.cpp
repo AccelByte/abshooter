@@ -4,6 +4,7 @@
 
 #include "MainMenuUI.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 
 bool UMainMenuUI::Initialize()
 {
@@ -28,3 +29,15 @@ void UMainMenuUI::QuitGame()
 	PlayerController->ConsoleCommand("quit");
 }
 #pragma endregion Button Callback
+
+void UMainMenuUI::SetDisplayName(FString DisplayName)
+{
+	if (!ensure(DisplayNameField != nullptr)) return;
+	DisplayNameField->SetText(FText::FromString(DisplayName));
+}
+
+void UMainMenuUI::SetAvatarImage(FSlateBrush AvatarImage)
+{
+	PlayerAvatarImage->SetBrush(AvatarImage);
+}
+
