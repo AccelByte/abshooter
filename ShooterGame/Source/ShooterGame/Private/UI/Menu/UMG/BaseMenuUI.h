@@ -6,7 +6,6 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "MenuInterface.h"
 #include "BaseMenuUI.generated.h"
 
 /**
@@ -18,20 +17,9 @@ class UBaseMenuUI : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	/** Setup widget */
+	/** Setup widget. */
 	void Setup();
 
-	/** Teardown widget */
+	/** Teardown widget. */
 	void Teardown();
-
-	/**
-	* Set menu interface
-	*
-	* @param MenuInterface The menu interface for the widget
-	*/
-	void SetMenuInterface(IMenuInterface* MenuInterface);
-
-protected:
-	/** Menu interface */
-	IMenuInterface* MenuInterface;
 };

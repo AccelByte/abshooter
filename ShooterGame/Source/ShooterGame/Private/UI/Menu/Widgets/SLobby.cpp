@@ -1106,13 +1106,10 @@ void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarU
             ThumbRequest->ProcessRequest();
         }
 
-
         if (!DiplayNameListCache->Contains(UserID))
         {
             DiplayNameListCache->Add(UserID, DisplayName);
         }
-
-
     }
 };
 

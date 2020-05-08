@@ -1,7 +1,9 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "ShooterMainMenu.h"
+#include "UMG/MainMenuUI.h"
+
+#include "ShooterGame.h"
 #include "ShooterGameLoadingScreen.h"
 #include "ShooterStyle.h"
 #include "ShooterMenuWidgetStyle.h"
@@ -65,8 +67,30 @@ FShooterMainMenu::~FShooterMainMenu()
 	CleanupOnlinePrivilegeTask();
 }
 
-void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
+void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TSubclassOf<UUserWidget> MainMenuClass, TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 {
+	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Construct"));
+
+	check(_GameInstance.IsValid());
+	GameInstance = _GameInstance;
+
+	// Load main menu widget
+	if (!ensure(MainMenuClass != nullptr)) return;
+
+
+	MainMenuUI = MakeWeakObjectPtr<UMainMenuUI>(CreateWidget<UMainMenuUI>(GameInstance.Get(), MainMenuClass));
+	if (!ensure(MainMenuUI != nullptr))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] MainMenuUI is null"));
+		return;
+	}
+
+	// Add the widget to viewport
+	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Setup MainMenuUI to viewport"));
+	MainMenuUI->Setup();
+	LobbyWidget = SNew(SLobby);
+	AvatarThumbnailBrush.Reset();
+	/*
 	bShowingDownloadPct = false;
 	bAnimateQuickmatchSearchingUI = false;
 	bUsedInputToCancelQuickmatchSearch = false;
@@ -486,6 +510,76 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInsta
 		CoinsWidgetContainer->BuildAndShowMenu();
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
+	*/
+}
+
+void FShooterMainMenu::Teardown()
+{
+	if (MainMenuUI.IsValid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Teardown MainMenuUI"));
+		MainMenuUI->Teardown();
+		MainMenuUI.Reset();
+	}
+}
+
+void FShooterMainMenu::UpdateUserProfile()
+{
+	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] UpdateUserProfile"));
+	UpdateUserProfile(GameInstance->UserToken.Display_name, GameInstance->UserToken.User_id, GameInstance->UserProfileInfo.AvatarUrl);
+}
+
+void FShooterMainMenu::UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL)
+{
+	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] UpdateUserProfile"));
+
+	MainMenuUI->SetDisplayName(ProfileName);
+
+	if (this->AvatarURL.IsEmpty() || this->AvatarURL != AvatarURL)
+	{
+		this->AvatarURL = AvatarURL;
+		// start download avatar
+		TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+		ThumbRequest->SetVerb("GET");
+		ThumbRequest->SetURL(AvatarURL);
+		ThumbRequest->OnProcessRequestComplete().BindRaw(this, &FShooterMainMenu::OnThumbImageReceived);
+		ThumbRequest->ProcessRequest();
+	}
+	LobbyWidget->SetCurrentUser(UserID, ProfileName, AvatarURL);
+
+	//UserProfileWidget->SetProfileName(ProfileName);
+	//UserProfileWidget->SetUserId(UserID);
+	//UserProfileWidget->UpdateAvatar(AvatarURL);
+	//GameProfileWidget->SetProfileName(FText::FromString(ProfileName));
+	//GameProfileWidget->UpdateAvatar(AvatarURL);
+}
+
+void FShooterMainMenu::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+{
+	if (bWasSuccessful && Response.IsValid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] OnThumbImageReceived"));
+		TArray<uint8> ImageData = Response->GetContent();
+		AvatarThumbnailBrush = LobbyWidget->CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData);
+		MainMenuUI->SetAvatarImage(*AvatarThumbnailBrush.Get());
+	}
+}
+
+void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath)
+{
+	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] UpdateUserProfileFromCache"));
+
+	MainMenuUI->SetDisplayName(ProfileName);
+	TArray<uint8> ImageData;
+	if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
+	{
+		AvatarThumbnailBrush = LobbyWidget->CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData);
+		MainMenuUI->SetAvatarImage(*AvatarThumbnailBrush.Get());
+	}
+	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
+
+	//UserProfileWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
+	//GameProfileWidget->SetCurrentProfileFromCache(UserId, ProfileName, AvatarPath);
 }
 
 void FShooterMainMenu::AddMenuToGameViewport()
@@ -495,35 +589,9 @@ void FShooterMainMenu::AddMenuToGameViewport()
 		UGameViewportClient* const GVC = GEngine->GameViewport;
 		
 		GVC->AddViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
-		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
+		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
 		GVC->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
-
-		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(PlayerOwner->GetWorld(), 0);
-		if (PlayerController)
-		{
-			FInputModeUIOnly InputMode;
-			InputMode.SetWidgetToFocus(MenuWidget);
-			PlayerController->SetInputMode(InputMode);
-		}
-		FSlateApplication::Get().SetKeyboardFocus(MenuWidget);
 	}
-}
-
-void FShooterMainMenu::UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL)
-{
-	UserProfileWidget->SetProfileName(ProfileName);
-	UserProfileWidget->SetUserId(UserID);
-	UserProfileWidget->UpdateAvatar(AvatarURL);
-	GameProfileWidget->SetProfileName(FText::FromString(ProfileName));
-	GameProfileWidget->UpdateAvatar(AvatarURL);
-    LobbyWidget->SetCurrentUser(UserID, ProfileName, AvatarURL);
-}
-
-void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath)
-{
-	UserProfileWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
-	GameProfileWidget->SetCurrentProfileFromCache(UserId, ProfileName, AvatarPath);
-	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
 }
 
 void FShooterMainMenu::UpdateProfileStatItem(FText MVPScore, FText TotalMatch, FText TotalDeathsScore, FText TotalKillsScore)
@@ -540,7 +608,6 @@ void FShooterMainMenu::RemoveMenuFromGameViewport()
 	{
 		GEngine->GameViewport->RemoveViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
 		GEngine->GameViewport->RemoveViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
-
 	}
 }
 

@@ -1,5 +1,11 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "Runtime/Online/HTTP/Public/Http.h"
+#include "Http.h"
+
+// TODO: Refactor into UMG
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "Widgets/ShooterMenuItem.h"
@@ -25,13 +31,34 @@ public:
 
 	virtual ~FShooterMainMenu();
 
-	/** build menu */
-	void Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TWeakObjectPtr<ULocalPlayer> _PlayerOwner);
+	/**
+	* @brief Construct menu.
+	*
+	* @param _GameInstance Instance of the game.
+	* @param MenuClass Blueprint widget class.
+	*/
+	void Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TSubclassOf<class UUserWidget> MainMenuClass, TWeakObjectPtr<ULocalPlayer> _PlayerOwner);
 
+	/** Teardown menu. */
+	void Teardown();
+
+	/** Update user profile based on the game instance. */
+	void UpdateUserProfile();
+
+	/**
+	* @brief Update user profile.
+	*
+	* @param ProfileName Player's profile name.
+	* @param UserID Player's user id.
+	* @param AvatarURL Player's avatar url.
+	*/
+	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
+
+	// TODO: Refactor into UMG
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
 
-	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
+
     void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
 
 	void UpdateProfileStatItem(FText MVPScore, FText TotalMatch, FText TotalDeathsScore, FText TotalKillsScore);
@@ -435,4 +462,19 @@ protected:
 	FDelegateHandle OnMatchmakingCompleteDelegateHandle;
 	FDelegateHandle OnCancelMatchmakingCompleteDelegateHandle;
 	FDelegateHandle OnLoginCompleteDelegateHandle;
+
+private:
+	/** Handle when getting player's avatar image. */
+	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+
+	/** Main Menu UI widget. */
+	TWeakObjectPtr<class UMainMenuUI> MainMenuUI;
+
+	/** Player's avatar url. */
+	FString AvatarURL;
+
+	/** Player's avatar slate image. */
+	TSharedPtr<FSlateDynamicImageBrush> AvatarThumbnailBrush;
+
+	// TODO: Refactor into UMG
 };

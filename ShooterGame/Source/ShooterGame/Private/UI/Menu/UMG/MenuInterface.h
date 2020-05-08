@@ -10,15 +10,15 @@
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
-class UMenuInterface : public UInterface
+class ULoginMenuInterface : public UInterface
 {
 	GENERATED_BODY()
 };
 
 /**
- * Interface for the UMG menu widget.
+ * Interface for the UMG Login menu widget.
  */
-class IMenuInterface
+class ILoginMenuInterface
 {
 	GENERATED_BODY()
 
@@ -26,7 +26,7 @@ class IMenuInterface
 public:
 
 	/**
-	* Login with username and password.
+	* @brief Login with username and password.
 	*
 	* @param Username The login's username of the user.
 	* @param Password The login's password of the user.

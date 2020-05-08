@@ -36,14 +36,13 @@ void UBaseMenuUI::Teardown()
 	if (!ensure(World != nullptr)) return;
 
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
-	if (!ensure(PlayerController != nullptr)) return;
+	if (!ensure(PlayerController != nullptr))
+	{
+		UE_LOG(LogTemp, Log, TEXT("[UBaseMenuUI] PlayerController is null"));
+		return;
+	}
 
 	FInputModeGameOnly InputModeData;
 	PlayerController->SetInputMode(InputModeData);
 	PlayerController->bShowMouseCursor = false;
-}
-
-void UBaseMenuUI::SetMenuInterface(IMenuInterface* MenuInterface)
-{
-	this->MenuInterface = MenuInterface;
 }

@@ -21,21 +21,32 @@ bool ULoginMenuUI::Initialize()
 	return true;
 }
 
+void ULoginMenuUI::SetLoginMenuInterface(ILoginMenuInterface* MenuInterface)
+{
+	if (MenuInterface == nullptr)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[ULoginMenuUI] MenuInterface is null"));
+		return;
+	}
+
+	this->LoginMenuInterface = MenuInterface;
+}
+
 #pragma region Button Callback
 void ULoginMenuUI::LoginWithUsername()
 {
-	if (MenuInterface != nullptr)
+	if (LoginMenuInterface != nullptr)
 	{
 		if (!ensure(ErrorField != nullptr)) return;
 		ErrorField->SetText(FText::FromString(TEXT("")));
 
 		if (!ensure(UsernameField != nullptr)) return;
-		const FString& Username = UsernameField->GetText().ToString();
+		FString Username = UsernameField->GetText().ToString();
 
 		if (!ensure(PasswordField != nullptr)) return;
-		const FString& Password = PasswordField->GetText().ToString();
+		FString Password = PasswordField->GetText().ToString();
 
-		MenuInterface->LoginWithUsername(Username, Password);
+		LoginMenuInterface->LoginWithUsername(Username, Password);
 	}
 }
 
