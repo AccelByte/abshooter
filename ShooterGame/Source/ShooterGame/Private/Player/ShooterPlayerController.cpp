@@ -186,6 +186,13 @@ void AShooterPlayerController::TickActor(float DeltaTime, enum ELevelTick TickTy
 			AShooterHUD* ShooterHUD = GetShooterHUD();
 			if (ShooterHUD)
 			{
+				// Hide ScreenshotWidget, so we can show a clean ScoreBoard
+				if (ScreenshotWidget.IsValid() && ScreenshotWidget->IsShowing())
+				{
+					ToggleScreenshotWindow();
+					SetInputMode(FInputModeUIOnly());
+				}
+
 				ShooterHUD->ShowScoreboard(true, true);
 			}
 		}
@@ -795,6 +802,15 @@ void AShooterPlayerController::ClientEndOnlineGame_Implementation()
 
 void AShooterPlayerController::HandleReturnToMainMenu()
 {
+	// On back to main menu:
+	// We need to hide the screenshot widget, if it visible.
+	// And set the input to UI mode.
+	if (ScreenshotWidget.IsValid() && ScreenshotWidget->IsShowing())
+	{
+		ToggleScreenshotWindow();
+		SetInputMode(FInputModeUIOnly());
+	}
+
 	OnHideScoreboard();
 	CleanupSessionOnReturnToMenu();
 }
