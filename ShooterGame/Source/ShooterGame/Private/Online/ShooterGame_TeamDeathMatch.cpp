@@ -340,7 +340,7 @@ void AShooterGame_TeamDeathMatch::DetermineMatchWinner()
 {
 	AShooterGameState const* const MyGameState = Cast<AShooterGameState>(GameState);
 	int32 BestScore = MIN_uint32;
-	int32 BestTeam = -1;
+	int32 BestTeam = 1;
 	int32 NumBestTeams = 1;
 
 	for (int32 i = 0; i < MyGameState->TeamScores.Num(); i++)
