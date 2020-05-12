@@ -1253,6 +1253,10 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 
 	auto OnError = AccelByte::FErrorHandler::CreateLambda([&, Index](int32 ErrorCode, FString ErrorString) {
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Upload to cloud storage. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+		if (!SavedScreenshotList[Index].IsValid())
+		{
+			SavedScreenshotList[Index] = MakeShareable(new FScreenshotEntry{ Index + 1, "No Image", nullptr });
+		}
 		SavedScreenshotList[Index]->State = ERROR_UPLOAD;
 		SavedScreenshotList[Index]->Title = TEXT("Upload failed");
 		SavedScreenshotList[Index]->Image = nullptr;
