@@ -1493,7 +1493,6 @@ void FShooterMainMenu::OnShowLobby()
 	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
 	ChangeBackground(MenuStyle->LobbyBackground);
 
-	AccelByte::FRegistry::Lobby.LoadFriendsList();
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 	MenuWidget->NextMenu = LobbyMenuItem->SubMenu;
 	MenuWidget->EnterSubMenu();

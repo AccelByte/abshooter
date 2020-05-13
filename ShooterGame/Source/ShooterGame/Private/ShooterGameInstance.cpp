@@ -218,6 +218,8 @@ void UShooterGameInstance::SetupCallbacks()
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
 		AccelByte::FRegistry::Lobby.SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
 		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
+		// Force to load friend list to obtain UserID & displayname list
+		AccelByte::FRegistry::Lobby.LoadFriendsList();
 	});
 
 
