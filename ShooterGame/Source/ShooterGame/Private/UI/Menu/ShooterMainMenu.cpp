@@ -1176,7 +1176,6 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
 
-	GetQoS();
 	UserProfileWidget->SetVisibility(EVisibility::Visible);
 }
 
@@ -1763,10 +1762,21 @@ void FShooterMainMenu::DsRegionOptionChanged(TSharedPtr<FShooterMenuItem> MenuIt
 
 void FShooterMainMenu::GetQoS()
 {
+	const FShooterMenuSoundsStyle& MenuSounds = FShooterStyle::Get().GetWidgetStyle<FShooterMenuSoundsStyle>("DefaultShooterMenuSoundsStyle");
+	FSlateApplication::Get().PlaySound(MenuSounds.ExitGameSound, GetPlayerOwnerControllerId());
+
 	FRegistry::Qos.GetServerLatencies(
 		THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result) {
 			ShooterGameConfig::Get().SetServerLatencies(Result);
 			PopulateRegionLatencies(Result);
+
+			// Then back to main menu
+			MenuWidget->NextMenu = MenuWidget->MainMenu;
+			MenuWidget->EnterSubMenu();
+			const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+			ChangeBackground(LobbyStyle->MainMenuMaterial);
+			FSlateApplication::Get().PlaySound(MenuSounds.StartGameSound, GetPlayerOwnerControllerId());
+
 			}),
 		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
 				UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
