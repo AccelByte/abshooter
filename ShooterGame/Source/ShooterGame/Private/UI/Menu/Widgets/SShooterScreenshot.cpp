@@ -1253,6 +1253,8 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 
 	auto OnError = AccelByte::FErrorHandler::CreateLambda([&, Index](int32 ErrorCode, FString ErrorString) {
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Upload to cloud storage. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+		// If the index is not okay, don't handle the error at all.
+		if (Index >= SavedScreenshotList.Num()) { return; }
 		if (!SavedScreenshotList[Index].IsValid())
 		{
 			SavedScreenshotList[Index] = MakeShareable(new FScreenshotEntry{ Index + 1, "No Image", nullptr });
@@ -1477,6 +1479,9 @@ void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const F
     UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
 	auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
 
+	// If the specified index doesn't exist, abort the operation.
+	if (SlotIndex >= LocalSlots.Num()) { return; }
+
 	if (LocalSlots[SlotIndex].Status == STATUS_PENDING)
 	{
 		SaveScreenshotCloudImage(SlotIndex, Result);
@@ -1577,6 +1582,37 @@ void SShooterScreenshot::OnResolveSlot(int32 Index)
 			}
 		}));
 	Resolver->Show();
+}
+
+/// Called on back to main menu from match to ensure we have clean gallery
+void SShooterScreenshot::RemoveErrorSlots()
+{
+	// Cleanup pending local slot
+	for (auto& slot : LocalSlots)
+	{
+		if (slot.Status == STATUS_PENDING)
+		{
+			slot = FAccelByteModelsSlot();
+		}
+	}
+	SaveScreenshotMetadata();
+
+	for (UINT i = 0; i < SAVE_SLOT_SIZE; i++)
+	{
+		switch (SavedScreenshotList[i]->State)
+		{
+			case EScreenshotState::ERROR:
+			case EScreenshotState::ERROR_UPLOAD:
+				SavedScreenshotList[i]->Image = nullptr;
+				SavedScreenshotList[i]->State = NONE;
+				SavedScreenshotList[i]->Title = TEXT("No Image");
+				SavedScreenshotList[i]->SlotID = TEXT("");
+				DeleteScreenshotImage(i);
+				break;
+			default:
+				break;
+		}
+	}
 }
 
 void SShooterScreenshot::RefreshFromCloud()

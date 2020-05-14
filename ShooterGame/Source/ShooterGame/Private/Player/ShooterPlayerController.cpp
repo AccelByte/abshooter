@@ -811,6 +811,9 @@ void AShooterPlayerController::HandleReturnToMainMenu()
 		SetInputMode(FInputModeUIOnly());
 	}
 
+	// Cleanup failed upload
+	ScreenshotWidget->RemoveErrorSlots();
+
 	OnHideScoreboard();
 	CleanupSessionOnReturnToMenu();
 }
