@@ -1134,6 +1134,14 @@ FString SLobby::GetCurrentUserID()
 
 void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryType Type)
 {
+	for (auto entry : CompleteFriendList)
+	{
+		if (entry->UserId == UserID)
+		{
+			return;
+		}
+	}
+
     TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
     FriendEntry1->UserId = UserID;
     FriendEntry1->Name = DisplayName;
@@ -1676,9 +1684,9 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
             if (ParentClass.IsValid())
             {
                 FString DisplayName = Item->UserId;
-                if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+                if (ParentClass.Pin()->CheckDisplayName(Item->UserId))
                 {
-                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->Name);
+                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->UserId);
                 }
 
                 ParentClass.Pin()->LobbyChatWidget->AddPrivate(Item->UserId, DisplayName);
@@ -1907,7 +1915,19 @@ void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Re
 
     for (int i = 0; i < Response.friendsId.Num(); i++)
     {
-        AddFriend(Response.friendsId[i], Response.friendsId[i], TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
+		if (CheckDisplayName(Response.friendsId[i]))
+		{
+			AddFriend(Response.friendsId[i], GetDisplayName(Response.friendsId[i]), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
+		}
+		else
+		{
+			FRegistry::User.GetUserByUserId(Response.friendsId[i], THandler<FUserData>::CreateLambda([&, FriendId = Response.friendsId[i]](const FUserData& User)
+				{
+					AddFriend(FriendId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
+					RefreshFriendList();
+				}),
+				FErrorHandler::CreateLambda([&, i, Response](int32 Code, FString Message){}));
+		}
     }
     AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
 
