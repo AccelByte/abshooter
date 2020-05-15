@@ -21,8 +21,6 @@ public:
 
 	/** is this main menu or in game menu? */
 	SLATE_ARGUMENT(bool, IsGameMenu)
-
-	SLATE_ARGUMENT(TSharedPtr<class SShooterUserProfileWidget>, UserProfileWidget)
 	
 	/** always goes here */
 	SLATE_END_ARGS()
@@ -266,8 +264,6 @@ private:
 
 	/** style for the menu widget */
 	const struct FShooterMenuStyle *MenuStyle;
-
-	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
 
 	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
 };

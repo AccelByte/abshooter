@@ -5,33 +5,38 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ShooterGameInstance.h"
 #include "UMG/MenuInterface.h"
 
 class FShooterLoginMenu : public ILoginMenuInterface
 {
 public:
 	/**
-	* @brief Construct menu.
+	* @brief Default Constructor.
 	*
-	* @param _GameInstance Instance of the game.
-	* @param LoginMenuClass Blueprint widget class.
+	* @param _GameInstance The instance of the game.
 	*/
-	void Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TSubclassOf<class UUserWidget> LoginMenuClass);
+	FShooterLoginMenu(TWeakObjectPtr<class UShooterGameInstance> _GameInstance);
+
+	/** Construct menu. */
+	void Construct();
 
 	/** Teardown menu. */
 	void Teardown();
 
 private:
+	#pragma region Override Menu Interface
+	/**
+	* @brief Login with username and password.
+	*
+	* @param Username The login username of the player.
+	* @param Password The login password of the player.
+	*/
+	void LoginWithUsername(FString Username, FString Password) override;
+	#pragma endregion Override Menu Interface
+	
 	/** Owning game instance. */
-	TWeakObjectPtr<UShooterGameInstance> GameInstance;
+	TWeakObjectPtr<class UShooterGameInstance> GameInstance;
 
 	/** Login Menu UI widget. */
 	TWeakObjectPtr<class ULoginMenuUI> LoginMenuUI;
-
-	#pragma region Override Menu Interface
-	/** Login with username and password */
-	void LoginWithUsername(FString Username, FString Password) override;
-	#pragma endregion Override Menu Interface
-
 };

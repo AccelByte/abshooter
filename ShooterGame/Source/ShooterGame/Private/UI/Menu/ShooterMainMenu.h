@@ -2,21 +2,18 @@
 
 #pragma once
 
-#include "Runtime/Online/HTTP/Public/Http.h"
-#include "Http.h"
+#include "Utils/ImageUtils.h"
 
 // TODO: Refactor into UMG
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "Widgets/ShooterMenuItem.h"
 #include "Widgets/SShooterMenuWidget.h"
-#include "Widgets/SShooterUserProfileWidget.h"
 #include "Widgets/SShooterCoinsWidget.h"
 #include "Widgets/SShooterServerList.h"
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
 #include "Widgets/SShooterStore.h"
-#include "Widgets/SShooterGameProfile.h"
 #include "Widgets/SShooterLeaderboard.h"
 #include "Widgets/SLobby.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
@@ -27,41 +24,26 @@
 
 class FShooterMainMenu : public TSharedFromThis<FShooterMainMenu>, public FTickableGameObject
 {
-public:	
+public:
+	/**
+	* @brief Default Constructor.
+	*
+	* @param _GameInstance The instance of the game.
+	*/
+	FShooterMainMenu(TWeakObjectPtr<class UShooterGameInstance> _GameInstance);
 
 	virtual ~FShooterMainMenu();
 
-	/**
-	* @brief Construct menu.
-	*
-	* @param _GameInstance Instance of the game.
-	* @param MenuClass Blueprint widget class.
-	*/
-	void Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TSubclassOf<class UUserWidget> MainMenuClass, TWeakObjectPtr<ULocalPlayer> _PlayerOwner);
+	/** Construct menu.	*/
+	void Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner);
 
 	/** Teardown menu. */
 	void Teardown();
 
-	/** Update user profile based on the game instance. */
-	void UpdateUserProfile();
-
-	/**
-	* @brief Update user profile.
-	*
-	* @param ProfileName Player's profile name.
-	* @param UserID Player's user id.
-	* @param AvatarURL Player's avatar url.
-	*/
-	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
-
 	// TODO: Refactor into UMG
+
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
-
-
-    void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
-
-	void UpdateProfileStatItem(FText MVPScore, FText TotalMatch, FText TotalDeathsScore, FText TotalKillsScore);
 
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	
@@ -100,9 +82,6 @@ protected:
 		Quick
 	};
 	
-	/** Owning game instance */
-	TWeakObjectPtr<UShooterGameInstance> GameInstance;
-
 	/** Owning player */
 	TWeakObjectPtr<ULocalPlayer> PlayerOwner;
 
@@ -111,10 +90,6 @@ protected:
 
 	/** menu widget */
 	TSharedPtr<class SShooterMenuWidget> MenuWidget;
-
-
-	/** menu widget */
-	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
 
 	/** menu widget */
 	TSharedPtr<class SShooterCoinsWidget> CoinsWidgetContainer;
@@ -154,12 +129,10 @@ protected:
 	/** store widget */
 	TSharedPtr<class SShooterStore> StoreWidget;
 
-	TSharedPtr<class SShooterGameProfile> GameProfileWidget;
-
-    /** Screenshot widget */
-    TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
-    /** yet another custom menu */
-    TSharedPtr<class FShooterMenuItem> ScreenshotItem;
+	/** Screenshot widget */
+	TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
+	/** yet another custom menu */
+	TSharedPtr<class FShooterMenuItem> ScreenshotItem;
 
 	/** leaderboard widget */
 	TSharedPtr<class SShooterLeaderboard> LeaderboardWidget;
@@ -310,12 +283,8 @@ protected:
 	/** Show store */
 	void OnShowStore();
 
-	void OnShowGameProfile();
-
-	void GetStatItems();
-
-    /** Show screenshot */
-    void OnShowScreenshot();
+	/** Show screenshot */
+	void OnShowScreenshot();
 
 	void ChangeBackground(UMaterialInterface* Material);
 
@@ -348,8 +317,6 @@ protected:
 
 	/** Display the loading screen. */
 	void DisplayTestMessage();
-
-
 
 	/** Get the persistence user associated with PCOwner*/
 	UShooterPersistentUser* GetPersistentUser() const;
@@ -402,8 +369,8 @@ protected:
 	float QuickMAnimTimer;
 
 	/** This is kind of hacky, but it's the simplest solution since we're out of time.
-	    JoinSession was moved to an async event in the PS4 OSS and isn't called immediately
-	    so we need to wait till it's triggered and then remove it */
+		JoinSession was moved to an async event in the PS4 OSS and isn't called immediately
+		so we need to wait till it's triggered and then remove it */
 	bool bRemoveSessionThatWeJustJoined;
 
 	/** Custom animation var that is used to determine whether or not to inc or dec the alpha value of the quickmatch UI*/
@@ -430,11 +397,9 @@ protected:
 	/** used for displaying the quickmatch confirmation dialog when a quickmatch to join is not found */
 	TSharedPtr<class SShooterConfirmationDialog> QuickMatchFailureWidget;
 
-
 	/** used for displaying the quickmatch confirmation dialog when a quickmatch to join is not found */
 	// buat message box
 	TSharedPtr<class SShooterConfirmationDialog> TestMessageWidget;
-
 
 	/** used for managing the QuickMatchFailureWidget */
 	TSharedPtr<class SWeakWidget> QuickMatchFailureWidgetContainer;
@@ -464,17 +429,45 @@ protected:
 	FDelegateHandle OnLoginCompleteDelegateHandle;
 
 private:
+	/** Update user profile based on the game instance. */
+	void UpdateUserProfile();
+
+	/**
+	* @brief Update user profile.
+	*
+	* @param ProfileName Player's profile name.
+	* @param UserID Player's user id.
+	* @param AvatarURL Player's avatar url.
+	*/
+	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
+
 	/** Handle when getting player's avatar image. */
-	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful);
+	void OnThumbImageReceived(FCacheBrush Image);
+
+	/**
+	* @brief Update user profile from cache.
+	*
+	* @param ProfileName Player's profile name.
+	* @param UserID Player's user id.
+	* @param AvatarPath Player's avatar path.
+	*/
+	void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
+
+	/** Init statistic. */
+	void InitStatItems();
+
+	/** Get player statistic. */
+	void GetStatItems();
+
+	/** Get player achievements. */
+	void GetAchievements();
+
+	/** Owning game instance. */
+	TWeakObjectPtr<UShooterGameInstance> GameInstance;
 
 	/** Main Menu UI widget. */
 	TWeakObjectPtr<class UMainMenuUI> MainMenuUI;
 
-	/** Player's avatar url. */
-	FString AvatarURL;
-
-	/** Player's avatar slate image. */
-	TSharedPtr<FSlateDynamicImageBrush> AvatarThumbnailBrush;
-
-	// TODO: Refactor into UMG
+	/** Game profile sub-Menu. */
+	TSharedPtr<class ShooterGameProfile> GameProfile;
 };
