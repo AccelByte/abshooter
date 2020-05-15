@@ -87,6 +87,7 @@ public:
     void OnDeleteSlot(const FString& SlotID);
 	void OnResolveSlot(int32 SlotIndex);
 
+	void RemoveErrorSlots();
 
 protected:
 	/** if menu is currently opened*/
