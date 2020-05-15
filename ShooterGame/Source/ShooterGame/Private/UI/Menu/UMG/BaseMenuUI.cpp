@@ -26,6 +26,8 @@ void UBaseMenuUI::Setup()
 
 	PlayerController->SetInputMode(InputModeData);
 	PlayerController->bShowMouseCursor = true;
+
+	FReply::Handled().SetUserFocus(this->TakeWidget(), EFocusCause::SetDirectly);
 }
 
 void UBaseMenuUI::Teardown()
@@ -45,4 +47,6 @@ void UBaseMenuUI::Teardown()
 	FInputModeGameOnly InputModeData;
 	PlayerController->SetInputMode(InputModeData);
 	PlayerController->bShowMouseCursor = false;
+
+	FReply::Handled().ClearUserFocus(true);
 }

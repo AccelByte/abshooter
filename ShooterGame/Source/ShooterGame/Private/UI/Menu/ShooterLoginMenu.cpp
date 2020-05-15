@@ -3,21 +3,25 @@
 // and restrictions contact your company contract manager.
 
 #include "ShooterLoginMenu.h"
+#include "ShooterGameInstance.h"
 #include "UMG/LoginMenuUI.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
 
-void FShooterLoginMenu::Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TSubclassOf<UUserWidget> LoginMenuClass)
+FShooterLoginMenu::FShooterLoginMenu(TWeakObjectPtr<UShooterGameInstance> _GameInstance)
+	: GameInstance(_GameInstance)
+{}
+
+void FShooterLoginMenu::Construct()
 {
 	UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Construct"));
 
-	check(_GameInstance.IsValid());
-	GameInstance = _GameInstance;
+	check(GameInstance.IsValid());
 
 	// Load login menu widget
-	if (!ensure(LoginMenuClass != nullptr)) return;
+	if (!ensure(GameInstance->LoginMenuClass.IsValid())) return;
 
-	LoginMenuUI = MakeWeakObjectPtr<ULoginMenuUI>(CreateWidget<ULoginMenuUI>(GameInstance.Get(), LoginMenuClass));
+	LoginMenuUI = MakeWeakObjectPtr<ULoginMenuUI>(CreateWidget<ULoginMenuUI>(GameInstance.Get(), *GameInstance->LoginMenuClass.Get()));
 	if (!ensure(LoginMenuUI != nullptr))
 	{
 		UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] LoginMenuUI is null"));

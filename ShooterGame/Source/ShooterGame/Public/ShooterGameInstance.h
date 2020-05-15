@@ -225,6 +225,20 @@ public:
 	/** Setup user setting after succesfully logins. */
 	void SetupUser();
 
+	#pragma region UMG menu class
+	/** Hold login menu from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> LoginMenuClass;
+
+	/** Hold main menu from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> MainMenuClass;
+
+	/** Hold achievement entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> AchievementEntryClass;
+
+	/** Hold statistic entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> StatisticEntryClass;
+	#pragma endregion UMG menu class
+
 private:
 	UPROPERTY(config)
 	FString WelcomeScreenMap;
@@ -262,14 +276,14 @@ private:
 	/** Login menu UI */
 	TSharedPtr<class FShooterLoginMenu> LoginMenuUI;
 
+	/** Main menu UI. */
+	TSharedPtr<class FShooterMainMenu> MainMenuUI;
 
 	/** Message menu (Shown in the even of errors - unable to connect etc) */
 	TSharedPtr<FShooterMessageMenu> MessageMenuUI;
 
 	/** Welcome menu UI (for consoles) */
 	TSharedPtr<FShooterWelcomeMenu> WelcomeMenuUI;
-	/** Main menu UI. */
-	TSharedPtr<class FShooterMainMenu> MainMenuUI;
 
 	/** Dialog widget to show non-interactive waiting messages for network timeouts and such. */
 	TSharedPtr<SShooterWaitDialog> WaitMessageWidget;
@@ -444,21 +458,11 @@ private:
 	AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
 	void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 
-	/** Get Statistic Item. */
-	void GetStatItems();
-
 	/** Get QoS. */
 	void GetQos();
 
 	/** Init Statistic. */
 	void InitStatistic();
-
-	#pragma region UMG menu class
-	/** Hold login menu from UMG. */
-	TSubclassOf<class UUserWidget> LoginMenuClass;
-	/** Hold main menu from UMG. */
-	TSubclassOf<class UUserWidget> MainMenuClass;
-	#pragma endregion UMG menu class
 
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);

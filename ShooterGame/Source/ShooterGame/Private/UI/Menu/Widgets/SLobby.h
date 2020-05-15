@@ -28,173 +28,173 @@
 
 enum FriendEntryType
 {
-    FRIEND,
-    INCOMING,
-    OUTGOING
+	FRIEND,
+	INCOMING,
+	OUTGOING
 };
 
 struct FFriendEntry
 {
-    FString UserId;
-    FString Name;
-    FString Presence; //ONLINE, INGAME, IDLE, OFFLINE
-    FString AvatarSmallUrl;
-    FriendEntryType Type;
+	FString UserId;
+	FString Name;
+	FString Presence; //ONLINE, INGAME, IDLE, OFFLINE
+	FString AvatarSmallUrl;
+	FriendEntryType Type;
 };
 
 //class declare
 class SLobby : public SCompoundWidget
 {
 public:
-    DECLARE_DELEGATE(FOnStartMatch)
+	DECLARE_DELEGATE(FOnStartMatch)
 
-    SLobby();
+	SLobby();
 
-    SLATE_BEGIN_ARGS(SLobby)
-    {}
+	SLATE_BEGIN_ARGS(SLobby)
+	{}
 
-    SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer>, PlayerOwner)
-    SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
-    SLATE_EVENT(FOnStartMatch, OnStartMatch)
+	SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer>, PlayerOwner)
+	SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
+	SLATE_EVENT(FOnStartMatch, OnStartMatch)
 
-    SLATE_END_ARGS()
+	SLATE_END_ARGS()
 
-    void Construct(const FArguments& InArgs);
+	void Construct(const FArguments& InArgs);
 
-    virtual bool SupportsKeyboardFocus() const override
-    {
-        return true;
-    }
+	virtual bool SupportsKeyboardFocus() const override
+	{
+		return true;
+	}
 
-    virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent) override;
+	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent) override;
 
-    virtual void OnFocusLost(const FFocusEvent& InFocusEvent) override;
+	virtual void OnFocusLost(const FFocusEvent& InFocusEvent) override;
 
-    virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-    FReply OnRequestFriend();
+	FReply OnRequestFriend();
 
-    TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
+	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
-    void EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo);
-    void UpdateSearchStatus();
-    void InitializeFriends();
-    void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
-    void SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath);
-    FString GetCurrentUserID();
-    void AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryType Type);
-    void RemoveFriend(FString UserId);
-    void RefreshFriendList();
-    void UpdateFriendList();
+	void EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo);
+	void UpdateSearchStatus();
+	void InitializeFriends();
+	void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
+	void SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath);
+	FString GetCurrentUserID();
+	void AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryType Type);
+	void RemoveFriend(FString UserId);
+	void RefreshFriendList();
+	void UpdateFriendList();
 
-    void MoveSelection(int32 MoveBy);
+	void MoveSelection(int32 MoveBy);
 
-    void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
+	void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
-    TSharedPtr<SLobbyChat> LobbyChatWidget;
+	TSharedPtr<SLobbyChat> LobbyChatWidget;
 
-    typedef TMap<FString, FString> ProfileCache;
+	typedef TMap<FString, FString> ProfileCache;
 
-    TSharedPtr < ProfileCache, ESPMode::ThreadSafe > AvatarListCache;
-    TSharedPtr < ProfileCache, ESPMode::ThreadSafe > DiplayNameListCache;
-    TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  ThumbnailBrushCache;
-    FIntPoint ScreenRes;
-    float GetLobbyHeight(float DivideBy) const;
-    float GetLobbyWidth(float DivideBy) const;
+	TSharedPtr < ProfileCache, ESPMode::ThreadSafe > AvatarListCache;
+	TSharedPtr < ProfileCache, ESPMode::ThreadSafe > DiplayNameListCache;
+	TMap<FString, TSharedPtr<FSlateDynamicImageBrush> >  ThumbnailBrushCache;
+	FIntPoint ScreenRes;
+	float GetLobbyHeight(float DivideBy) const;
+	float GetLobbyWidth(float DivideBy) const;
 
-    bool CheckDisplayName(const FString& UserID) const
-    {
-        return DiplayNameListCache->Contains(UserID);
-    }
-    FString GetDisplayName(const FString& UserID) const
-    {
-        return (*DiplayNameListCache)[UserID];
-    }
+	bool CheckDisplayName(const FString& UserID) const
+	{
+		return DiplayNameListCache->Contains(UserID);
+	}
+	FString GetDisplayName(const FString& UserID) const
+	{
+		return (*DiplayNameListCache)[UserID];
+	}
 
-    bool CheckAvatar(const FString& UserID) const
-    {
-        return ThumbnailBrushCache.Contains(UserID);
-    }
+	bool CheckAvatar(const FString& UserID) const
+	{
+		return ThumbnailBrushCache.Contains(UserID);
+	}
 
-    TSharedPtr<FSlateDynamicImageBrush> GetAvatar(const FString& UserID) const
-    {
-        return ThumbnailBrushCache[UserID];
-    }
+	TSharedPtr<FSlateDynamicImageBrush> GetAvatar(const FString& UserID) const
+	{
+		return ThumbnailBrushCache[UserID];
+	}
 
-    FSlateBrush* GetAvatarOrDefault(const FString& UserId) const;
+	FSlateBrush* GetAvatarOrDefault(const FString& UserId) const;
 
-    void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID);
-    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
+	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID);
+	static TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
 
 
 protected:
-    bool bSearchingForFriends;
-    bool bIsPartyLeader{ false };
-    double LastSearchTime;
-    double MinTimeBetweenSearches;
-    FString CurrentUserDisplayName;
-    FString CurrentUserID;
-    FString CurrentAvatarURL;
-    TSharedPtr<SEditableTextBox> FriendSearchBar;
-    TArray< TSharedPtr<FFriendEntry> > FriendList;
-    TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
-    TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > LobbyWidget;
-    TSharedPtr<FFriendEntry> SelectedItem;
-    FAccelByteModelsInfoPartyResponse PartyInfo;
+	bool bSearchingForFriends;
+	bool bIsPartyLeader{ false };
+	double LastSearchTime;
+	double MinTimeBetweenSearches;
+	FString CurrentUserDisplayName;
+	FString CurrentUserID;
+	FString CurrentAvatarURL;
+	TSharedPtr<SEditableTextBox> FriendSearchBar;
+	TArray< TSharedPtr<FFriendEntry> > FriendList;
+	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
+	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > LobbyWidget;
+	TSharedPtr<FFriendEntry> SelectedItem;
+	FAccelByteModelsInfoPartyResponse PartyInfo;
 
-    FString MapFilterName;
+	FString MapFilterName;
 
-    TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
-    TSharedPtr<class SWidget> OwnerWidget;
-    TSharedPtr<SScrollBar> FriendScrollBar;
-    FText GetFriendHeaderText() const;
+	TWeakObjectPtr<class ULocalPlayer> PlayerOwner;
+	TSharedPtr<class SWidget> OwnerWidget;
+	TSharedPtr<SScrollBar> FriendScrollBar;
+	FText GetFriendHeaderText() const;
 
 #pragma region FRIENDS_SERVICE
-    void OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response);
-    void OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response);
-    void OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFriendsResponse& Response);
-    void OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response);
-    void OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response);
-    void OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response);
+	void OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response);
+	void OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response);
+	void OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFriendsResponse& Response);
+	void OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response);
+	void OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response);
+	void OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response);
 #pragma endregion FRIENDS_SERVICE
 
 #pragma region MESSAGE_DIALOG
-    TSharedPtr<SWidget> MessageDialogWidget;
-    FSlateColorBrush ConfirmationBackgroundBrush;
-    void ShowMessageDialog(FString Message, FOnClicked OnClicked);
-    void CloseMessageDialog();
+	TSharedPtr<SWidget> MessageDialogWidget;
+	FSlateColorBrush ConfirmationBackgroundBrush;
+	void ShowMessageDialog(FString Message, FOnClicked OnClicked);
+	void CloseMessageDialog();
 #pragma endregion
 
 #pragma region Matchmaking
-    void StartMatch(const FString&, const FString& PartyId, const FString& DedicatedServerAddress);
-    bool bMatchmakingStarted{ false };
-    FString GameMode{ "test" };
-    FOnStartMatch OnStartMatch;
-    FString DedicatedServerBaseUrl;
-    FString DedicatedServerAddress;
-    bool bReadyConsent;
+	void StartMatch(const FString&, const FString& PartyId, const FString& DedicatedServerAddress);
+	bool bMatchmakingStarted{ false };
+	FString GameMode{ "test" };
+	FOnStartMatch OnStartMatch;
+	FString DedicatedServerBaseUrl;
+	FString DedicatedServerAddress;
+	bool bReadyConsent;
 	bool bAlreadyEnteringLevel = false;
 #pragma endregion Matchmaking
 
-    void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
+	void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
 
 public:
 #pragma region PARTY
-    TSharedPtr<SParty> PartyWidget;
-    TSharedPtr<SOverlay> InvitationOverlay;
-    FString CurrentPartyID;
-    void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
-    void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
-    void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
-    void OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& CreatePartyInfo);
-    void OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo);
-    void OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo);
-    void OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response);
-    FSlateColorBrush OverlayBackgroundBrush;
+	TSharedPtr<SParty> PartyWidget;
+	TSharedPtr<SOverlay> InvitationOverlay;
+	FString CurrentPartyID;
+	void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
+	void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
+	void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
+	void OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& CreatePartyInfo);
+	void OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo);
+	void OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo);
+	void OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response);
+	FSlateColorBrush OverlayBackgroundBrush;
 #pragma endregion PARTY
 
-    TSharedPtr<SOverlay> NotificationOverlay;
-    void CloseOverlay(TSharedPtr<SOverlay> Overlay);
-    void OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification);
-    void OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
+	TSharedPtr<SOverlay> NotificationOverlay;
+	void CloseOverlay(TSharedPtr<SOverlay> Overlay);
+	void OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification);
+	void OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 };

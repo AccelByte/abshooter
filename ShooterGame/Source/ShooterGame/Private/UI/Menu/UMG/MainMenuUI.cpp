@@ -4,20 +4,91 @@
 
 #include "MainMenuUI.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Components/Image.h"
+#include "Components/WidgetSwitcher.h"
+#include "Components/HorizontalBox.h"
 
 bool UMainMenuUI::Initialize()
 {
 	bool Success = Super::Initialize();
 	if (!Success) return false;
 
+	if (!ensure(GameProfileButton != nullptr)) return false;
+	GameProfileButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenGameProfileMenu);
+
 	if (!ensure(QuitButton != nullptr)) return false;
 	QuitButton->OnClicked.AddDynamic(this, &UMainMenuUI::QuitGame);
+
+	if (!ensure(EscButton != nullptr)) return false;
+	EscButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenMainMenu);
+
+	if (!ensure(BackToMainMenuBox != nullptr)) return false;
+	BackToMainMenuBox->SetVisibility(ESlateVisibility::Collapsed);
+
+	if (!ensure(DisplayNameField != nullptr)) return false;
+	if (!ensure(AvatarImage != nullptr)) return false;
+	if (!ensure(MenuSwitcher != nullptr)) return false;
+	if (!ensure(MainMenu != nullptr)) return false;
+	if (!ensure(GameProfileMenu != nullptr)) return false;
+	if (!ensure(BackToMainMenuBox != nullptr)) return false;
+	if (!ensure(WB_GameProfileMenu != nullptr)) return false;
+	
+	UWorld* const World = GetWorld();
+	if (World->IsPlayInEditor())
+	{
+		BackToMainMenuKey = EKeys::F1; // By UE Editor default, if Esc is pressed in Editor, it will close the game.
+	}
+	else
+	{
+		BackToMainMenuKey = EKeys::Escape;
+	}
 
 	return true;
 }
 
-#pragma region Button Callback
+FReply UMainMenuUI::NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
+{
+	FReply Result = FReply::Unhandled();
+	const FKey Key = InKeyEvent.GetKey();
+	if (Key == BackToMainMenuKey)
+	{
+		OpenMainMenu();
+		Result = FReply::Handled();
+	}
+	return Result;
+}
+
+void UMainMenuUI::OpenMainMenu()
+{
+	MenuSwitcher->SetActiveWidget(MainMenu);
+	BackToMainMenuBox->SetVisibility(ESlateVisibility::Collapsed);
+}
+
+void UMainMenuUI::SetDisplayName(FString DisplayName)
+{
+	DisplayNameField->SetText(FText::FromString(DisplayName));
+	WB_GameProfileMenu->SetDisplayName(DisplayName);
+}
+
+void UMainMenuUI::SetAvatarImage(FSlateBrush AvatarImage)
+{
+	this->AvatarImage->SetBrush(AvatarImage);
+	WB_GameProfileMenu->SetAvatarImage(AvatarImage);
+}
+
+UGameProfileMenuUI* UMainMenuUI::GetGameProfileMenu()
+{
+	return WB_GameProfileMenu;
+}
+
+#pragma region Button callback
+void UMainMenuUI::OpenGameProfileMenu()
+{
+	MenuSwitcher->SetActiveWidget(GameProfileMenu);
+	BackToMainMenuBox->SetVisibility(ESlateVisibility::Visible);
+}
+
 void UMainMenuUI::QuitGame()
 {
 	UWorld* World = GetWorld();
@@ -28,16 +99,4 @@ void UMainMenuUI::QuitGame()
 
 	PlayerController->ConsoleCommand("quit");
 }
-#pragma endregion Button Callback
-
-void UMainMenuUI::SetDisplayName(FString DisplayName)
-{
-	if (!ensure(DisplayNameField != nullptr)) return;
-	DisplayNameField->SetText(FText::FromString(DisplayName));
-}
-
-void UMainMenuUI::SetAvatarImage(FSlateBrush AvatarImage)
-{
-	PlayerAvatarImage->SetBrush(AvatarImage);
-}
-
+#pragma endregion Button callback

@@ -124,3 +124,55 @@ FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName & ResourceN
 
 	return Brush;
 }
+
+TSharedPtr<FSlateDynamicImageBrush> FShooterImageUtils::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
+{
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
+
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+	int BitDepth = 8;
+	//jpg
+	EImageFormat ImageFormat = EImageFormat::JPEG;
+	ERGBFormat RgbFormat = ERGBFormat::BGRA;
+	//png
+	if (ContentType.Contains(TEXT("png")))
+	{
+		ImageFormat = EImageFormat::PNG;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+	//bmp
+	else if (ContentType.Contains(TEXT("bmp")))
+	{
+		ImageFormat = EImageFormat::BMP;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
+
+		const TArray<uint8>* RawData = NULL;
+
+		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
+
+	return Brush;
+}
