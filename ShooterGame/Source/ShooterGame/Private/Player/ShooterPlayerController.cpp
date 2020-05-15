@@ -2,6 +2,7 @@
 
 #include "ShooterGame.h"
 #include "Player/ShooterPlayerController.h"
+#include "GameFramework/PlayerController.h"
 #include "Player/ShooterPlayerCameraManager.h"
 #include "Player/ShooterCheatManager.h"
 #include "Player/ShooterLocalPlayer.h"
@@ -22,6 +23,7 @@
 #include "ShooterGameViewportClient.h"
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
+#include "Engine/World.h"
 
 #define  ACH_FRAG_SOMEONE	TEXT("ACH_FRAG_SOMEONE")
 #define  ACH_SOME_KILLS		TEXT("ACH_SOME_KILLS")
@@ -690,6 +692,68 @@ void AShooterPlayerController::SetIsVibrationEnabled(bool bEnable)
 
 void AShooterPlayerController::ClientGameStarted_Implementation()
 {
+	//Add player leave match detector
+	GetWorld()->GetTimerManager().ClearTimer(PlayerCounterTimerHandle);
+	PlayerCounterTimerHandle = FTimerHandle();
+	TSharedPtr<TArray<TTuple<int32, FString>>> Player_Id_Name_Pairs = MakeShared<TArray<TTuple<int32, FString>>>();
+	FTimerDelegate PlayerCounterFunction;
+	PlayerCounterFunction.BindLambda([this, Player_Id_Name_Pairs]()
+		{
+			AShooterGameState* const GameState = GetWorld()->GetGameState<AShooterGameState>();
+			if (GameState)
+			{
+				TArray<TTuple<int32, FString>> CurrentPlayerStates_;
+				for (int i = 0; i < GameState->NumTeams; i++)
+				{
+					RankedPlayerMap OutRankedMap;
+					GameState->GetRankedMap(i, OutRankedMap);
+					for (auto& entry : OutRankedMap)
+					{
+						//CurrentPlayerStates.Add(entry.Value);
+						CurrentPlayerStates_.Add(TTuple<int32, FString>(entry.Value->PlayerId, entry.Value->GetOldPlayerName()));
+					}
+				}
+
+				// Find the missing player from the current players and notify player
+				TArray<FString> MissingPlayerNames;
+				for (int i = 0; i < Player_Id_Name_Pairs->Num(); i++)
+				{
+					bool bPreviouslyConnectedPlayerMissing = true;
+					for (int j = 0; j < CurrentPlayerStates_.Num(); j++)
+					{
+						if ((*Player_Id_Name_Pairs)[i].Key == CurrentPlayerStates_[j].Key)
+						{
+							bPreviouslyConnectedPlayerMissing = false;
+						}
+					}
+					if (bPreviouslyConnectedPlayerMissing)
+					{
+						MissingPlayerNames.Add((*Player_Id_Name_Pairs)[i].Value);
+					}
+				}
+
+				//notify
+				for (auto& Name : MissingPlayerNames)
+				{
+					GEngine->AddOnScreenDebugMessage(0, 4.f, FColor::Red, FString::Printf(TEXT("%s leaves the match"), *Name));
+				}
+
+				if (CurrentPlayerStates_.Num() <= 1)
+				{
+					// If alone, remove this timered function.
+					Player_Id_Name_Pairs->Empty();
+					GetWorld()->GetTimerManager().ClearTimer(PlayerCounterTimerHandle);
+				}
+				else
+				{
+					*Player_Id_Name_Pairs = CurrentPlayerStates_;
+				}
+			}
+			return;
+		});
+	GetWorld()->GetTimerManager().SetTimer(PlayerCounterTimerHandle, PlayerCounterFunction, 1.5f, true, 0.f);
+
+
 	bAllowGameActions = true;
 
 	// Enable controls mode now the game has started
@@ -809,6 +873,11 @@ void AShooterPlayerController::HandleReturnToMainMenu()
 	{
 		ToggleScreenshotWindow();
 		SetInputMode(FInputModeUIOnly());
+	}
+
+	if (GetWorld()->GetTimerManager().TimerExists(PlayerCounterTimerHandle))
+	{
+		GetWorld()->GetTimerManager().ClearTimer(PlayerCounterTimerHandle);
 	}
 
 	// Cleanup failed upload

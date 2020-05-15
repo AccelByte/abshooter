@@ -333,5 +333,7 @@ private:
 	TArray<TSharedPtr<FSlateBrush>> ScreenshotList;
 
 	TArray<FDateTime> ScreenshotTimestamps;
+
+	FTimerHandle PlayerCounterTimerHandle;
 };
 
