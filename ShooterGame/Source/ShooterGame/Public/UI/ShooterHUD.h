@@ -144,6 +144,9 @@ public:
 	/* Is the match over (IE Is the state Won or Lost). */
 	bool IsMatchOver() const;
 		
+	/** On AccelByte player leave match notification*/
+	void AppendLeaveMatchPlayer(const FString& PlayerName);
+
 protected:
 	/** Floor for automatic hud scaling. */
 	static const float MinHudScale;
@@ -307,6 +310,9 @@ protected:
 	/** Array of information strings to render (Waiting to respawn etc) */
 	TArray<FCanvasTextItem> InfoItems;
 
+	/** Array of AccelByte player leave match draw task. <Display expiration, Task>*/
+	TArray<TTuple<FDateTime, FCanvasTextItem>> LeavePlayerTexts;
+
 	/** Called every time game is started. */
 	virtual void PostInitializeComponents() override;
 
@@ -337,6 +343,9 @@ protected:
 
 	/** Draw death messages. */
 	void DrawDeathMessages();
+
+	/** Draw LeavePlayerTexts */
+	void DrawLeavePlayerTexts();
 
 	/** Delegate for telling other methods when players have started/stopped talking */
 	FOnPlayerTalkingStateChangedDelegate OnPlayerTalkingStateChangedDelegate;

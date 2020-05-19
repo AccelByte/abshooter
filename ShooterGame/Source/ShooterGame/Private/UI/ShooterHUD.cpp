@@ -595,6 +595,7 @@ void AShooterHUD::DrawHUD()
 		DrawDeathMessages();
 		DrawCrosshair();
 		DrawHitIndicator();
+		DrawLeavePlayerTexts();
 
 		// Draw any recent killed player - cache the used Y coord for later when we draw the large onscreen messages.
 		MessageOffset = DrawRecentlyKilledPlayer();
@@ -1122,6 +1123,42 @@ bool AShooterHUD::TryCreateChatWidget()
 bool AShooterHUD::IsMatchOver() const
 {
 	return GetMatchState() == EShooterMatchState::Lost || GetMatchState() == EShooterMatchState::Won;
+}
+
+void AShooterHUD::AppendLeaveMatchPlayer(const FString& PlayerName)
+{
+	FCanvasTextItem TextItem(FVector2D::ZeroVector, FText::GetEmpty(), BigFont, HUDDark);
+	TextItem.EnableShadow(FLinearColor::Black);
+	TextItem.Text = FText::FromString(FString::Printf(TEXT("%s leaves the match"), *PlayerName));
+	TextItem.Scale = FVector2D(1.0f * ScaleUI, 1.0f * ScaleUI);
+	TextItem.FontRenderInfo = ShadowedFont;
+	TextItem.SetColor(FLinearColor(0.75f, 0.125f, 0.125f, 0.7f));
+
+	FDateTime ExpirationTime = FDateTime::UtcNow() + FTimespan::FromSeconds(4);
+	TTuple<FDateTime, FCanvasTextItem> Task(ExpirationTime, TextItem);
+	LeavePlayerTexts.Add(Task);
+}
+
+void AShooterHUD::DrawLeavePlayerTexts()
+{
+	TArray<int> ExpiredTextIndexes;
+	for (int i = 0 ; i < LeavePlayerTexts.Num() ; i++)
+	{
+		// if expired
+		if(LeavePlayerTexts[i].Key < FDateTime::UtcNow())
+		{
+			ExpiredTextIndexes.Add(i);
+		}
+		else
+		{
+			AddMatchInfoString(LeavePlayerTexts[i].Value);
+		}
+
+	}
+	for (int i = 0; i < ExpiredTextIndexes.Num(); i++)
+	{
+		LeavePlayerTexts.RemoveAt(i);
+	}
 }
 
 void AShooterHUD::AddMatchInfoString(const FCanvasTextItem InInfoItem )

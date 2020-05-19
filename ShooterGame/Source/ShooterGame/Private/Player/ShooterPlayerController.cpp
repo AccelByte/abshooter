@@ -735,7 +735,11 @@ void AShooterPlayerController::ClientGameStarted_Implementation()
 				//notify
 				for (auto& Name : MissingPlayerNames)
 				{
-					GEngine->AddOnScreenDebugMessage(0, 4.f, FColor::Red, FString::Printf(TEXT("%s leaves the match"), *Name));
+					AShooterHUD* ShooterHUD = GetShooterHUD();
+					if (ShooterHUD)
+					{
+						ShooterHUD->AppendLeaveMatchPlayer(Name);
+					}
 				}
 
 				if (CurrentPlayerStates_.Num() <= 1)
