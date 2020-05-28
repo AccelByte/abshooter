@@ -13,12 +13,16 @@ ShooterGameConfig::ShooterGameConfig()
 	ServerHeartbeatInterval_(ServerHeartbeatInterval),
 	ServerLatencies_(ServerLatencies),
 	SelectedRegion_(SelectedRegion),
+	GameReleaseVersion_(GameReleaseVersion),
+	SdkVersion_(SdkVersion),
 	StatisticCodeKill_(StatisticCodeKill),
 	StatisticCodeMatch_(StatisticCodeMatch),
 	StatisticCodeDeath_(StatisticCodeDeath),
 	StatisticCodeMVP_(StatisticCodeMVP),
 	ItemImageSetAs_(ItemImageSetAs),
-	MessageNotificationTopic_(MessageNotificationTopic)
+	MessageNotificationTopic_(MessageNotificationTopic),
+	TelemetryEvents_(TelemetryEvents),
+	TelemetryHeartbeatInterval_(TelemetryHeartbeatInterval)
 {
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
 
@@ -49,6 +53,19 @@ ShooterGameConfig::ShooterGameConfig()
 
 	FString ACCELBYTE_CONFIG_NOTIFICATION_SECTION = "/Script/ShooterGame.AccelByteConfig.Notification";
 	GConfig->GetString(*ACCELBYTE_CONFIG_NOTIFICATION_SECTION, TEXT("MessageNotificationTopic"), MessageNotificationTopic, GGameIni);
+
+	FString ACCELBYTE_CONFIG_VERSION_SECTION = "/Script/ShooterGame.AccelByteConfig.Versions";
+	GConfig->GetString(*ACCELBYTE_CONFIG_VERSION_SECTION, TEXT("GameReleaseVersion"), GameReleaseVersion, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_VERSION_SECTION, TEXT("SdkVersion"), SdkVersion, GGameIni);
+
+	FString ACCELBYTE_CONFIG_ANALYTICS_SECTION = "/Script/ShooterGame.AccelByteConfig.Analytics";
+	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_logged_in"), TelemetryEvents.LoggedIn, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_logged_out"), TelemetryEvents.LoggedOut, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_match_start"), TelemetryEvents.MatchStart, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_match_end"), TelemetryEvents.MatchEnd, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_heartbeat"), TelemetryEvents.Heartbeat, GGameIni);
+	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_item_equip"), TelemetryEvents.ItemEquip, GGameIni);
+	GConfig->GetFloat(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("heartbeat_interval"), TelemetryHeartbeatInterval, GGameIni);
 }
 
 void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)

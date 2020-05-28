@@ -31,6 +31,7 @@
 #include "Core/AccelByteCredentials.h"
 #include "Core/AccelByteRegistry.h"
 #include "ShooterGameConfig.h"
+#include "ShooterGameTelemetry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
