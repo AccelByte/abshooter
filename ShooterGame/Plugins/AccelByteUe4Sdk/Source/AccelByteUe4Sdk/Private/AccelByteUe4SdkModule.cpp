@@ -43,6 +43,14 @@ void FAccelByteUe4SdkModule::StartupModule()
 		}),
 		0.2f);
 
+	Ticker.AddTicker(
+		FTickerDelegate::CreateLambda([](float DeltaTime)
+		{
+			FRegistry::Credentials.PollRefreshToken(FPlatformTime::Seconds());
+
+			return true;
+		}),
+		0.2f);
 }
 
 void FAccelByteUe4SdkModule::ShutdownModule()
@@ -105,6 +113,8 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.GameProfileServerUrl = GetDefault<UAccelByteSettings>()->GameProfileServerUrl;
 	FRegistry::Settings.StatisticServerUrl = GetDefault<UAccelByteSettings>()->StatisticServerUrl;
 	FRegistry::Settings.QosManagerServerUrl = GetDefault<UAccelByteSettings>()->QosManagerServerUrl;
+	FRegistry::Settings.LeaderboardServerUrl = GetDefault<UAccelByteSettings>()->LeaderboardServerUrl;
+	FRegistry::Settings.GameTelemetryServerUrl = GetDefault<UAccelByteSettings>()->GameTelemetryServerUrl;
 	FRegistry::Credentials.SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 	
 	return true;
@@ -119,9 +129,11 @@ bool FAccelByteUe4SdkModule::LoadServerSettingsFromConfigUobject()
 	FRegistry::ServerSettings.PublisherNamespace = GetDefault<UAccelByteServerSettings>()->PublisherNamespace;
 	FRegistry::ServerSettings.RedirectURI = GetDefault<UAccelByteServerSettings>()->RedirectURI;
 	FRegistry::ServerSettings.IamServerUrl = GetDefault<UAccelByteServerSettings>()->IamServerUrl;
-	FRegistry::ServerSettings.DSMServerUrl = GetDefault<UAccelByteServerSettings>()->DSMServerUrl;
+	FRegistry::ServerSettings.DSMControllerServerUrl = GetDefault<UAccelByteServerSettings>()->DSMControllerServerUrl;
 	FRegistry::ServerSettings.StatisticServerUrl = GetDefault<UAccelByteServerSettings>()->StatisticServerUrl;
 	FRegistry::ServerSettings.PlatformServerUrl = GetDefault<UAccelByteServerSettings>()->PlatformServerUrl;
+	FRegistry::ServerSettings.QosManagerServerUrl = GetDefault<UAccelByteSettings>()->QosManagerServerUrl;
+	FRegistry::ServerSettings.LeaderboardServerUrl = GetDefault<UAccelByteSettings>()->LeaderboardServerUrl;
 	FRegistry::ServerCredentials.SetClientCredentials(FRegistry::ServerSettings.ClientId, FRegistry::ServerSettings.ClientSecret);
 #endif
 	return true;

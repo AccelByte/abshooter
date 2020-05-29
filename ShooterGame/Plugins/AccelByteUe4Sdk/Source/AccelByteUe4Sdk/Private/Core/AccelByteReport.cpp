@@ -1,8 +1,9 @@
-// Copyright (c) 2019 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2019 - 2020 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
 #include "Core/AccelByteReport.h"
+#include "Runtime/Launch/Resources/Version.h" 
 
 DEFINE_LOG_CATEGORY(AccelByteReportLog);
 
@@ -13,22 +14,30 @@ namespace AccelByte
 	{
 		FString LogMessage = "";
 
-		LogMessage += "\nHTTP Request:";
-		LogMessage += "\n---";
-		LogMessage += "\n" + Request->GetVerb() + " " + Request->GetURL();
-		LogMessage += "\n";
-		for (auto a : Request->GetAllHeaders())
+		if (Request.IsValid())
 		{
-			LogMessage += a + "\n";
+			LogMessage += "\nHTTP Request:";
+			LogMessage += FString::Printf(TEXT("\nPtr: %p"), Request.Get());
+			LogMessage += "\n---";
+			LogMessage += "\n" + Request->GetVerb() + " " + Request->GetURL();
+			LogMessage += "\n";
+			for (auto a : Request->GetAllHeaders())
+			{
+				LogMessage += a + "\n";
+			}
+//INTENTIONAL: Request->GetContent() && Request->GetContentLength() could throw an error if it doesn't have content
+#if ENGINE_MINOR_VERSION != 22 
+			LogMessage += "Content-Length: " + FString::FromInt(Request->GetContentLength());
+
+			LogMessage += "\n\n";
+			for (auto a : Request->GetContent())
+			{
+				LogMessage += static_cast<char>(a);
+			}
+			LogMessage += "\n---";
+			LogMessage += "\n";
+#endif
 		}
-		LogMessage += "Content-Length: " + FString::FromInt(Request->GetContentLength());
-		LogMessage += "\n\n";
-		for (auto a : Request->GetContent())
-		{
-			LogMessage += static_cast<char>(a);
-		}
-		LogMessage += "\n---";
-		LogMessage += "\n";
 		
 		UE_LOG(AccelByteReportLog, Log, TEXT("%s"), *LogMessage);
 	}
@@ -37,13 +46,21 @@ namespace AccelByte
 	{
 		FString LogMessage = "";
 
-		LogMessage += "\nHTTP Response:";
-		LogMessage += "\n---";
-		LogMessage += "\nHTTP/1.1 " + FString::FromInt(Response->GetResponseCode());
-		LogMessage += "\nDate: " + GetStandardTime();
-		LogMessage += "\nContent-Length: " + FString::FromInt(Response->GetContent().Num());
-		LogMessage += "\n \n" + Response->GetContentAsString();
-		LogMessage += "\n---\n";
+		if (Response.IsValid())
+		{
+			LogMessage += "\nHTTP Response:";
+			LogMessage += FString::Printf(TEXT("\nPtr: %p"), Request.Get());
+			if (Request.IsValid())
+			{
+				LogMessage += FString::Printf(TEXT("\nRequest: %s %s"), *Request->GetVerb(), *Request->GetURL());
+			}
+			LogMessage += "\n---";
+			LogMessage += "\nHTTP/1.1 " + FString::FromInt(Response->GetResponseCode());
+			LogMessage += "\nDate: " + GetStandardTime();
+			LogMessage += "\nContent-Length: " + FString::FromInt(Response->GetContent().Num());
+			LogMessage += "\n \n" + Response->GetContentAsString();
+			LogMessage += "\n---\n";
+		}
 
 		UE_LOG(AccelByteReportLog, Log, TEXT("%s"), *LogMessage);
 	}
