@@ -718,7 +718,7 @@ void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FS
 		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(dummyHandle, TFunction<void(void)>([this, DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
 		{
 				UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
-		}), 1.0f, false, ShooterGameConfig::Get().ServerHeartbeatInterval_);
+		}), 1.0f, false, ShooterGameConfig::Get().PlayerEnteringServerDelay_);
 	}
 
 }

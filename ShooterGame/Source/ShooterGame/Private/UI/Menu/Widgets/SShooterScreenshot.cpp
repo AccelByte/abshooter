@@ -1597,7 +1597,7 @@ void SShooterScreenshot::RemoveErrorSlots()
 	}
 	SaveScreenshotMetadata();
 
-	for (UINT i = 0; i < SAVE_SLOT_SIZE; i++)
+	for (int i = 0; i < SAVE_SLOT_SIZE; i++)
 	{
 		switch (SavedScreenshotList[i]->State)
 		{

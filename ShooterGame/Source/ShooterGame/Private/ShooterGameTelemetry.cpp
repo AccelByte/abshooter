@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "AccelByteRegistry.h"
 #include "AccelByteGameTelemetryApi.h"
+#include "GameServerApi/AccelByteServerGameTelemetryApi.h"
 
 FString ShooterGameTelemetry::ELoginTypeToString(const ELoginType& Type)
 {
@@ -28,8 +29,17 @@ FString ShooterGameTelemetry::ELoginTypeToString(const ELoginType& Type)
 void TelemetryDispatcher(const FJsonObject& JsonObject, const FString& EventName)
 {
 #if UE_SERVER
-	//TODO: create server SDK game telemetry. Server doesn't have User Session ID. 
-	//FRegistry::GameServerTelemetry.SendProtectedEvent(...);
+	FRegistry::ServerGameTelemetry.SendProtectedEvent(
+		EventName,
+		JsonObject,
+		FVoidHandler::CreateLambda([EventName]()
+			{
+				UE_LOG(LogTemp, Display, TEXT("%s event sent successfully."), *EventName);
+			})
+		, FErrorHandler::CreateLambda([EventName](int32 ErrorCode, FString Message)
+			{
+				UE_LOG(LogTemp, Display, TEXT("%s event error.\nCode:%d\nMessage:%s"), *EventName, ErrorCode, *Message);
+			}));
 #else
 	FRegistry::GameTelemetry.SendProtectedEvent(
 		EventName,
@@ -87,7 +97,10 @@ void ShooterGameTelemetry::Logout()
 	Request.LoginSessionDuration = Duration.ToString();
 
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
-	TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.LoggedOut);
+	if (LoginSessionID != "") // If user not logged out, then 
+	{
+		TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.LoggedOut);
+	}
 	DisableHeartbeat();
 }
 
@@ -107,8 +120,6 @@ void ShooterGameTelemetry::StartMatch(const FString& MatchID, const FString& Gam
 
 void ShooterGameTelemetry::EndMatch(bool IsWinner, const FString& EndReason)
 {
-	CurrentMatchID = "";
-
 	FShooterGameTelemetryEndMatchModel Request;
 	Request.GameSessionId = GameSessionID;
 	Request.MatchId = CurrentMatchID;
@@ -117,6 +128,8 @@ void ShooterGameTelemetry::EndMatch(bool IsWinner, const FString& EndReason)
 
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
 	TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.MatchEnd);
+
+	CurrentMatchID = "";
 }
 
 void ShooterGameTelemetry::EnableHeartbeat()
