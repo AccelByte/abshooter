@@ -24,6 +24,7 @@
 #include "Sound/SoundNodeLocalPlayer.h"
 #include "AudioThread.h"
 #include "Engine/World.h"
+#include "ShooterGameTelemetry.h"
 
 #define  ACH_FRAG_SOMEONE	TEXT("ACH_FRAG_SOMEONE")
 #define  ACH_SOME_KILLS		TEXT("ACH_SOME_KILLS")
@@ -882,6 +883,21 @@ void AShooterPlayerController::HandleReturnToMainMenu()
 	if (GetWorld()->GetTimerManager().TimerExists(PlayerCounterTimerHandle))
 	{
 		GetWorld()->GetTimerManager().ClearTimer(PlayerCounterTimerHandle);
+	}
+
+	// TELEMETERY END MATCH
+	AShooterHUD* ShooterHUD = GetShooterHUD();
+	if (ShooterHUD)
+	{
+		FString Reason = "AShooterPlayerController::HandleReturnToMainMenu()";
+		if (ShooterHUD->GetMatchState() == EShooterMatchState::Won)
+		{
+			ShooterGameTelemetry::Get().EndMatch(true, Reason);
+		}
+		else if (ShooterHUD->GetMatchState() == EShooterMatchState::Lost)
+		{
+			ShooterGameTelemetry::Get().EndMatch(false, Reason);
+		}
 	}
 
 	// Cleanup failed upload

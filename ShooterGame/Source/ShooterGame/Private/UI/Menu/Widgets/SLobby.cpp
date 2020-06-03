@@ -20,6 +20,7 @@
 #include "SLobbyChat.h"
 #include "ShooterGameConfig.h"
 #include "Engine/World.h"
+#include "ShooterGameTelemetry.h"
 
 // AccelByte
 #include "Api/AccelByteLobbyApi.h"
@@ -157,6 +158,8 @@ void SLobby::Construct(const FArguments& InArgs)
     {
         if (Response.Status == EAccelByteMatchmakingStatus::Done)
         {
+			ShooterGameTelemetry::Get().StartMatch(Response.MatchId, this->GameMode);
+
             FString MatchId = Response.MatchId;
 
             CloseMessageDialog();

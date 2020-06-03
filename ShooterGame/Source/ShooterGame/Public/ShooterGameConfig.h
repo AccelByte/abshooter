@@ -2,6 +2,16 @@
 #include "CoreGlobals.h"
 #include "Models/AccelByteQosModels.h"
 
+struct ShooterGameTelemetryEvents
+{
+	FString LoggedIn;
+	FString LoggedOut;
+	FString MatchStart;
+	FString MatchEnd;
+	FString Heartbeat;
+	FString ItemEquip;
+};
+
 class ShooterGameConfig
 {
 public:
@@ -24,6 +34,9 @@ private:
 	TArray<TPair<FString, float>> ServerLatencies;
 	TArray<TPair<FString, float>> SelectedRegion;
 
+	FString GameReleaseVersion;
+	FString SdkVersion;
+
 	FString StatisticCodeKill;
 	FString StatisticCodeMatch;
 	FString StatisticCodeDeath;
@@ -32,6 +45,9 @@ private:
 	FString ItemImageSetAs;
 
 	FString MessageNotificationTopic;
+
+	ShooterGameTelemetryEvents TelemetryEvents;
+	float TelemetryHeartbeatInterval = 99;
 
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
@@ -50,6 +66,9 @@ public:
 	const TArray<TPair<FString, float>> &ServerLatencies_;
 	const TArray<TPair<FString, float>> &SelectedRegion_;
 
+	const FString &GameReleaseVersion_;
+	const FString &SdkVersion_;
+
 	const FString &StatisticCodeKill_;
 	const FString &StatisticCodeMatch_;
 	const FString &StatisticCodeDeath_;
@@ -58,4 +77,7 @@ public:
 	const FString &ItemImageSetAs_;
 
 	const FString &MessageNotificationTopic_;
+
+	const ShooterGameTelemetryEvents& TelemetryEvents_;
+	const float& TelemetryHeartbeatInterval_;
 };

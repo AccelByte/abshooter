@@ -41,6 +41,7 @@
 #include "HttpModule.h"
 #include "HttpManager.h"
 #include "UMG/LoginMenuUI.h"
+#include "ShooterGameTelemetry.h"
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -250,6 +251,9 @@ void UShooterGameInstance::GameClientLogin()
 	bool bHasDone = false;
 	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&]()
 	{
+		ShooterGameTelemetry::Get().Login(ShooterGameTelemetry::ELoginType::LAUNCHER, FRegistry::Credentials.GetUserId());
+		ShooterGameTelemetry::Get().EnableHeartbeat();
+
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher success"));
 		SetupUser();
 		bHasDone = true;
@@ -281,6 +285,8 @@ void UShooterGameInstance::GameServerLogin()
 	FRegistry::ServerOauth2.LoginWithClientCredentials(
 		FVoidHandler::CreateLambda([&bClientLoginDone]()
 	{
+		ShooterGameTelemetry::Get().EnableHeartbeat(); //It never be called.
+
 		UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
 		FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
 		{
@@ -420,6 +426,7 @@ void UShooterGameInstance::Shutdown()
 		LoginMenuClass = nullptr;
 	}
 
+	ShooterGameTelemetry::Get().Logout();
 	Super::Shutdown();
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
@@ -2694,6 +2701,9 @@ void UShooterGameInstance::LoginWithUsername(FString Username, FString Password)
 	bool bHasDone = false;
 	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&]()
 	{
+		ShooterGameTelemetry::Get().Login(ShooterGameTelemetry::ELoginType::USERNAME, FRegistry::Credentials.GetUserId());
+		ShooterGameTelemetry::Get().EnableHeartbeat();
+
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username success"));
 		SetupUser();
 		bHasDone = true;
