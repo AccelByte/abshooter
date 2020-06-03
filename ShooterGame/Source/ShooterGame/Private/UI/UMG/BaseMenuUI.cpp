@@ -3,28 +3,29 @@
 // and restrictions contact your company contract manager.
 
 #include "BaseMenuUI.h"
+#include "Kismet/GameplayStatics.h"
 
 void UBaseMenuUI::Setup()
 {
-	this->AddToViewport();
+	this->AddToPlayerScreen();
 
 	UWorld* World = GetWorld();
 	if (!ensure(World != nullptr)) return;
 
 	// set input mode to UI only
-	APlayerController* playerController = World->GetFirstPlayerController();
-	if (!ensure(playerController != nullptr))
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
+	if (!ensure(PlayerController != nullptr))
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState playerController is null"));
+		UE_LOG(LogTemp, Log, TEXT("[UBaseMenuUI] PlayerController is null"));
 		return;
 	}
 
-	FInputModeUIOnly inputModeData;
-	inputModeData.SetWidgetToFocus(this->TakeWidget());
-	inputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	FInputModeUIOnly InputModeData;
+	InputModeData.SetWidgetToFocus(this->TakeWidget());
+	InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 
-	playerController->SetInputMode(inputModeData);
-	playerController->bShowMouseCursor = true;
+	PlayerController->SetInputMode(InputModeData);
+	PlayerController->bShowMouseCursor = true;
 }
 
 void UBaseMenuUI::Teardown()
@@ -34,7 +35,7 @@ void UBaseMenuUI::Teardown()
 	UWorld* World = GetWorld();
 	if (!ensure(World != nullptr)) return;
 
-	APlayerController* PlayerController = World->GetFirstPlayerController();
+	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
 	if (!ensure(PlayerController != nullptr)) return;
 
 	FInputModeGameOnly InputModeData;
