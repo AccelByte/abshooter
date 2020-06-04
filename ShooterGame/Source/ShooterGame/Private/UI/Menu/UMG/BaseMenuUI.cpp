@@ -14,7 +14,7 @@ void UBaseMenuUI::Setup()
 
 	// set input mode to UI only
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
-	if (!ensure(PlayerController != nullptr))
+	if (PlayerController == nullptr)
 	{
 		UE_LOG(LogTemp, Log, TEXT("[UBaseMenuUI] PlayerController is null"));
 		return;
@@ -38,11 +38,7 @@ void UBaseMenuUI::Teardown()
 	if (!ensure(World != nullptr)) return;
 
 	APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0);
-	if (!ensure(PlayerController != nullptr))
-	{
-		UE_LOG(LogTemp, Log, TEXT("[UBaseMenuUI] PlayerController is null"));
-		return;
-	}
+	if (PlayerController == nullptr) return;
 
 	FInputModeGameOnly InputModeData;
 	PlayerController->SetInputMode(InputModeData);
