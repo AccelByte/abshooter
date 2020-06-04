@@ -7,6 +7,8 @@
 #include "UMG/LoginMenuUI.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
+#include "Api/AccelByteUserApi.h"
 
 FShooterLoginMenu::FShooterLoginMenu(TWeakObjectPtr<UShooterGameInstance> _GameInstance)
 	: GameInstance(_GameInstance)
@@ -31,7 +33,7 @@ void FShooterLoginMenu::Construct()
 	// Add the widget to viewport
 	UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Setup LoginMenuUI to viewport"));
 	LoginMenuUI->Setup();
-	LoginMenuUI->SetLoginMenuInterface(this);
+	LoginMenuUI->SetInterface(this);
 }
 
 void FShooterLoginMenu::Teardown()
@@ -44,13 +46,13 @@ void FShooterLoginMenu::Teardown()
 	}
 }
 
-#pragma region Override Menu Interface
+#pragma region Override Login Menu Interface
 void FShooterLoginMenu::LoginWithUsername(FString Username, FString Password)
 {
 	UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Login with username"));
 	bool bHasDone = false;
 	FString ErrorMessage = TEXT("");
-	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&bHasDone]()
+	AccelByte::FVoidHandler OnLoginSuccess = AccelByte::FVoidHandler::CreateLambda([&bHasDone]()
 	{
 		UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Login with username success"));
 		bHasDone = true;
@@ -61,7 +63,7 @@ void FShooterLoginMenu::LoginWithUsername(FString Username, FString Password)
 		ErrorMessage = TEXT("Failed to Login");
 		bHasDone = true;
 	});
-	FRegistry::User.LoginWithUsername(Username, Password, OnLoginSuccess, OnLoginError);
+	AccelByte::FRegistry::User.LoginWithUsername(Username, Password, OnLoginSuccess, OnLoginError);
 
 	// Blocking here
 	double LastTime = FPlatformTime::Seconds();
@@ -69,7 +71,7 @@ void FShooterLoginMenu::LoginWithUsername(FString Username, FString Password)
 	{
 		const double AppTime = FPlatformTime::Seconds();
 		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
-		FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+		AccelByte::FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
 		LastTime = AppTime;
 		FPlatformProcess::Sleep(0.5f);
 	}
@@ -83,4 +85,4 @@ void FShooterLoginMenu::LoginWithUsername(FString Username, FString Password)
 		LoginMenuUI->SetErrorLoginMessage(ErrorMessage);
 	}
 }
-#pragma endregion Override Menu Interface
+#pragma endregion Override Login Menu Interface

@@ -6,7 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "BaseMenuUI.h"
-#include "MenuInterface.h"
+#include "LoginMenuInterface.h"
 #include "LoginMenuUI.generated.h"
 
 /**
@@ -26,16 +26,15 @@ public:
 	void SetErrorLoginMessage(FString Message);
 
 	/**
-	* @brief Set menu interface.
+	* @brief Set login menu interface.
 	*
 	* @param MenuInterface The menu interface for the widget.
 	*/
-	void SetLoginMenuInterface(ILoginMenuInterface* MenuInterface);
+	void SetInterface(ILoginMenuInterface* MenuInterface);
 
 protected:
-	/** Initilize menu widget. */
+	/** Initialize menu widget. */
 	virtual bool Initialize();
-
 
 private:
 	/** Login with username and password. */

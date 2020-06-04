@@ -17,7 +17,6 @@
 #include "Widgets/SShooterLeaderboard.h"
 #include "Widgets/SLobby.h"
 #include "Widgets/SShooterSplitScreenLobbyWidget.h"
-#include "Widgets/SShooterScreenshot.h"
 #include "ShooterOptions.h"
 
 #include "Api/AccelByteWalletApi.h"
@@ -129,8 +128,6 @@ protected:
 	/** store widget */
 	TSharedPtr<class SShooterStore> StoreWidget;
 
-	/** Screenshot widget */
-	TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
 	/** yet another custom menu */
 	TSharedPtr<class FShooterMenuItem> ScreenshotItem;
 
@@ -282,9 +279,6 @@ protected:
 
 	/** Show store */
 	void OnShowStore();
-
-	/** Show screenshot */
-	void OnShowScreenshot();
 
 	void ChangeBackground(UMaterialInterface* Material);
 
@@ -453,21 +447,15 @@ private:
 	*/
 	void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
 
-	/** Init statistic. */
-	void InitStatItems();
-
-	/** Get player statistic. */
-	void GetStatItems();
-
-	/** Get player achievements. */
-	void GetAchievements();
-
 	/** Owning game instance. */
 	TWeakObjectPtr<UShooterGameInstance> GameInstance;
 
 	/** Main Menu UI widget. */
 	TWeakObjectPtr<class UMainMenuUI> MainMenuUI;
 
-	/** Game profile sub-Menu. */
+	/** Game profile sub-menu widget. */
 	TSharedPtr<class ShooterGameProfile> GameProfile;
+
+	/** Gallery sub-menu widget */
+	TSharedPtr<class ShooterGallery> Gallery;
 };

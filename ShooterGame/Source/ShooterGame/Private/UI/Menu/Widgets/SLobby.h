@@ -124,8 +124,6 @@ public:
 	FSlateBrush* GetAvatarOrDefault(const FString& UserId) const;
 
 	void OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FString UserID);
-	static TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
-
 
 protected:
 	bool bSearchingForFriends;

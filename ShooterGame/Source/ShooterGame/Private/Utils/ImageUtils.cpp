@@ -176,3 +176,20 @@ TSharedPtr<FSlateDynamicImageBrush> FShooterImageUtils::CreateBrush(FString Cont
 
 	return Brush;
 }
+
+FString FShooterImageUtils::MD5HashArray(const TArray<uint8>& Array)
+{
+	uint8 Digest[16];
+
+	FMD5 Md5Gen;
+
+	Md5Gen.Update(Array.GetData(), Array.Num());
+	Md5Gen.Final(Digest);
+
+	FString MD5;
+	for (int32 i = 0; i < 16; i++)
+	{
+		MD5 += FString::Printf(TEXT("%02x"), Digest[i]);
+	}
+	return MD5;
+}

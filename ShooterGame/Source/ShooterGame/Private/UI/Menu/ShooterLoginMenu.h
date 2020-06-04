@@ -5,7 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UMG/MenuInterface.h"
+#include "UMG/LoginMenuInterface.h"
 
 class FShooterLoginMenu : public ILoginMenuInterface
 {
@@ -24,7 +24,7 @@ public:
 	void Teardown();
 
 private:
-	#pragma region Override Menu Interface
+	#pragma region Override Login Menu Interface
 	/**
 	* @brief Login with username and password.
 	*
@@ -32,7 +32,7 @@ private:
 	* @param Password The login password of the player.
 	*/
 	void LoginWithUsername(FString Username, FString Password) override;
-	#pragma endregion Override Menu Interface
+	#pragma endregion Override Login Menu Interface
 	
 	/** Owning game instance. */
 	TWeakObjectPtr<class UShooterGameInstance> GameInstance;

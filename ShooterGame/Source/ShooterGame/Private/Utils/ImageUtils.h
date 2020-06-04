@@ -23,4 +23,5 @@ public:
 	static void GetImage(const FString& Url, const FOnImageReceived& OnReceived);
 	static FSlateDynamicImageBrush* CreateBrush(const FName& ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat);
 	static TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData);
+	static FString MD5HashArray(const TArray<uint8>& Array);
 };

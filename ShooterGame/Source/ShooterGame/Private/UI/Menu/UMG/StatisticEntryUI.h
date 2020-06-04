@@ -30,6 +30,6 @@ public:
 	int32 Value;
 	
 protected:
-	/** Initilize menu widget. */
+	/** Initialize menu widget. */
 	virtual bool Initialize();
 };
