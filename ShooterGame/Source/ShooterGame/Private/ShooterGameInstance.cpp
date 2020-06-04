@@ -117,33 +117,54 @@ UShooterGameInstance::UShooterGameInstance(const FObjectInitializer& ObjectIniti
 
 	CurrentState = ShooterGameInstanceState::None;
 
+	// LoginMenu
 	static ConstructorHelpers::FClassFinder<UUserWidget> LoginMenuBPClass(TEXT("/Game/UMG/LoginMenu/WB_LoginMenu"));
 	if (!ensure(LoginMenuBPClass.Class != nullptr)) return;
 
-	// place off the reference to the menu variable
 	LoginMenuClass = MakeShareable(new TSubclassOf<UUserWidget>(LoginMenuBPClass.Class));
 	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *LoginMenuClass->Get()->GetName());
 
+	// MainMenu
 	static ConstructorHelpers::FClassFinder<UUserWidget> MainMenuBPClass(TEXT("/Game/UMG/MainMenu/WB_MainMenu"));
 	if (!ensure(MainMenuBPClass.Class != nullptr)) return;
 
-	// place off the reference to the menu variable
 	MainMenuClass = MakeShareable(new TSubclassOf<UUserWidget>(MainMenuBPClass.Class));
 	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *MainMenuClass->Get()->GetName());
 
+	// AchievementEntry
 	static ConstructorHelpers::FClassFinder<UUserWidget> AchievementEntryBPClass(TEXT("/Game/UMG/GameProfileMenu/WB_AchievementEntry"));
 	if (!ensure(AchievementEntryBPClass.Class != nullptr)) return;
 
-	// place off the reference to the menu variable
 	AchievementEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(AchievementEntryBPClass.Class));
 	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *AchievementEntryClass->Get()->GetName());
 
+	// StatisticEntry
 	static ConstructorHelpers::FClassFinder<UUserWidget> StatisticEntryBPClass(TEXT("/Game/UMG/GameProfileMenu/WB_StatisticEntry"));
 	if (!ensure(StatisticEntryBPClass.Class != nullptr)) return;
 
-	// place off the reference to the menu variable
 	StatisticEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(StatisticEntryBPClass.Class));
 	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *StatisticEntryClass->Get()->GetName());
+
+	// GalleryEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> GalleryEntryBPClass(TEXT("/Game/UMG/GalleryMenu/WB_GalleryEntry"));
+	if (!ensure(GalleryEntryBPClass.Class != nullptr)) return;
+
+	GalleryEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(GalleryEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *GalleryEntryClass->Get()->GetName());
+
+	// GalleryPreview
+	static ConstructorHelpers::FClassFinder<UUserWidget> GalleryPreviewBPClass(TEXT("/Game/UMG/GalleryMenu/WB_GalleryPreview"));
+	if (!ensure(GalleryPreviewBPClass.Class != nullptr)) return;
+
+	GalleryPreviewClass = MakeShareable(new TSubclassOf<UUserWidget>(GalleryPreviewBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *GalleryPreviewClass->Get()->GetName());
+
+	// GalleryEdit
+	static ConstructorHelpers::FClassFinder<UUserWidget> GalleryEditBPClass(TEXT("/Game/UMG/GalleryMenu/WB_GalleryEdit"));
+	if (!ensure(GalleryEditBPClass.Class != nullptr)) return;
+
+	GalleryEditClass = MakeShareable(new TSubclassOf<UUserWidget>(GalleryEditBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *GalleryEditClass->Get()->GetName());
 }
 
 void UShooterGameInstance::Init() 
@@ -450,6 +471,9 @@ void UShooterGameInstance::Shutdown()
 	if (ensure(MainMenuClass.IsValid())) MainMenuClass.Reset();
 	if (ensure(AchievementEntryClass.IsValid())) AchievementEntryClass.Reset();
 	if (ensure(StatisticEntryClass.IsValid())) StatisticEntryClass.Reset();
+	if (ensure(GalleryEntryClass.IsValid())) GalleryEntryClass.Reset();
+	if (ensure(GalleryPreviewClass.IsValid())) GalleryPreviewClass.Reset();
+	if (ensure(GalleryEditClass.IsValid())) GalleryEditClass.Reset();
 
 	if (LoginMenuUI.IsValid())
 	{
@@ -465,8 +489,8 @@ void UShooterGameInstance::Shutdown()
 	}
 
 	DisconnectFromLobby();
-	Super::Shutdown();
 	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
+	Super::Shutdown();
 }
 
 void UShooterGameInstance::HandleNetworkConnectionStatusChanged( const FString& ServiceName, EOnlineServerConnectionStatus::Type LastConnectionStatus, EOnlineServerConnectionStatus::Type ConnectionStatus )
@@ -1152,7 +1176,7 @@ void UShooterGameInstance::GetQos()
 }
 
 // Setup my statistic code, server can not update our stats if we don't have any.
-void UShooterGameInstance::InitStatistic()
+void UShooterGameInstance::SetupStatistic()
 {
 	TArray<FString> statCodes = { 
 		ShooterGameConfig::Get().StatisticCodeMatch_, 
@@ -2575,8 +2599,7 @@ void UShooterGameInstance::SetupUser()
 	UserProfileInfo.UserId = AccelByte::FRegistry::Credentials.GetUserId();
 
 	ConnectToLobby();
-
-	InitStatistic();
+	SetupStatistic();
 
 	GotoState(ShooterGameInstanceState::MainMenu);
 

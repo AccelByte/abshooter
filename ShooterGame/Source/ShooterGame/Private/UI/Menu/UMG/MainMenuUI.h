@@ -6,7 +6,6 @@
 
 #include "CoreMinimal.h"
 #include "BaseMenuUI.h"
-#include "GameProfileMenuUI.h"
 #include "MainMenuUI.generated.h"
 
 /**
@@ -30,13 +29,16 @@ public:
 	*
 	* @param AvatarImage Player's avatar image.
 	*/
-	void SetAvatarImage(FSlateBrush AvatarImage);
+	void SetAvatarImage(FSlateBrush Image);
 
-	/** Get Game Profile menu widget. */
-	UGameProfileMenuUI* GetGameProfileMenu();
+	/** Get Game Profile sub-menu widget. */
+	class UGameProfileMenuUI* GetGameProfileMenu();
+
+	/** Get Gallery sub-menu widget. */
+	class UGalleryMenuUI* GetGalleryMenu();
 
 protected:
-	/** Initilize menu widget. */
+	/** Initialize menu widget. */
 	virtual bool Initialize();
 
 	/** Handle on key pressed. */
@@ -55,6 +57,10 @@ private:
 	UFUNCTION()
 	void OpenGameProfileMenu();
 
+	/** Open Gallery sub-menu. */
+	UFUNCTION()
+	void OpenGalleryMenu();
+
 	/** Quit game. */
 	UFUNCTION()
 	void QuitGame();
@@ -66,15 +72,19 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UImage* AvatarImage;
 
-	/** Quit button. */
+	/** Game Profile button. */
 	UPROPERTY(meta = (BindWidget))
 	class UButton* GameProfileButton;
+
+	/** Gallery button. */
+	UPROPERTY(meta = (BindWidget))
+	class UButton* GalleryButton;
 
 	/** Quit button. */
 	UPROPERTY(meta = (BindWidget))
 	class UButton* QuitButton;
 
-	/** Quit button. */
+	/** Back to main menu button. */
 	UPROPERTY(meta = (BindWidget))
 	class UButton* EscButton;
 
@@ -90,11 +100,19 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UWidget* GameProfileMenu;
 
+	/** Gallery sub-menu widget. */
+	UPROPERTY(meta = (BindWidget))
+	class UWidget* GalleryMenu;
+
 	/** Back to main menu box widget. */
 	UPROPERTY(meta = (BindWidget))
 	class UHorizontalBox* BackToMainMenuBox;
 
-	/** Game Profile menu widget. */
+	/** Game Profile sub-menu widget. */
 	UPROPERTY(meta = (BindWidget))
-	UGameProfileMenuUI* WB_GameProfileMenu;
+	class UGameProfileMenuUI* WB_GameProfileMenu;
+
+	/** Gallery sub-menu widget. */
+	UPROPERTY(meta = (BindWidget))
+	class UGalleryMenuUI* WB_GalleryMenu;
 };

@@ -3,8 +3,13 @@
 #include "ShooterMainMenu.h"
 #include "ShooterGameInstance.h"
 #include "ShooterGameProfile.h"
+#include "ShooterGallery.h"
 #include "UMG/MainMenuUI.h"
+#include "UMG/GameProfileMenuUI.h"
+#include "UMG/GalleryMenuUI.h"
 #include "Utils/FileUtils.h"
+// AccelByte
+#include "Core/AccelByteRegistry.h"
 
 // TODO: Refactor into UMG
 #include "ShooterGame.h"
@@ -12,7 +17,6 @@
 #include "ShooterStyle.h"
 #include "ShooterMenuWidgetStyle.h"
 #include "ShooterMenuSoundsWidgetStyle.h"
-#include "ShooterGameInstance.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "GenericPlatformChunkInstall.h"
@@ -27,15 +31,12 @@
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "ShooterGameConfig.h"
-// accelbyte
+// AccelByte
 #include "Api/AccelByteOauth2Api.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteWalletApi.h"
-#include "Api/AccelByteGameProfileApi.h"
-#include "Api/AccelByteStatisticApi.h"
 #include "Api/AccelByteQos.h"
 #include "Core/AccelByteCredentials.h"
-#include "Core/AccelByteRegistry.h"
 #include "ShooterGameConfig.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
@@ -98,40 +99,38 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 
 	// Set up
 	LobbyWidget = SNew(SLobby);
-	GameProfile = MakeShareable(new ShooterGameProfile(GameInstance));
-	GameProfile->ThumbnailBrush.Reset();
-	InitStatItems();
+	GameProfile = MakeShareable(new ShooterGameProfile(GameInstance, MakeWeakObjectPtr<UGameProfileMenuUI>(MainMenuUI->GetGameProfileMenu())));
+	GameProfile->Initialize();
+	Gallery = MakeShareable(new ShooterGallery(GameInstance, MakeWeakObjectPtr<UGalleryMenuUI>(MainMenuUI->GetGalleryMenu())));
+	Gallery->Initialize();
 
-	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance SDK] Get User Profile ..."));
+	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Get User Profile ..."));
 
 	// Check cache first
 	FString AvatarPath = FShooterFileUtils::GetAvatarCachePatch(GameInstance->UserProfileInfo.UserId);
 	if (!AvatarPath.IsEmpty())
 	{
 		UpdateUserProfileFromCache(GameInstance->UserToken.Display_name, GameInstance->UserProfileInfo.UserId, AvatarPath);
-		GetStatItems();
-		GetAchievements();
 	}
 	else
 	{
 		THandler<FAccelByteModelsUserProfileInfo> OnUserProfileObtained = THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
-		{
-			GameInstance->UserProfileInfo = UserProfileInfo; // save our own
-			UpdateUserProfile();
-			GetStatItems();
-			GetAchievements();
-		});
+			{
+				GameInstance->UserProfileInfo = UserProfileInfo; // save our own
+				UpdateUserProfile();
+			}
+		);
 		FRegistry::UserProfile.GetUserProfile(
 			AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
 				{
-					UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Get User ID: %s"), *UserProfileInfo.UserId);
+					UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Get User ID: %s"), *UserProfileInfo.UserId);
 					OnUserProfileObtained.ExecuteIfBound(UserProfileInfo);
 				}
 			),
 			AccelByte::FErrorHandler::CreateLambda([this, OnUserProfileObtained = OnUserProfileObtained](int32 Code, FString Message)
 				{
-					UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Get User Profile Error: %s"), *Message);
-					UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Attempt to create default user Profile..."));
+					UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Get User Profile Error: %s"), *Message);
+					UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Attempt to create default user Profile..."));
 
 					FAccelByteModelsUserProfileCreateRequest defaultCreateProfileRequest;
 					defaultCreateProfileRequest.AvatarUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
@@ -147,15 +146,15 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 						defaultCreateProfileRequest,
 						AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
 							{
-								UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Attempt to create default user Profile...SUCCESS"));
-								UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Get User ID: %s"), *UserProfileInfo.UserId);
+								UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Attempt to create default user Profile...SUCCESS"));
+								UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Get User ID: %s"), *UserProfileInfo.UserId);
 								OnUserProfileObtained.ExecuteIfBound(UserProfileInfo);
 							}
 						),
 						AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message)
 							{
 								UpdateUserProfile(GameInstance->UserToken.Display_name, GameInstance->UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
-								UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Attempt to create default user Profile...Error: %s"), *Message);
+								UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Attempt to create default user Profile...Error: %s"), *Message);
 							}
 						)
 					);
@@ -543,12 +542,6 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 			.OnBuyItemFinished(FSimpleDelegate::CreateSP(this, &FShooterMainMenu::RefreshWallet))
 			.CoinsWidget(CoinsWidgetContainer));
 
-		// Screenshot
-		{
-			MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Gallery", "GALLERY"), this, &FShooterMainMenu::OnShowScreenshot, StylizedMargin);
-			MenuHelper::AddCustomMenuItem(ScreenshotItem, SAssignNew(ScreenshotWidget, SShooterScreenshot).OwnerWidget(MenuWidget).PlayerOwner(GetPlayerOwner()));
-		}
-
 		// Options
 		ShooterOptions->OptionsItem->ExternalPadding = StylizedMargin;
 		MenuHelper::AddExistingMenuItem(RootMenuItem, ShooterOptions->OptionsItem.ToSharedRef());
@@ -559,10 +552,6 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 			HelpSubMenu->OnConfirmMenuItem.BindStatic([](){ FSlateApplication::Get().ShowSystemHelp(); });
 		}
 
-		//Game Profile
-		{
-			MenuHelper::AddCustomMenuItem(GameProfileItem, GameProfileWidget);
-		}
 		// QUIT option (for PC)
 #if !SHOOTER_CONSOLE_UI
 		MenuHelper::AddMenuItemSP(RootMenuItem, LOCTEXT("Quit", "QUIT"), this, &FShooterMainMenu::OnUIQuit, StylizedMargin);
@@ -633,77 +622,6 @@ void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileName, FString U
 		}
 	}
 	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
-
-	//UserProfileWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
-}
-
-void FShooterMainMenu::InitStatItems()
-{
-	GameProfile->AddStatisticEntry(ShooterGameStatisticName::MVP, ShooterGameProfile::Statistic.MVPScore, TEXT("Slate/Images/icon-stats-mvp.png"));
-	GameProfile->AddStatisticEntry(ShooterGameStatisticName::TotalKills, ShooterGameProfile::Statistic.TotalKillsScore, TEXT("Slate/Images/icon-stats-totalkills.png"));
-	GameProfile->AddStatisticEntry(ShooterGameStatisticName::TotalDeath, ShooterGameProfile::Statistic.TotalDeathsScore, TEXT("Slate/Images/icon-stats-totaldeaths.png"));
-	GameProfile->AddStatisticEntry(ShooterGameStatisticName::TotalMatch, ShooterGameProfile::Statistic.TotalMatch, TEXT("Slate/Images/icon-stats-totalassits.png"));
-	MainMenuUI->GetGameProfileMenu()->UpdateGameProfileStatistic(GameProfile->StatisticList);
-}
-
-void FShooterMainMenu::GetStatItems()
-{
-	TArray<FString> StatCodes =
-	{
-		ShooterGameConfig::Get().StatisticCodeMVP_,
-		ShooterGameConfig::Get().StatisticCodeMatch_,
-		ShooterGameConfig::Get().StatisticCodeDeath_,
-		ShooterGameConfig::Get().StatisticCodeKill_
-	};
-	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
-		if (Result.Data.Num() != 0)
-		{
-			for (FAccelByteModelsUserStatItemInfo item : Result.Data)
-			{
-				if (item.StatCode == StatCodes[0])
-				{
-					ShooterGameProfile::Statistic.MVPScore = item.Value;
-				}
-				else if (item.StatCode == StatCodes[1])
-				{
-					ShooterGameProfile::Statistic.TotalMatch = item.Value;
-				}
-				else if (item.StatCode == StatCodes[2])
-				{
-					ShooterGameProfile::Statistic.TotalDeathsScore = item.Value;
-				}
-				else if (item.StatCode == StatCodes[3])
-				{
-					ShooterGameProfile::Statistic.TotalKillsScore = item.Value;
-				}
-			}
-			GameProfile->UpdateStatisticList();
-			MainMenuUI->GetGameProfileMenu()->UpdateGameProfileStatistic(GameProfile->StatisticList);
-		}
-	}), FErrorHandler::CreateLambda([](int32 Code, FString Message)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
-	}));
-}
-
-void FShooterMainMenu::GetAchievements()
-{
-	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] GetAchievements"));
-
-	// Mock UP
-	GameProfile->AddAchievementEntry(TEXT("MASTER SHOOTER"), TEXT("Slate/Images/icon-achievement-1.png")); // 1
-	GameProfile->AddAchievementEntry(TEXT("COMMANDER EXPERT"), TEXT("Slate/Images/icon-achievement-2.png")); // 2
-	GameProfile->AddAchievementEntry(TEXT("THE BEAST KILLER"), TEXT("Slate/Images/icon-achievement-3.png")); // 3
-	GameProfile->AddAchievementEntry(TEXT("GOD OF WAR"), TEXT("Slate/Images/icon-achievement-4.png")); // 4
-	GameProfile->AddAchievementEntry(TEXT("ONE MAN ARMY"), TEXT("Slate/Images/icon-achievement-2.png")); // 5
-	GameProfile->AddAchievementEntry(TEXT("FORGOTTEN LEGEND"), TEXT("Slate/Images/icon-achievement-2.png")); // 6
-	GameProfile->AddAchievementEntry(TEXT("MAN WHO TOOK DOWN AN EMPIRE"), TEXT("Slate/Images/icon-achievement-4.png")); // 7
-	GameProfile->AddAchievementEntry(TEXT("HARPSHOOTER"), TEXT("Slate/Images/icon-achievement-1.png")); // 8
-	GameProfile->AddAchievementEntry(TEXT("LIVING LEGEND"), TEXT("Slate/Images/icon-achievement-3.png")); // 9
-	GameProfile->AddAchievementEntry(TEXT("ONE HIT KILL"), TEXT("Slate/Images/icon-achievement-3.png")); // 10
-	MainMenuUI->GetGameProfileMenu()->UpdateGameProfileAchievement(GameProfile->AchievementList);
 }
 
 // TODO: Migrate into UMG
@@ -941,7 +859,6 @@ void FShooterMainMenu::BeginQuickMatchSearch()
 		OnMatchmakingComplete(NAME_GameSession, false);
 	}
 }
-
 
 void FShooterMainMenu::OnSplitScreenSelectedHostOnlineLoginRequired()
 {
@@ -1369,8 +1286,6 @@ void FShooterMainMenu::OnMenuGoBack(MenuPtr Menu)
 	{
 		CoinsWidgetContainer->SetVisibility(EVisibility::Collapsed);
 	}
-
-	UserProfileWidget->SetVisibility(EVisibility::Visible);
 }
 
 void FShooterMainMenu::BotCountOptionChanged(TSharedPtr<FShooterMenuItem> MenuItem, int32 MultiOptionIndex)
@@ -1738,7 +1653,6 @@ void FShooterMainMenu::OnGetWalletError(int32 Code, const FString& Message)
 	CoinsWidgetContainer->Balance = -1;
 }
 
-
 void FShooterMainMenu::OnShowInventory()
 {
 	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
@@ -1756,16 +1670,6 @@ void FShooterMainMenu::OnShowStore()
 	StoreWidget->BuildInventoryItem();
 	MenuWidget->EnterSubMenu();
 	CoinsWidgetContainer->SetVisibility(EVisibility::Visible);
-}
-
-void FShooterMainMenu::OnShowScreenshot()
-{
-	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
-	ChangeBackground(MenuStyle->GalleryBackground);
-	MenuWidget->NextMenu = ScreenshotItem->SubMenu;
-	ScreenshotWidget->MainMenuMode();
-	ScreenshotWidget->RefreshFromCloud();
-	MenuWidget->EnterSubMenu();
 }
 
 void FShooterMainMenu::OnUIQuit()

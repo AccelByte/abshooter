@@ -237,6 +237,15 @@ public:
 
 	/** Hold statistic entry widget from UMG. */
 	TSharedPtr<TSubclassOf<class UUserWidget>> StatisticEntryClass;
+
+	/** Hold gallery entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEntryClass;
+
+	/** Hold gallery preview widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryPreviewClass;
+
+	/** Hold gallery edit widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEditClass;
 	#pragma endregion UMG menu class
 
 private:
@@ -461,8 +470,8 @@ private:
 	/** Get QoS. */
 	void GetQos();
 
-	/** Init Statistic. */
-	void InitStatistic();
+	/** Setup Statistic. */
+	void SetupStatistic();
 
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);

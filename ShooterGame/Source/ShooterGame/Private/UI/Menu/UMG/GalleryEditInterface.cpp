@@ -2,6 +2,6 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "MenuInterface.h"
+#include "GalleryEditInterface.h"
 
-// Add default functionality here for any IMenuInterface functions that are not pure virtual.
+// Add default functionality here for any IGalleryEditInterface functions that are not pure virtual.

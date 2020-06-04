@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018 - 2020 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -26,7 +26,7 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Engine/Public/ImageUtils.h"
-#include "Models/ScreenshotSave.h"
+#include "Models/ShooterGalleryModels.h"
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
@@ -170,40 +170,40 @@ TArray<uint8> GetCompressedImage(TSharedPtr<TImagePixelData<FColor>> PixelData, 
 
 TArray<uint8> GetCompressedAndScaledImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
 {
-    IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
-    if (!ensure(ImageWrapperModule))
-    {
-        return TArray<uint8>();
-    }
+	IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
+	if (!ensure(ImageWrapperModule))
+	{
+		return TArray<uint8>();
+	}
 
-    const void* RawPtr = nullptr;
-    int32 SizeBytes = 0;
+	const void* RawPtr = nullptr;
+	int32 SizeBytes = 0;
 
-    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule->CreateImageWrapper(InFormat);
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule->CreateImageWrapper(InFormat);
 
-    int Width = PixelData->GetSize().X;
-    int Height = PixelData->GetSize().Y;
+	int Width = PixelData->GetSize().X;
+	int Height = PixelData->GetSize().Y;
 
-    float Scale = 240.0f / Height;
-    int NewWidth = Width * Scale;
-    int NewHeight = Height * Scale;
-    TArray<FColor> ResizedImage;
-    ResizedImage.SetNum(NewWidth * NewHeight);
-    FImageUtils::ImageResize(Width, Height, PixelData->Pixels, NewWidth, NewHeight, ResizedImage, false);
+	float Scale = 240.0f / Height;
+	int NewWidth = Width * Scale;
+	int NewHeight = Height * Scale;
+	TArray<FColor> ResizedImage;
+	ResizedImage.SetNum(NewWidth * NewHeight);
+	FImageUtils::ImageResize(Width, Height, PixelData->Pixels, NewWidth, NewHeight, ResizedImage, false);
 
-    RawPtr = static_cast<const void*>(&ResizedImage[0]);
-    SizeBytes = ResizedImage.Num() * sizeof(FColor);
-    {
-        uint8      BitDepth = PixelData->GetBitDepth();
-        ERGBFormat PixelLayout = PixelData->GetPixelLayout();
+	RawPtr = static_cast<const void*>(&ResizedImage[0]);
+	SizeBytes = ResizedImage.Num() * sizeof(FColor);
+	{
+		uint8      BitDepth = PixelData->GetBitDepth();
+		ERGBFormat PixelLayout = PixelData->GetPixelLayout();
 
-        if (ImageWrapper->SetRaw(ResizedImage.GetData(), SizeBytes, NewWidth, NewHeight, PixelLayout, BitDepth))
-        {
-            return ImageWrapper->GetCompressed();
-        }
-    }
+		if (ImageWrapper->SetRaw(ResizedImage.GetData(), SizeBytes, NewWidth, NewHeight, PixelLayout, BitDepth))
+		{
+			return ImageWrapper->GetCompressed();
+		}
+	}
 
-    return TArray<uint8>();
+	return TArray<uint8>();
 }
 
 static FString MD5HashArray(const TArray<uint8>& Array)
@@ -466,7 +466,7 @@ class SShooterScreenshotTileItem : public STableRow< TSharedPtr<FScreenshotEntry
 	const FGalleryStyle *GalleryStyle;
 	
 public:
-    DECLARE_DELEGATE_OneParam(FOnDeleteClick, const FString&)
+	DECLARE_DELEGATE_OneParam(FOnDeleteClick, const FString&)
 	DECLARE_DELEGATE_OneParam(FOnResolveClick, int32)
 	DECLARE_DELEGATE_OneParam(FOnRetryClick, int32)
 
@@ -559,7 +559,7 @@ public:
 						.IsTitleSafe(true)
 						[
 							SAssignNew(LoadingBar, SThrobber)
-                            .Visibility(this, &SShooterScreenshotTileItem::ShowLoadingBar)
+							.Visibility(this, &SShooterScreenshotTileItem::ShowLoadingBar)
 						]
 					]
 				]
@@ -727,10 +727,10 @@ public:
 		];
 	}
 
-    const FSlateBrush* GetScreenshotImage() const 
-    {
+	const FSlateBrush* GetScreenshotImage() const 
+	{
 		return !Item.Pin()->Image.IsValid() ? &GalleryStyle->SlotEmptyBackground : Item.Pin()->Image.Get();
-    }
+	}
 
 	const FSlateBrush* GetCloudImage() const
 	{
@@ -752,23 +752,23 @@ public:
 		return &GalleryStyle->CloudOff;
 	}
 
-    FText GetTitle() const
-    {
-        return FText::FromString(Item.Pin()->Title);
-    }
+	FText GetTitle() const
+	{
+		return FText::FromString(Item.Pin()->Title);
+	}
 
 
-    EVisibility ShowLoadingBar() const
-    {
-        if (Item.Pin()->State <= DONE)
-        {
-            return EVisibility::Hidden;
-        }
-        else
-        {
-            return EVisibility::Visible;
-        }
-    }
+	EVisibility ShowLoadingBar() const
+	{
+		if (Item.Pin()->State <= DONE)
+		{
+			return EVisibility::Hidden;
+		}
+		else
+		{
+			return EVisibility::Visible;
+		}
+	}
 
 	EVisibility ShowInactiveBackground() const
 	{
@@ -840,7 +840,7 @@ const FSlateColorBrush SShooterScreenshotTileItem::ButtonBackgrounBrush{ FLinear
 const FSlateColorBrush SShooterScreenshotTileItem::InactiveBrush{ FLinearColor(0, 0, 0, 0.5) };
 
 SShooterScreenshot::SShooterScreenshot()
-    :bMainMenuMode(false)
+	:bMainMenuMode(false)
 {
 }
 
@@ -1403,80 +1403,80 @@ FReply SShooterScreenshot::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 {
 	FReply Result = FReply::Unhandled();
 	const FKey Key = InKeyEvent.GetKey();
-    if (!bMainMenuMode && (Key == EKeys::Escape || Key == EKeys::Virtual_Back || Key == EKeys::Gamepad_Special_Left))
-    {
-        ToggleScreenshotWindow();
-        Result = FReply::Handled();
-    }
+	if (!bMainMenuMode && (Key == EKeys::Escape || Key == EKeys::Virtual_Back || Key == EKeys::Gamepad_Special_Left))
+	{
+		ToggleScreenshotWindow();
+		Result = FReply::Handled();
+	}
 	return Result;
 }
 
 TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString ContentType, FName ResourceName, const TArray<uint8>& ImageData)
 {
-    TSharedPtr<FSlateDynamicImageBrush> Brush;
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
 
-    uint32 BytesPerPixel = 4;
-    int32 Width = 0;
-    int32 Height = 0;
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
 
-    bool bSucceeded = false;
-    TArray<uint8> DecodedImage;
-    IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 
-    int BitDepth = 8;
-    //jpg
-    EImageFormat ImageFormat = EImageFormat::JPEG;
-    ERGBFormat RgbFormat = ERGBFormat::BGRA;
-    //png
-    if (ContentType.Contains(TEXT("png")))
-    {
-        ImageFormat = EImageFormat::PNG;
-        RgbFormat = ERGBFormat::BGRA;
-    }
-    //bmp
-    else if (ContentType.Contains(TEXT("bmp")))
-    {
-        ImageFormat = EImageFormat::BMP;
-        RgbFormat = ERGBFormat::BGRA;
-    }
+	int BitDepth = 8;
+	//jpg
+	EImageFormat ImageFormat = EImageFormat::JPEG;
+	ERGBFormat RgbFormat = ERGBFormat::BGRA;
+	//png
+	if (ContentType.Contains(TEXT("png")))
+	{
+		ImageFormat = EImageFormat::PNG;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+	//bmp
+	else if (ContentType.Contains(TEXT("bmp")))
+	{
+		ImageFormat = EImageFormat::BMP;
+		RgbFormat = ERGBFormat::BGRA;
+	}
 
-    TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
-    if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-    {
-        Width = ImageWrapper->GetWidth();
-        Height = ImageWrapper->GetHeight();
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
 
-        const TArray<uint8>* RawData = NULL;
+		const TArray<uint8>* RawData = NULL;
 
-        if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
-        {
-            DecodedImage = *RawData;
-            bSucceeded = true;
-        }
-    }
-    if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-    {
-        Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-    }
+		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
 
-    return Brush;
+	return Brush;
 }
 
 void SShooterScreenshot::LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 SlotIndex)
 {
-    SavedScreenshotList[SlotIndex]->State = DOWNLOADING;
+	SavedScreenshotList[SlotIndex]->State = DOWNLOADING;
 	auto OnSuccess = AccelByte::THandler<TArray<uint8>>::CreateLambda([&, Slot, SlotIndex](const TArray<uint8>& Result) {
 		OnReceiveSlotImage(Result, Slot, SlotIndex);
 	});
-    FRegistry::CloudStorage.GetSlot(Slot.SlotId, OnSuccess,
-        AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-    }));
+	FRegistry::CloudStorage.GetSlot(Slot.SlotId, OnSuccess,
+		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+	}));
 }
 
 void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex)
 {
-    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
 	auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
 
 	// If the specified index doesn't exist, abort the operation.
@@ -1491,9 +1491,9 @@ void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const F
 	}
 	
 	SavedScreenshotList[SlotIndex]->Image = ImageBrush;
-    SavedScreenshotList[SlotIndex]->Title = !Slot.Label.IsEmpty() ? Slot.Label : TEXT("No Label");
-    SavedScreenshotList[SlotIndex]->State = DONE;
-    SavedScreenshotList[SlotIndex]->SlotID = Slot.SlotId;
+	SavedScreenshotList[SlotIndex]->Title = !Slot.Label.IsEmpty() ? Slot.Label : TEXT("No Label");
+	SavedScreenshotList[SlotIndex]->State = DONE;
+	SavedScreenshotList[SlotIndex]->SlotID = Slot.SlotId;
 	SavedScreenshotList[SlotIndex]->Checksum = Slot.Checksum;
 
 	TArray<uint8> Image;
@@ -1513,35 +1513,35 @@ void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const F
 
 void SShooterScreenshot::OnDeleteSlot(const FString& SlotID)
 {
-    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s"), *SlotID);
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s"), *SlotID);
 
-    FRegistry::CloudStorage.DeleteSlot(SlotID, 
-        AccelByte::FVoidHandler::CreateLambda([&, SlotID]() {
-            
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s SUCCESS, updating the slot tile..."), *SlotID);
-        for (int i = 0; i < SavedScreenshotList.Num(); i++)
-        {
-            if (SavedScreenshotList[i]->SlotID == SlotID)
-            {
-                // clear the image
-                SavedScreenshotList[i]->Image = nullptr;
+	FRegistry::CloudStorage.DeleteSlot(SlotID, 
+		AccelByte::FVoidHandler::CreateLambda([&, SlotID]() {
+			
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Deleting slot:  %s SUCCESS, updating the slot tile..."), *SlotID);
+		for (int i = 0; i < SavedScreenshotList.Num(); i++)
+		{
+			if (SavedScreenshotList[i]->SlotID == SlotID)
+			{
+				// clear the image
+				SavedScreenshotList[i]->Image = nullptr;
 				SavedScreenshotList[i]->State = NONE;
-                SavedScreenshotList[i]->Title = TEXT("No Image");
-                SavedScreenshotList[i]->SlotID = TEXT("");
+				SavedScreenshotList[i]->Title = TEXT("No Image");
+				SavedScreenshotList[i]->SlotID = TEXT("");
 
 				LocalSlots[i].SlotId = TEXT("");
 				LocalSlots[i].Label = TEXT("No Image");
 				LocalSlots[i].Checksum = TEXT("");
 
 				DeleteScreenshotImage(i);
-                break;
-            }
-        }
-        SaveScreenshotMetadata();
-    }),
-        AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-    }));
+				break;
+			}
+		}
+		SaveScreenshotMetadata();
+	}),
+		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Error Load Slot. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+	}));
 }
 
 void SShooterScreenshot::OnResolveSlot(int32 Index)
@@ -1662,13 +1662,13 @@ void SShooterScreenshot::RefreshFromCloud()
 		}
 	}
 
-    FRegistry::CloudStorage.GetAllSlots(AccelByte::THandler<TArray<FAccelByteModelsSlot>>::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
-        for (int i = 0; i < Result.Num(); i++)
-        {
-            FAccelByteModelsSlot Slot = Result[i];
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte] Response from cloud. slot result: %s, Original:%s"), *Slot.SlotId, *Slot.OriginalName);
-            if (i < SAVE_SLOT_SIZE)
-            {
+	FRegistry::CloudStorage.GetAllSlots(AccelByte::THandler<TArray<FAccelByteModelsSlot>>::CreateLambda([&](const TArray<FAccelByteModelsSlot>& Result) {
+		for (int i = 0; i < Result.Num(); i++)
+		{
+			FAccelByteModelsSlot Slot = Result[i];
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte] Response from cloud. slot result: %s, Original:%s"), *Slot.SlotId, *Slot.OriginalName);
+			if (i < SAVE_SLOT_SIZE)
+			{
 				int SlotIndex = -1;
 
 				// find SlotIndex by tags
@@ -1740,8 +1740,8 @@ void SShooterScreenshot::RefreshFromCloud()
 						SavedScreenshotList[i]->State = DONE;
 					}
 				}
-            }
-        }
+			}
+		}
 
 		for (int i = 0; i < LocalSlots.Num(); i++)
 		{
@@ -1766,8 +1766,8 @@ void SShooterScreenshot::RefreshFromCloud()
 		SaveScreenshotMetadata();
 
 		SavedScreenshotListWidget->RequestListRefresh();
-    }),
-        AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FRegistry::CloudStorage.GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-    }));
+	}),
+		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FRegistry::CloudStorage.GetAllSlot Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
+	}));
 }

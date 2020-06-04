@@ -1,7 +1,10 @@
-// Copyright (c) 2019 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2019 - 2020 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#include "Utils/ImageUtils.h"
+
+// TODO: Migrate into UMG
 #include "ShooterGame.h"
 #include "SLobby.h"
 #include "SHeaderRow.h"
@@ -120,66 +123,66 @@ void SLobby::Construct(const FArguments& InArgs)
 	MinTimeBetweenSearches = 0.0;
 #endif
 
-    AccelByte::FRegistry::Lobby.SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
-    AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
-    AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
-    AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
-    AccelByte::FRegistry::Lobby.SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
-    AccelByte::FRegistry::Lobby.SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
-    AccelByte::FRegistry::Lobby.SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
-    AccelByte::FRegistry::Lobby.SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
-    {
-        PartyWidget->ResetAll();
-        LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
-        CurrentPartyID = TEXT("");
-    }));
-    AccelByte::FRegistry::Lobby.SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
-    AccelByte::FRegistry::Lobby.SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateSP(this, &SLobby::OnRequestFriendSent));
-    AccelByte::FRegistry::Lobby.SetListIncomingFriendsResponseDelegate(AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateSP(this, &SLobby::OnIncomingListFriendRequest));
-    AccelByte::FRegistry::Lobby.SetListOutgoingFriendsResponseDelegate(AccelByte::Api::Lobby::FListOutgoingFriendsResponse::CreateSP(this, &SLobby::OnOutgoingListFriendRequest));
-    AccelByte::FRegistry::Lobby.SetLoadFriendListResponseDelegate(AccelByte::Api::Lobby::FLoadFriendListResponse::CreateSP(this, &SLobby::OnFriendListLoaded));
-    AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateLambda([&](const FAccelByteModelsCreatePartyResponse& Response)
-    {
-        AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-    }));
-    AccelByte::FRegistry::Lobby.SetOnFriendRequestAcceptedNotifDelegate(AccelByte::Api::Lobby::FAcceptFriendsNotif::CreateSP(this, &SLobby::OnFriendRequestAcceptedNotification));
-    AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &SLobby::OnIncomingFriendRequestNotification));
-    AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &SLobby::OnGetOnlineUserResponse));
-    AccelByte::FRegistry::Lobby.SetInvitePartyResponseDelegate(AccelByte::Api::Lobby::FPartyInviteResponse::CreateSP(this, &SLobby::OnPartyInviteResponse));
-    AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
-    {
-        if (Response.Code != "0")
-        {
-            bMatchmakingStarted = false;
-            PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-        }
-    }));
-    AccelByte::FRegistry::Lobby.SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([&](const FAccelByteModelsMatchmakingNotice& Response)
-    {
-        if (Response.Status == EAccelByteMatchmakingStatus::Done)
-        {
+	AccelByte::FRegistry::Lobby.SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
+	AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
+	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
+	AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
+	AccelByte::FRegistry::Lobby.SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
+	AccelByte::FRegistry::Lobby.SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
+	AccelByte::FRegistry::Lobby.SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
+	AccelByte::FRegistry::Lobby.SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
+	{
+		PartyWidget->ResetAll();
+		LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
+		CurrentPartyID = TEXT("");
+	}));
+	AccelByte::FRegistry::Lobby.SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
+	AccelByte::FRegistry::Lobby.SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateSP(this, &SLobby::OnRequestFriendSent));
+	AccelByte::FRegistry::Lobby.SetListIncomingFriendsResponseDelegate(AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateSP(this, &SLobby::OnIncomingListFriendRequest));
+	AccelByte::FRegistry::Lobby.SetListOutgoingFriendsResponseDelegate(AccelByte::Api::Lobby::FListOutgoingFriendsResponse::CreateSP(this, &SLobby::OnOutgoingListFriendRequest));
+	AccelByte::FRegistry::Lobby.SetLoadFriendListResponseDelegate(AccelByte::Api::Lobby::FLoadFriendListResponse::CreateSP(this, &SLobby::OnFriendListLoaded));
+	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateLambda([&](const FAccelByteModelsCreatePartyResponse& Response)
+	{
+		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+	}));
+	AccelByte::FRegistry::Lobby.SetOnFriendRequestAcceptedNotifDelegate(AccelByte::Api::Lobby::FAcceptFriendsNotif::CreateSP(this, &SLobby::OnFriendRequestAcceptedNotification));
+	AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &SLobby::OnIncomingFriendRequestNotification));
+	AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &SLobby::OnGetOnlineUserResponse));
+	AccelByte::FRegistry::Lobby.SetInvitePartyResponseDelegate(AccelByte::Api::Lobby::FPartyInviteResponse::CreateSP(this, &SLobby::OnPartyInviteResponse));
+	AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
+	{
+		if (Response.Code != "0")
+		{
+			bMatchmakingStarted = false;
+			PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
+		}
+	}));
+	AccelByte::FRegistry::Lobby.SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateLambda([&](const FAccelByteModelsMatchmakingNotice& Response)
+	{
+		if (Response.Status == EAccelByteMatchmakingStatus::Done)
+		{
 			ShooterGameTelemetry::Get().StartMatch(Response.MatchId, this->GameMode);
 
-            FString MatchId = Response.MatchId;
+			FString MatchId = Response.MatchId;
 
-            CloseMessageDialog();
-            ShowMessageDialog("Ready?", FOnClicked::CreateLambda([MatchId, this]()
-            {
-                AccelByte::FRegistry::Lobby.SendReadyConsentRequest(MatchId);
-                bReadyConsent = true;
-                CloseMessageDialog();
+			CloseMessageDialog();
+			ShowMessageDialog("Ready?", FOnClicked::CreateLambda([MatchId, this]()
+			{
+				AccelByte::FRegistry::Lobby.SendReadyConsentRequest(MatchId);
+				bReadyConsent = true;
+				CloseMessageDialog();
 
-                return FReply::Handled();
-            }));
-        }
-        // show loading for non leader party member
-        else if (Response.Status == EAccelByteMatchmakingStatus::Start)
-        {
-            bMatchmakingStarted = true;
-            PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-        }
-        else
-        {
+				return FReply::Handled();
+			}));
+		}
+		// show loading for non leader party member
+		else if (Response.Status == EAccelByteMatchmakingStatus::Start)
+		{
+			bMatchmakingStarted = true;
+			PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
+		}
+		else
+		{
 			FString FailMatchmakingReason = "UNKNOWN";
 			switch (Response.Status)
 			{
@@ -203,21 +206,21 @@ void SLobby::Construct(const FArguments& InArgs)
 				return FReply::Handled();
 			}));
 
-            bMatchmakingStarted = false;
-            PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-        }
-    }));
-    AccelByte::FRegistry::Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
-    {
-        bMatchmakingStarted = false;
-        PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-    }));
-    AccelByte::FRegistry::Lobby.SetDsNotifDelegate(AccelByte::Api::Lobby::FDsNotif::CreateLambda([&](const FAccelByteModelsDsNotice& Notice)
-    {
-        UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
+			bMatchmakingStarted = false;
+			PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
+		}
+	}));
+	AccelByte::FRegistry::Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
+	{
+		bMatchmakingStarted = false;
+		PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
+	}));
+	AccelByte::FRegistry::Lobby.SetDsNotifDelegate(AccelByte::Api::Lobby::FDsNotif::CreateLambda([&](const FAccelByteModelsDsNotice& Notice)
+	{
+		UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
 
-        if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
-        {
+		if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
+		{
 			FString ServerAddress;
 			if (ShooterGameConfig::Get().IsLocalMode_)
 			{
@@ -501,35 +504,35 @@ void SLobby::Construct(const FArguments& InArgs)
 	//]
 
 #pragma region StartMatch
-    + SVerticalBox::Slot()	//STARTMATCH_BUTTON
-        .AutoHeight()
-        .VAlign(VAlign_Bottom)
-        [
-            SNew(SOverlay)
-            + SOverlay::Slot()
-        [
-            SNew(SButton)
-            .VAlign(VAlign_Bottom)
-        .HAlign(HAlign_Center)
-        .ButtonStyle(&LobbyStyle->StartMatchButton)
-        .Visibility(TAttribute<EVisibility>::Create([&]
-    {
-        if (CurrentPartyID != "")
-        {
-            if (bIsPartyLeader && !bMatchmakingStarted)
-            {
-                return EVisibility::Visible;
-            }
-        }
+	+ SVerticalBox::Slot()	//STARTMATCH_BUTTON
+		.AutoHeight()
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SOverlay)
+			+ SOverlay::Slot()
+		[
+			SNew(SButton)
+			.VAlign(VAlign_Bottom)
+		.HAlign(HAlign_Center)
+		.ButtonStyle(&LobbyStyle->StartMatchButton)
+		.Visibility(TAttribute<EVisibility>::Create([&]
+	{
+		if (CurrentPartyID != "")
+		{
+			if (bIsPartyLeader && !bMatchmakingStarted)
+			{
+				return EVisibility::Visible;
+			}
+		}
 
-        return EVisibility::Collapsed;
-    }))
-        .OnClicked(FOnClicked::CreateLambda([&]
-    {
-        bMatchmakingStarted = true;
-        PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-        bReadyConsent = false;
-        GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
+		return EVisibility::Collapsed;
+	}))
+		.OnClicked(FOnClicked::CreateLambda([&]
+	{
+		bMatchmakingStarted = true;
+		PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
+		bReadyConsent = false;
+		GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
 
 		TSharedPtr<FTimerHandle> DummyHandle = MakeShared<FTimerHandle>();
 		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*DummyHandle, TFunction<void(void)>([&, DummyHandle]()
@@ -1077,7 +1080,7 @@ void SLobby::SetCurrentUser(FString UserID, FString DisplayName, FString AvatarU
 
 				if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
 				{
-					ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
+					ThumbnailBrushCache.Add(UserID, FShooterImageUtils::CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
 				}
 			}
 			UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
@@ -1123,7 +1126,7 @@ void SLobby::SetCurrentUserFromCache(FString UserID, FString DisplayName, FStrin
 	TArray<uint8> ImageData;
 	if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
 	{
-		ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData));
+		ThumbnailBrushCache.Add(UserID, FShooterImageUtils::CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData));
 	}
 }
 
@@ -1142,97 +1145,97 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
 		}
 	}
 
-    TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
-    FriendEntry1->UserId = UserID;
-    FriendEntry1->Name = DisplayName;
-    FriendEntry1->AvatarSmallUrl = Avatar;
-    FriendEntry1->Presence = "OFFLINE";
-    FriendEntry1->Type = Type;
-    CompleteFriendList.Insert(FriendEntry1, 0);
+	TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
+	FriendEntry1->UserId = UserID;
+	FriendEntry1->Name = DisplayName;
+	FriendEntry1->AvatarSmallUrl = Avatar;
+	FriendEntry1->Presence = "OFFLINE";
+	FriendEntry1->Type = Type;
+	CompleteFriendList.Insert(FriendEntry1, 0);
 
-    // find file
-    IFileManager& FileManager = IFileManager::Get();
-    FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
-    if (FileManager.FileExists(*CacheTextDir))
-    {
-        UE_LOG(LogTemp, Log, TEXT("cache meta found"));
-        FString FileToLoad;
-        if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
-        {
-            TArray<FString> Raw;
-            FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
-            if (Raw.Num() > 0)
-            {
-                FString ImagePath = Raw[0];
-                FString CachedDisplayName = Raw.Last();
-                DiplayNameListCache->Add(UserID, CachedDisplayName);
+	// find file
+	IFileManager& FileManager = IFileManager::Get();
+	FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+	if (FileManager.FileExists(*CacheTextDir))
+	{
+		UE_LOG(LogTemp, Log, TEXT("cache meta found"));
+		FString FileToLoad;
+		if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
+		{
+			TArray<FString> Raw;
+			FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
+			if (Raw.Num() > 0)
+			{
+				FString ImagePath = Raw[0];
+				FString CachedDisplayName = Raw.Last();
+				DiplayNameListCache->Add(UserID, CachedDisplayName);
 
-                TArray<uint8> ImageData;
-                FString CacheImagePath = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
+				TArray<uint8> ImageData;
+				FString CacheImagePath = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
 
-                if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
-                {
-                    ThumbnailBrushCache.Add(UserID, CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
-                }
-            }
-            UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
-        }
-    }
-    else
-    {
-        if (!AvatarListCache->Contains(UserID))
-        {
-            //get avatar from platform service (User profile)
-            UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
-            FRegistry::UserProfile.GetPublicUserProfileInfo(UserID, AccelByte::THandler<FAccelByteModelsPublicUserProfileInfo>::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo)
-            {
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
-                AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
+				if (FFileHelper::LoadFileToArray(ImageData, *CacheImagePath))
+				{
+					ThumbnailBrushCache.Add(UserID, FShooterImageUtils::CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData));
+				}
+			}
+			UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
+		}
+	}
+	else
+	{
+		if (!AvatarListCache->Contains(UserID))
+		{
+			//get avatar from platform service (User profile)
+			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from platform service..."));
+			FRegistry::UserProfile.GetPublicUserProfileInfo(UserID, AccelByte::THandler<FAccelByteModelsPublicUserProfileInfo>::CreateLambda([this, UserID](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+				AvatarListCache->Add(UserProfileInfo.UserId, UserProfileInfo.AvatarSmallUrl);
 
-                // next get display name
-                if (!DiplayNameListCache->Contains(UserID))
-                {
-                    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
-                    FRegistry::User.GetUserByUserId(UserID, THandler<FUserData>::CreateLambda([this, UserID, UserProfileInfo](const FUserData& UserData)
-                    {
-                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserData.UserId, *UserData.DisplayName);
-                        DiplayNameListCache->Add(UserData.UserId, UserData.DisplayName);
+				// next get display name
+				if (!DiplayNameListCache->Contains(UserID))
+				{
+					UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Start getting public user profile from IAM service..."));
+					FRegistry::User.GetUserByUserId(UserID, THandler<FUserData>::CreateLambda([this, UserID, UserProfileInfo](const FUserData& UserData)
+					{
+						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile: %s - > %s"), *UserData.UserId, *UserData.DisplayName);
+						DiplayNameListCache->Add(UserData.UserId, UserData.DisplayName);
 
-                        // save to our cache
-                        FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
+						// save to our cache
+						FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *UserID);
 
-                        // userid.txt -> file name fisik \n display name
+						// userid.txt -> file name fisik \n display name
 
-                        TArray<FString> Raw;
-                        UserProfileInfo.AvatarSmallUrl.ParseIntoArray(Raw, TEXT("/"), true);
-                        FString FileName = Raw.Last();
-                        FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserData.DisplayName);
+						TArray<FString> Raw;
+						UserProfileInfo.AvatarSmallUrl.ParseIntoArray(Raw, TEXT("/"), true);
+						FString FileName = Raw.Last();
+						FString Cache = FString::Printf(TEXT("%s_%s\n%s"), *UserID, *FileName, *UserData.DisplayName);
 
-                        if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
-                        {
-                            UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
-                        }
-                    }),
-                        AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-                    {
-                        UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
-                    }));
-                }
+						if (FFileHelper::SaveStringToFile(Cache, *CacheTextDir))
+						{
+							UE_LOG(LogTemp, Log, TEXT("cache meta saved locally"));
+						}
+					}),
+						AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+					{
+						UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get IAM User Public Profile Error"));
+					}));
+				}
 
-                // start download avatar
-                TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
-                ThumbRequest->SetVerb("GET");
-                ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
-                ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
-                ThumbRequest->ProcessRequest();
+				// start download avatar
+				TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
+				ThumbRequest->SetVerb("GET");
+				ThumbRequest->SetURL(UserProfileInfo.AvatarSmallUrl);
+				ThumbRequest->OnProcessRequestComplete().BindRaw(this, &SLobby::OnThumbImageReceived, UserProfileInfo.UserId);
+				ThumbRequest->ProcessRequest();
 
-            }),
-                AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-            {
-                UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
-            }));
-        }
-    }
+			}),
+				AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
+			{
+				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Public Profile Error: "));
+			}));
+		}
+	}
 }
 
 void SLobby::RemoveFriend(FString UserId)
@@ -1359,13 +1362,13 @@ FReply SLobby::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEven
 
 FReply SLobby::OnRequestFriend()
 {
-    // if the input field is empty or whitespace, do not send the request, return
-    if (FriendSearchBar->GetText().IsEmptyOrWhitespace())
-    {
-        return FReply::Handled();
-    }
+	// if the input field is empty or whitespace, do not send the request, return
+	if (FriendSearchBar->GetText().IsEmptyOrWhitespace())
+	{
+		return FReply::Handled();
+	}
 
-    const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
+	const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
 
 	FErrorHandler OnSearchUserFailed = FErrorHandler::CreateLambda([&, FriendEmailAddress](int32 Code, FString Message)
 		{
@@ -1415,7 +1418,7 @@ FReply SLobby::OnRequestFriend()
 			FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);
 		}
 	}), OnSearchUserFailed);
-    return FReply::Handled();
+	return FReply::Handled();
 }
 
 FSlateBrush* SLobby::GetAvatarOrDefault(const FString& UserId) const
@@ -1435,7 +1438,7 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
 	if (bWasSuccessful && Response.IsValid())
 	{
 		TArray<uint8> ImageData = Response->GetContent();
-		ThumbnailBrushCache.Add(UserID, CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData));
+		ThumbnailBrushCache.Add(UserID, FShooterImageUtils::CreateBrush(Response->GetContentType(), FName(*Request->GetURL()), ImageData));
 
 
 		TArray<FString> Raw;
@@ -1452,349 +1455,295 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
 	}
 }
 
-TSharedPtr<FSlateDynamicImageBrush> SLobby::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
-{
-	UE_LOG(LogTemp, Log, TEXT("SLobby::CreateBrush : %s, Content Type: %s"), *ResourceName.ToString(), *ContentType);
-	TSharedPtr<FSlateDynamicImageBrush> Brush;
-
-	uint32 BytesPerPixel = 4;
-	int32 Width = 0;
-	int32 Height = 0;
-
-	bool bSucceeded = false;
-	TArray<uint8> DecodedImage;
-	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
-
-	int BitDepth = 8;
-	//jpg
-	EImageFormat ImageFormat = EImageFormat::JPEG;
-	ERGBFormat RgbFormat = ERGBFormat::BGRA;
-	//png
-	if (ContentType.Contains(TEXT("png")))
-	{
-		ImageFormat = EImageFormat::PNG;
-		RgbFormat = ERGBFormat::BGRA;
-	}
-	//bmp
-	else if (ContentType.Contains(TEXT("bmp")))
-	{
-		ImageFormat = EImageFormat::BMP;
-		RgbFormat = ERGBFormat::BGRA;
-	}
-
-	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
-	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
-	{
-		Width = ImageWrapper->GetWidth();
-		Height = ImageWrapper->GetHeight();
-
-		const TArray<uint8>* RawData = NULL;
-
-		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
-		{
-			DecodedImage = *RawData;
-			bSucceeded = true;
-		}
-	}
-
-	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-	}
-
-	return Brush;
-}
-
-
 TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
-    class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntry> >
-    {
-    public:
+	class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntry> >
+	{
+	public:
 
-        const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+		const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
 
-        SLATE_BEGIN_ARGS(SFriendEntryWidget)
-        {}
-        SLATE_END_ARGS()
+		SLATE_BEGIN_ARGS(SFriendEntryWidget)
+		{}
+		SLATE_END_ARGS()
 
-            TSharedPtr<FFriendEntry> Item;
-        TWeakPtr<SLobby, ESPMode::NotThreadSafe> ParentClass;
-
-
-        void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntry> InItem, SLobby* Parent)
-        {
-            Item = InItem;
-            ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
+			TSharedPtr<FFriendEntry> Item;
+		TWeakPtr<SLobby, ESPMode::NotThreadSafe> ParentClass;
 
 
-            SMultiColumnTableRow< TSharedPtr<FFriendEntry> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
-        }
+		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntry> InItem, SLobby* Parent)
+		{
+			Item = InItem;
+			ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
 
-        TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName)
-        {
-            FText ItemText = FText::GetEmpty();
-            return
-                SNew(SHorizontalBox)
 
-                + SHorizontalBox::Slot()	//1.PROFILE PICTURE
-                .AutoWidth()
-                [
-                    SNew(SOverlay)
+			SMultiColumnTableRow< TSharedPtr<FFriendEntry> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
+		}
 
-                    + SOverlay::Slot()		//1.1.BORDER
-                .HAlign(HAlign_Fill)
-                .VAlign(VAlign_Fill)
-                [
-                    SNew(SBox)
-                    .WidthOverride(84.0f)
-                .HeightOverride(84.0f)
-                [
-                    SNew(SImage)
-                    .Image(&LobbyStyle->FriendAvatarBorderBrush)
-                ]
-                ]
+		TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName)
+		{
+			FText ItemText = FText::GetEmpty();
+			return
+				SNew(SHorizontalBox)
 
-            + SOverlay::Slot()		//1.1.1.AVATAR
-                .HAlign(HAlign_Center)
-                .VAlign(VAlign_Center)
-                [
-                    SNew(SBox)
-                    .WidthOverride(56.0f)
-                .HeightOverride(56.0f)
-                [
-                    SNew(SImage)
-                    .Image(this, &SFriendEntryWidget::GetProfileAvatar)
-                ]
-                ]
-                ]
+				+ SHorizontalBox::Slot()	//1.PROFILE PICTURE
+				.AutoWidth()
+				[
+					SNew(SOverlay)
 
-            + SHorizontalBox::Slot()	//2.NAME + PRESENCE
-                .VAlign(VAlign_Center)
-                .HAlign(HAlign_Fill)
-                .FillWidth(1.0f)
-                .Padding(8, 0, 8, 0)
-                [
-                    SNew(SVerticalBox)
+					+ SOverlay::Slot()		//1.1.BORDER
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					SNew(SBox)
+					.WidthOverride(84.0f)
+				.HeightOverride(84.0f)
+				[
+					SNew(SImage)
+					.Image(&LobbyStyle->FriendAvatarBorderBrush)
+				]
+				]
 
-                    + SVerticalBox::Slot()
-                .VAlign(VAlign_Bottom)
-                .AutoHeight()
-                [
-                    SNew(STextBlock)
-                    .Text(this, &SFriendEntryWidget::GetName)
-                .TextStyle(&LobbyStyle->UserNameTextStyle)
-                .AutoWrapText(true)
-                ]
+			+ SOverlay::Slot()		//1.1.1.AVATAR
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SBox)
+					.WidthOverride(56.0f)
+				.HeightOverride(56.0f)
+				[
+					SNew(SImage)
+					.Image(this, &SFriendEntryWidget::GetProfileAvatar)
+				]
+				]
+				]
 
-            + SVerticalBox::Slot()
-                .VAlign(VAlign_Top)
-                .AutoHeight()
-                [
-                    SNew(STextBlock)
-                    .Text(this, &SFriendEntryWidget::GetPresence)
-                .TextStyle(&LobbyStyle->PresenceTextStyle)
-                .AutoWrapText(true)
-                ]
-                ]
+			+ SHorizontalBox::Slot()	//2.NAME + PRESENCE
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Fill)
+				.FillWidth(1.0f)
+				.Padding(8, 0, 8, 0)
+				[
+					SNew(SVerticalBox)
 
-            + SHorizontalBox::Slot()	//3.CHAT BUTTON FriendEntryType::FRIEND
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(0, 0, 0, 0)
-                [
-                    SNew(SButton)
-                    .Visibility(this, &SFriendEntryWidget::PrivateChatButtonVisible)
-                .OnClicked(this, &SFriendEntryWidget::OnPrivateChatClicked)
-                .ButtonStyle(&LobbyStyle->ChatButtonStyle)
-                ]
+					+ SVerticalBox::Slot()
+				.VAlign(VAlign_Bottom)
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(this, &SFriendEntryWidget::GetName)
+				.TextStyle(&LobbyStyle->UserNameTextStyle)
+				.AutoWrapText(true)
+				]
 
-            + SHorizontalBox::Slot()	//3.INVITE BUTTON FriendEntryType::FRIEND
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(0, 0, 0, 0)
-                [
-                    SNew(SButton)
-                    .Visibility(this, &SFriendEntryWidget::InviteButtonVisible)
-                .OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
-                .ButtonStyle(&LobbyStyle->InviteButtonStyle)
-                ]
+			+ SVerticalBox::Slot()
+				.VAlign(VAlign_Top)
+				.AutoHeight()
+				[
+					SNew(STextBlock)
+					.Text(this, &SFriendEntryWidget::GetPresence)
+				.TextStyle(&LobbyStyle->PresenceTextStyle)
+				.AutoWrapText(true)
+				]
+				]
 
-            + SHorizontalBox::Slot()	//3.UNFRIEND BUTTON FriendEntryType::FRIEND
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(0, 0, 0, 0)
-                [
-                    SNew(SButton)
-                    .Visibility(TAttribute<EVisibility>::Create([&]()
-            {
-                return (GetType() == FRIEND) ? EVisibility::Visible : EVisibility::Collapsed;
-            }))
-                .OnClicked(this, &SFriendEntryWidget::OnUnfriendClicked)
-                .ButtonStyle(&LobbyStyle->UnfriendButtonStyle)
-                ]
+			+ SHorizontalBox::Slot()	//3.CHAT BUTTON FriendEntryType::FRIEND
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0, 0, 0, 0)
+				[
+					SNew(SButton)
+					.Visibility(this, &SFriendEntryWidget::PrivateChatButtonVisible)
+				.OnClicked(this, &SFriendEntryWidget::OnPrivateChatClicked)
+				.ButtonStyle(&LobbyStyle->ChatButtonStyle)
+				]
 
-            + SHorizontalBox::Slot()	//3.ACCEPT BUTTON FriendEntryType::INCOMING
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(0, 0, 0, 0)
-                [
-                    SNew(SButton)
-                    .Visibility(TAttribute<EVisibility>::Create([&]()
-            {
-                return (GetType() == INCOMING) ? EVisibility::Visible : EVisibility::Collapsed;
-            }))
-                .OnClicked(this, &SFriendEntryWidget::OnAcceptIncomingRequestClicked)
-                .ButtonStyle(&LobbyStyle->AcceptRequestFriendButtonStyle)
-                ]
+			+ SHorizontalBox::Slot()	//3.INVITE BUTTON FriendEntryType::FRIEND
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0, 0, 0, 0)
+				[
+					SNew(SButton)
+					.Visibility(this, &SFriendEntryWidget::InviteButtonVisible)
+				.OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
+				.ButtonStyle(&LobbyStyle->InviteButtonStyle)
+				]
 
-            + SHorizontalBox::Slot()	//3.REJECT BUTTON FriendEntryType::INCOMING
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(0, 0, 0, 0)
-                [
-                    SNew(SButton)
-                    .Visibility(TAttribute<EVisibility>::Create([&]()
-            {
-                return (GetType() == INCOMING) ? EVisibility::Visible : EVisibility::Collapsed;
-            }))
-                .OnClicked(this, &SFriendEntryWidget::OnRejectIncomingRequestClicked)
-                .ButtonStyle(&LobbyStyle->RejectRequestFriendButtonStyle)
-                ]
+			+ SHorizontalBox::Slot()	//3.UNFRIEND BUTTON FriendEntryType::FRIEND
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0, 0, 0, 0)
+				[
+					SNew(SButton)
+					.Visibility(TAttribute<EVisibility>::Create([&]()
+			{
+				return (GetType() == FRIEND) ? EVisibility::Visible : EVisibility::Collapsed;
+			}))
+				.OnClicked(this, &SFriendEntryWidget::OnUnfriendClicked)
+				.ButtonStyle(&LobbyStyle->UnfriendButtonStyle)
+				]
 
-            + SHorizontalBox::Slot()	//3.CANCEL BUTTON FriendEntryType::Outgoing
-                .AutoWidth()
-                .VAlign(VAlign_Center)
-                .Padding(0, 0, 0, 0)
-                [
-                    SNew(SButton)
-                    .Visibility(TAttribute<EVisibility>::Create([&]()
-            {
-                return (GetType() == OUTGOING) ? EVisibility::Visible : EVisibility::Collapsed;
-            }))
-                .OnClicked(this, &SFriendEntryWidget::OnCancelOutgoingRequestClicked)
-                .ButtonStyle(&LobbyStyle->CancelRequestFriendButtonStyle)
-                ]
+			+ SHorizontalBox::Slot()	//3.ACCEPT BUTTON FriendEntryType::INCOMING
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0, 0, 0, 0)
+				[
+					SNew(SButton)
+					.Visibility(TAttribute<EVisibility>::Create([&]()
+			{
+				return (GetType() == INCOMING) ? EVisibility::Visible : EVisibility::Collapsed;
+			}))
+				.OnClicked(this, &SFriendEntryWidget::OnAcceptIncomingRequestClicked)
+				.ButtonStyle(&LobbyStyle->AcceptRequestFriendButtonStyle)
+				]
 
-            ;
-        }
+			+ SHorizontalBox::Slot()	//3.REJECT BUTTON FriendEntryType::INCOMING
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0, 0, 0, 0)
+				[
+					SNew(SButton)
+					.Visibility(TAttribute<EVisibility>::Create([&]()
+			{
+				return (GetType() == INCOMING) ? EVisibility::Visible : EVisibility::Collapsed;
+			}))
+				.OnClicked(this, &SFriendEntryWidget::OnRejectIncomingRequestClicked)
+				.ButtonStyle(&LobbyStyle->RejectRequestFriendButtonStyle)
+				]
 
-        FReply OnPrivateChatClicked()
-        {
-            if (ParentClass.IsValid())
-            {
-                FString DisplayName = Item->UserId;
-                if (ParentClass.Pin()->CheckDisplayName(Item->UserId))
-                {
-                    DisplayName = ParentClass.Pin()->GetDisplayName(Item->UserId);
-                }
+			+ SHorizontalBox::Slot()	//3.CANCEL BUTTON FriendEntryType::Outgoing
+				.AutoWidth()
+				.VAlign(VAlign_Center)
+				.Padding(0, 0, 0, 0)
+				[
+					SNew(SButton)
+					.Visibility(TAttribute<EVisibility>::Create([&]()
+			{
+				return (GetType() == OUTGOING) ? EVisibility::Visible : EVisibility::Collapsed;
+			}))
+				.OnClicked(this, &SFriendEntryWidget::OnCancelOutgoingRequestClicked)
+				.ButtonStyle(&LobbyStyle->CancelRequestFriendButtonStyle)
+				]
 
-                ParentClass.Pin()->LobbyChatWidget->AddPrivate(Item->UserId, DisplayName);
-            }
+			;
+		}
 
-            return FReply::Handled();
-        }
+		FReply OnPrivateChatClicked()
+		{
+			if (ParentClass.IsValid())
+			{
+				FString DisplayName = Item->UserId;
+				if (ParentClass.Pin()->CheckDisplayName(Item->UserId))
+				{
+					DisplayName = ParentClass.Pin()->GetDisplayName(Item->UserId);
+				}
 
-        FReply OnInviteClicked()
-        {
-            if (ParentClass.IsValid())
-            {
-                AccelByte::FRegistry::Lobby.SendInviteToPartyRequest(Item->UserId);
-            }
-            return FReply::Handled();
-        }
+				ParentClass.Pin()->LobbyChatWidget->AddPrivate(Item->UserId, DisplayName);
+			}
 
-        FReply OnUnfriendClicked()
-        {
-            AccelByte::FRegistry::Lobby.Unfriend(Item->UserId);
-            AccelByte::FRegistry::Lobby.LoadFriendsList();
-            ParentClass.Pin()->LobbyChatWidget->Remove(Item->UserId);
-            return FReply::Handled();
-        }
+			return FReply::Handled();
+		}
 
-        FReply OnAcceptIncomingRequestClicked()
-        {
-            AccelByte::FRegistry::Lobby.AcceptFriend(Item->UserId);
-            AccelByte::FRegistry::Lobby.LoadFriendsList();
-            ParentClass.Pin()->RemoveFriend(Item->UserId);
-            return FReply::Handled();
-        }
+		FReply OnInviteClicked()
+		{
+			if (ParentClass.IsValid())
+			{
+				AccelByte::FRegistry::Lobby.SendInviteToPartyRequest(Item->UserId);
+			}
+			return FReply::Handled();
+		}
 
-        FReply OnRejectIncomingRequestClicked()
-        {
-            AccelByte::FRegistry::Lobby.RejectFriend(Item->UserId);
-            AccelByte::FRegistry::Lobby.LoadFriendsList();
-            ParentClass.Pin()->RemoveFriend(Item->UserId);
-            return FReply::Handled();
-        }
+		FReply OnUnfriendClicked()
+		{
+			AccelByte::FRegistry::Lobby.Unfriend(Item->UserId);
+			AccelByte::FRegistry::Lobby.LoadFriendsList();
+			ParentClass.Pin()->LobbyChatWidget->Remove(Item->UserId);
+			return FReply::Handled();
+		}
 
-        FReply OnCancelOutgoingRequestClicked()
-        {
-            AccelByte::FRegistry::Lobby.CancelFriendRequest(Item->UserId);
-            AccelByte::FRegistry::Lobby.LoadFriendsList();
-            ParentClass.Pin()->RemoveFriend(Item->UserId);
-            return FReply::Handled();
-        }
+		FReply OnAcceptIncomingRequestClicked()
+		{
+			AccelByte::FRegistry::Lobby.AcceptFriend(Item->UserId);
+			AccelByte::FRegistry::Lobby.LoadFriendsList();
+			ParentClass.Pin()->RemoveFriend(Item->UserId);
+			return FReply::Handled();
+		}
 
-        const FSlateBrush* GetProfileAvatar() const
-        {
-            return ParentClass.Pin()->GetAvatarOrDefault(Item->Name);
-        }
+		FReply OnRejectIncomingRequestClicked()
+		{
+			AccelByte::FRegistry::Lobby.RejectFriend(Item->UserId);
+			AccelByte::FRegistry::Lobby.LoadFriendsList();
+			ParentClass.Pin()->RemoveFriend(Item->UserId);
+			return FReply::Handled();
+		}
 
-        FText GetName() const
-        {
-            if (ParentClass.Pin()->CheckDisplayName(Item->Name))
-            {
-                return FText::FromString(ParentClass.Pin()->GetDisplayName(Item->Name));
-            }
-            return FText::FromString(Item->Name);
-        }
-        FText GetPresence() const
-        {
-            if (Item->Type == FRIEND)
-            {
-                return FText::FromString(Item->Presence);
-            }
-            else if (Item->Type == INCOMING)
-            {
-                return FText::FromString("Added you as a friend");
-            }
-            else if (Item->Type == OUTGOING)
-            {
-                return FText::FromString("Pending friend request");
-            }
-            else return FText::FromString("");
-        }
-        FriendEntryType GetType() const
-        {
-            return Item->Type;
-        }
+		FReply OnCancelOutgoingRequestClicked()
+		{
+			AccelByte::FRegistry::Lobby.CancelFriendRequest(Item->UserId);
+			AccelByte::FRegistry::Lobby.LoadFriendsList();
+			ParentClass.Pin()->RemoveFriend(Item->UserId);
+			return FReply::Handled();
+		}
 
-        EVisibility PrivateChatButtonVisible() const
-        {
-            if (Item->Presence == TEXT("ONLINE") && Item->Type == FRIEND)
-            {
-                return EVisibility::Visible;
-            }
-            else
-            {
-                return EVisibility::Collapsed;
-            }
-        }
+		const FSlateBrush* GetProfileAvatar() const
+		{
+			return ParentClass.Pin()->GetAvatarOrDefault(Item->Name);
+		}
 
-        EVisibility InviteButtonVisible() const
-        {
-            if (Item->Presence == TEXT("ONLINE") && Item->Type == FRIEND)
-            {
-                return EVisibility::Visible;
-            }
-            else
-            {
-                return EVisibility::Collapsed;
-            }
-        }
-    };
-    return SNew(SFriendEntryWidget, OwnerTable, Item, this);
+		FText GetName() const
+		{
+			if (ParentClass.Pin()->CheckDisplayName(Item->Name))
+			{
+				return FText::FromString(ParentClass.Pin()->GetDisplayName(Item->Name));
+			}
+			return FText::FromString(Item->Name);
+		}
+		FText GetPresence() const
+		{
+			if (Item->Type == FRIEND)
+			{
+				return FText::FromString(Item->Presence);
+			}
+			else if (Item->Type == INCOMING)
+			{
+				return FText::FromString("Added you as a friend");
+			}
+			else if (Item->Type == OUTGOING)
+			{
+				return FText::FromString("Pending friend request");
+			}
+			else return FText::FromString("");
+		}
+		FriendEntryType GetType() const
+		{
+			return Item->Type;
+		}
+
+		EVisibility PrivateChatButtonVisible() const
+		{
+			if (Item->Presence == TEXT("ONLINE") && Item->Type == FRIEND)
+			{
+				return EVisibility::Visible;
+			}
+			else
+			{
+				return EVisibility::Collapsed;
+			}
+		}
+
+		EVisibility InviteButtonVisible() const
+		{
+			if (Item->Presence == TEXT("ONLINE") && Item->Type == FRIEND)
+			{
+				return EVisibility::Visible;
+			}
+			else
+			{
+				return EVisibility::Collapsed;
+			}
+		}
+	};
+	return SNew(SFriendEntryWidget, OwnerTable, Item, this);
 }
 
 #pragma region FRIENDS_SERVICE
@@ -1913,8 +1862,8 @@ void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Re
 	FriendList.Reset();
 	CompleteFriendList.Reset();
 
-    for (int i = 0; i < Response.friendsId.Num(); i++)
-    {
+	for (int i = 0; i < Response.friendsId.Num(); i++)
+	{
 		if (CheckDisplayName(Response.friendsId[i]))
 		{
 			AddFriend(Response.friendsId[i], GetDisplayName(Response.friendsId[i]), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
@@ -1928,8 +1877,8 @@ void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Re
 				}),
 				FErrorHandler::CreateLambda([&, i, Response](int32 Code, FString Message){}));
 		}
-    }
-    AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
+	}
+	AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
 
 	RefreshFriendList();
 	AccelByte::FRegistry::Lobby.ListIncomingFriends();

@@ -18,18 +18,27 @@ bool ULoginMenuUI::Initialize()
 	if (!ensure(QuitGameButton != nullptr)) return false;
 	QuitGameButton->OnClicked.AddDynamic(this, &ULoginMenuUI::QuitGame);
 
+	if (!ensure(UsernameField != nullptr)) return false;
+	if (!ensure(PasswordField != nullptr)) return false;
+	if (!ensure(ErrorField != nullptr)) return false;
+
 	return true;
 }
 
-void ULoginMenuUI::SetLoginMenuInterface(ILoginMenuInterface* MenuInterface)
+void ULoginMenuUI::SetInterface(ILoginMenuInterface* MenuInterface)
 {
 	if (MenuInterface == nullptr)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ULoginMenuUI] MenuInterface is null"));
+		UE_LOG(LogTemp, Warning, TEXT("[ULoginMenuUI] MenuInterface is null"));
 		return;
 	}
+	LoginMenuInterface = MenuInterface;
+}
 
-	this->LoginMenuInterface = MenuInterface;
+void ULoginMenuUI::SetErrorLoginMessage(FString Message)
+{
+	if (!ensure(ErrorField != nullptr)) return;
+	ErrorField->SetText(FText::FromString(Message));
 }
 
 #pragma region Button Callback
@@ -61,9 +70,3 @@ void ULoginMenuUI::QuitGame()
 	PlayerController->ConsoleCommand("quit");
 }
 #pragma endregion Button Callback
-
-void ULoginMenuUI::SetErrorLoginMessage(FString Message)
-{
-	if (!ensure(ErrorField != nullptr)) return;
-	ErrorField->SetText(FText::FromString(Message));
-}

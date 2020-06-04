@@ -26,6 +26,6 @@ public:
 	FSlateBrush Image;
 
 protected:
-	/** Initilize menu widget. */
+	/** Initialize menu widget. */
 	virtual bool Initialize();
 };

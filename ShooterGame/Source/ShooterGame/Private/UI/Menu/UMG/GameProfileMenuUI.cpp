@@ -27,37 +27,34 @@ void UGameProfileMenuUI::SetDisplayName(FString DisplayName)
 	DisplayNameField->SetText(FText::FromString(DisplayName));
 }
 
-void UGameProfileMenuUI::SetAvatarImage(FSlateBrush AvatarImage)
+void UGameProfileMenuUI::SetAvatarImage(FSlateBrush Image)
 {
-	this->AvatarImage->SetBrush(AvatarImage);
+	AvatarImage->SetBrush(Image);
 }
 
-void UGameProfileMenuUI::UpdateGameProfileAchievement(TArray<UAchievementEntryUI*> AchievementList)
+void UGameProfileMenuUI::UpdateAchievementList(TArray<UAchievementEntryUI*> AchievementList)
 {
+	AchievementTileView->SetListItems(AchievementList);
 	if (AchievementList.Num() != 0)
 	{
-		AchievementTileView->SetListItems(AchievementList);
-		AchievementTileView->SetVisibility(ESlateVisibility::Visible);
 		AchievementEmptyText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	else
 	{
-		AchievementTileView->SetVisibility(ESlateVisibility::Collapsed);
 		AchievementEmptyText->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
-void UGameProfileMenuUI::UpdateGameProfileStatistic(TArray<UStatisticEntryUI*> StatisticList)
+void UGameProfileMenuUI::UpdateStatisticList(TArray<UStatisticEntryUI*> StatisticList)
 {
+	StatisticTileView->SetListItems(StatisticList);
 	if (StatisticList.Num() != 0)
 	{
-		StatisticTileView->SetListItems(StatisticList);
-		StatisticTileView->SetVisibility(ESlateVisibility::Visible);
 		StatisticEmptyText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 	else
 	{
-		StatisticTileView->SetVisibility(ESlateVisibility::Collapsed);
 		StatisticEmptyText->SetVisibility(ESlateVisibility::Visible);
 	}
+	StatisticTileView->RegenerateAllEntries();
 }

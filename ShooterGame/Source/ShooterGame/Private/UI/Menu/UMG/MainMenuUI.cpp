@@ -3,6 +3,8 @@
 // and restrictions contact your company contract manager.
 
 #include "MainMenuUI.h"
+#include "GameProfileMenuUI.h"
+#include "GalleryMenuUI.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
@@ -16,6 +18,9 @@ bool UMainMenuUI::Initialize()
 
 	if (!ensure(GameProfileButton != nullptr)) return false;
 	GameProfileButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenGameProfileMenu);
+
+	if (!ensure(GalleryButton != nullptr)) return false;
+	GalleryButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenGalleryMenu);
 
 	if (!ensure(QuitButton != nullptr)) return false;
 	QuitButton->OnClicked.AddDynamic(this, &UMainMenuUI::QuitGame);
@@ -31,8 +36,10 @@ bool UMainMenuUI::Initialize()
 	if (!ensure(MenuSwitcher != nullptr)) return false;
 	if (!ensure(MainMenu != nullptr)) return false;
 	if (!ensure(GameProfileMenu != nullptr)) return false;
+	if (!ensure(GalleryMenu != nullptr)) return false;
 	if (!ensure(BackToMainMenuBox != nullptr)) return false;
 	if (!ensure(WB_GameProfileMenu != nullptr)) return false;
+	if (!ensure(WB_GalleryMenu != nullptr)) return false;
 	
 	UWorld* const World = GetWorld();
 	if (World->IsPlayInEditor())
@@ -59,22 +66,16 @@ FReply UMainMenuUI::NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent
 	return Result;
 }
 
-void UMainMenuUI::OpenMainMenu()
-{
-	MenuSwitcher->SetActiveWidget(MainMenu);
-	BackToMainMenuBox->SetVisibility(ESlateVisibility::Collapsed);
-}
-
 void UMainMenuUI::SetDisplayName(FString DisplayName)
 {
 	DisplayNameField->SetText(FText::FromString(DisplayName));
 	WB_GameProfileMenu->SetDisplayName(DisplayName);
 }
 
-void UMainMenuUI::SetAvatarImage(FSlateBrush AvatarImage)
+void UMainMenuUI::SetAvatarImage(FSlateBrush Image)
 {
-	this->AvatarImage->SetBrush(AvatarImage);
-	WB_GameProfileMenu->SetAvatarImage(AvatarImage);
+	AvatarImage->SetBrush(Image);
+	WB_GameProfileMenu->SetAvatarImage(Image);
 }
 
 UGameProfileMenuUI* UMainMenuUI::GetGameProfileMenu()
@@ -82,10 +83,28 @@ UGameProfileMenuUI* UMainMenuUI::GetGameProfileMenu()
 	return WB_GameProfileMenu;
 }
 
+UGalleryMenuUI* UMainMenuUI::GetGalleryMenu()
+{
+	return WB_GalleryMenu;
+}
+
 #pragma region Button callback
+void UMainMenuUI::OpenMainMenu()
+{
+	MenuSwitcher->SetActiveWidget(MainMenu);
+	BackToMainMenuBox->SetVisibility(ESlateVisibility::Collapsed);
+}
+
 void UMainMenuUI::OpenGameProfileMenu()
 {
 	MenuSwitcher->SetActiveWidget(GameProfileMenu);
+	BackToMainMenuBox->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UMainMenuUI::OpenGalleryMenu()
+{
+	WB_GalleryMenu->ClearSelection();
+	MenuSwitcher->SetActiveWidget(GalleryMenu);
 	BackToMainMenuBox->SetVisibility(ESlateVisibility::Visible);
 }
 

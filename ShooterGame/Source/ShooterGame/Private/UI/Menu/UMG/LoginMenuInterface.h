@@ -6,7 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "MenuInterface.generated.h"
+#include "LoginMenuInterface.generated.h"
 
 // This class does not need to be modified.
 UINTERFACE(MinimalAPI)
@@ -24,7 +24,6 @@ class ILoginMenuInterface
 
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
-
 	/**
 	* @brief Login with username and password.
 	*

@@ -6,8 +6,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "AchievementEntryUI.h"
 #include "StatisticEntryUI.h"
+#include "AchievementEntryUI.h"
 #include "GameProfileMenuUI.generated.h"
 
 /**
@@ -31,33 +31,33 @@ public:
 	*
 	* @param AvatarImage Player's avatar image.
 	*/
-	void SetAvatarImage(FSlateBrush AvatarImage);
-
-	/**
-	* @brief Update player's achievement list.
-	*
-	* @param AchievementList Player's achievement list.
-	*/
-	void UpdateGameProfileAchievement(TArray<UAchievementEntryUI*> AchievementList);
+	void SetAvatarImage(FSlateBrush Image);
 
 	/**
 	* @brief Update player's statistic list.
 	*
 	* @param StatisticList Player's statistic list.
 	*/
-	void UpdateGameProfileStatistic(TArray<UStatisticEntryUI*> StatisticList);
+	void UpdateStatisticList(TArray<UStatisticEntryUI*> StatisticList);
+
+	/**
+	* @brief Update player's achievement list.
+	*
+	* @param AchievementList Player's achievement list.
+	*/
+	void UpdateAchievementList(TArray<UAchievementEntryUI*> AchievementList);
 
 protected:
-	/** Initilize menu widget. */
+	/** Initialize menu widget. */
 	virtual bool Initialize();
-
-	/** Player's achievement list view. */
-	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
-	class UTileView* AchievementTileView;
 
 	/** Player's statistic list view. */
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	class UTileView* StatisticTileView;
+
+	/** Player's achievement list view. */
+	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
+	class UTileView* AchievementTileView;
 
 private:
 	/** Player's avatar. */
@@ -68,11 +68,11 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* DisplayNameField;
 
+	/** Statistic "Empty" text. */
+	UPROPERTY(meta = (BindWidget))
+		class UTextBlock* StatisticEmptyText;
+
 	/** Achievement "Empty" text. */
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* AchievementEmptyText;
-
-	/** Statistic "Empty" text. */
-	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* StatisticEmptyText;
 };
