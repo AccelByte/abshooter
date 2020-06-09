@@ -13,6 +13,7 @@ ShooterGameConfig::ShooterGameConfig()
 	ServerHeartbeatInterval_(ServerHeartbeatInterval),
 	ServerLatencies_(ServerLatencies),
 	SelectedRegion_(SelectedRegion),
+	PlayerEnteringServerDelay_(PlayerEnteringServerDelay),
 	GameReleaseVersion_(GameReleaseVersion),
 	SdkVersion_(SdkVersion),
 	StatisticCodeKill_(StatisticCodeKill),
@@ -66,6 +67,8 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_heartbeat"), TelemetryEvents.Heartbeat, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_item_equip"), TelemetryEvents.ItemEquip, GGameIni);
 	GConfig->GetFloat(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("heartbeat_interval"), TelemetryHeartbeatInterval, GGameIni);
+
+	PlayerEnteringServerDelay = ServerHeartbeatInterval + 4.0f;
 }
 
 void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)

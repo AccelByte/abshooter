@@ -1,5 +1,57 @@
 # Changelog
 
+## 1.7.0 (Unreleased)
+## Added
+- AccelByte SDK 2.14.0
+- Client & server game telemetry 
+- SFX and animation on QoS refresh button pressed
+- In game notification when a player quits the current match
+- AccelByte SDK 2.12.0
+- Leaderboard implementation
+- Pop up message to notify the cause of matchmaking failure
+- Lobby connection checker on matchmaking
+## Fixed
+- Player stuck after match if the match result is draw
+- Fix friendlist entry duplicated
+- Fix incoming message is not displayed
+- Fix lobby chat tab shows user ID
+- Fix add friend displayname shows user ID
+- Cleanup screenshot cache after match/back to main menu
+- Retry upload accesses empty array index
+
+## 1.6.0 (2020-05-27)
+## Added
+- Menu to login using username password
+- Region selector (QoS) to select Dedicated Server
+- Player statistic menu
+- AccelByte SDK 2.7.0
+- Statistic service added
+- QoS implementation for matchmaking
+- ShooterGameConfig class
+## Fixed
+- Screenshot menu stuck on back from gameplay to main menu
+- Search user return empty array handler
+- Server update MVP statistic bug
+- StartMatch button missing if user has no user profile
+- Inventory & store item thumbnail
+- DS dockerfile entrypoint
+- Player enter level/match multiple times bug
+- Local play mode for client and server
+- Linux compile error (pragma once)
+- LocalDS deregister itself on 409 when try to register
+- Player entering DS too fast, delay added
+- DS heartbeat match info handler
+- Handle "BUSY" DS Notif
+- Network error retry
+- Podname server
+- DS registration on spawned
+## Removed
+- Claim match from DedicatedServer
+- DS register and shutdown logic
+- Determine winner on end game (temporary)
+- Deregister server on end game
+
+
 ## 1.5.0 (2019-11-25)
 ## Fixed
 - Update changes on Ecommerce

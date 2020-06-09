@@ -285,7 +285,7 @@ void UShooterGameInstance::GameServerLogin()
 	FRegistry::ServerOauth2.LoginWithClientCredentials(
 		FVoidHandler::CreateLambda([&bClientLoginDone]()
 	{
-		ShooterGameTelemetry::Get().EnableHeartbeat(); //It never be called.
+		ShooterGameTelemetry::Get().EnableHeartbeat();
 
 		UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
 		FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
@@ -394,6 +394,7 @@ void UShooterGameInstance::GameServerLogin()
 	{
 		const double AppTime = FPlatformTime::Seconds();
 		FHttpModule::Get().GetHttpManager().Tick(AppTime - lastTime);
+		FTicker::GetCoreTicker().Tick(AppTime - lastTime);
 		FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
 		lastTime = AppTime;
 		FPlatformProcess::Sleep(0.5f);
@@ -1825,6 +1826,8 @@ void UShooterGameInstance::OnSearchSessionsComplete(bool bWasSuccessful)
 
 bool UShooterGameInstance::Tick(float DeltaSeconds)
 {
+	fflush(stdin);
+
 	// Dedicated server doesn't need to worry about game state
 	if (IsRunningDedicatedServer() == true)
 	{

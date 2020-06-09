@@ -31,7 +31,6 @@
 #include "Core/AccelByteCredentials.h"
 #include "Core/AccelByteRegistry.h"
 #include "ShooterGameConfig.h"
-#include "ShooterGameTelemetry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
@@ -496,8 +495,17 @@ void FShooterMainMenu::AddMenuToGameViewport()
 		UGameViewportClient* const GVC = GEngine->GameViewport;
 		
 		GVC->AddViewportWidgetContent(CoinsWidgetContainer.ToSharedRef());
-		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef()); // yg di add terakhir, bisa dapat input
+		GVC->AddViewportWidgetContent(MenuWidgetContainer.ToSharedRef());
 		GVC->SetCaptureMouseOnClick(EMouseCaptureMode::NoCapture);
+
+		APlayerController* PlayerController = UGameplayStatics::GetPlayerController(PlayerOwner->GetWorld(), 0);
+		if (PlayerController)
+		{
+			FInputModeUIOnly InputMode;
+			InputMode.SetWidgetToFocus(MenuWidget);
+			PlayerController->SetInputMode(InputMode);
+		}
+		FSlateApplication::Get().SetKeyboardFocus(MenuWidget);
 	}
 }
 

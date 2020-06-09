@@ -34,6 +34,8 @@ private:
 	TArray<TPair<FString, float>> ServerLatencies;
 	TArray<TPair<FString, float>> SelectedRegion;
 
+	float PlayerEnteringServerDelay;
+
 	FString GameReleaseVersion;
 	FString SdkVersion;
 
@@ -65,6 +67,8 @@ public:
 	const int &ServerHeartbeatInterval_;
 	const TArray<TPair<FString, float>> &ServerLatencies_;
 	const TArray<TPair<FString, float>> &SelectedRegion_;
+
+	const float &PlayerEnteringServerDelay_; //Second
 
 	const FString &GameReleaseVersion_;
 	const FString &SdkVersion_;

@@ -8,7 +8,6 @@
 #include "OnlineExternalUIInterface.h"
 #include "ShooterGameInstance.h"
 #include "UI/ShooterHUD.h"
-#include "ShooterGameTelemetry.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 

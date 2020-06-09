@@ -4,27 +4,27 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "Core/AccelByteError.h"
-#include "Models/AccelByteGameTelemetryModels.h"
 
 namespace AccelByte
 {
-class Credentials;
-class Settings;
-namespace Api
+class ServerCredentials;
+class ServerSettings;
+namespace GameServerApi
 {
 
 /**
- * @brief 
+ * @brief Send telemetry data securely and server should be logged in first.
  */
-class ACCELBYTEUE4SDK_API GameTelemetry
+class ACCELBYTEUE4SDK_API ServerGameTelemetry
 {
 public:
-	GameTelemetry(const Credentials& Credentials, const Settings& Settings);
-	~GameTelemetry();
+	ServerGameTelemetry(const ServerCredentials& Credentials, const ServerSettings& Settings);
+	~ServerGameTelemetry();
 
 	/**
-	 * @brief Send single authorized telemetry data. User must be logged in.
+	 * @brief Send single authorized telemetry data. Server must be logged in.
 	 * 
 	 * @param EventName Telemetry request with arbitrary payload
 	 * @param OnSuccess This will be called when the operation succeeded.
@@ -33,7 +33,7 @@ public:
 	void SendProtectedEvent(FString EventName, FJsonObject Payload, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 
 	/**
-	 * @brief Send multiple authorized telemetry data. User must be logged in.
+	 * @brief Send multiple authorized telemetry data. Server must be logged in.
 	 *
 	 * @param Events Map of telemetry payload with event name as its key
 	 * @param OnSuccess This will be called when the operation succeeded.
@@ -42,12 +42,12 @@ public:
 	void SendProtectedEvents(TMap<FString, TSharedPtr<FJsonObject>> Events, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 
 private:
-	GameTelemetry() = delete;
-	GameTelemetry(GameTelemetry const&) = delete;
-	GameTelemetry(GameTelemetry&&) = delete;
+	ServerGameTelemetry() = delete;
+	ServerGameTelemetry(ServerGameTelemetry const&) = delete;
+	ServerGameTelemetry(ServerGameTelemetry&&) = delete;
 
-	const Credentials& Credentials;
-	const Settings& Settings;
+	const ServerCredentials& Credentials;
+	const ServerSettings& Settings;
 };
 
 } // Namespace Api
