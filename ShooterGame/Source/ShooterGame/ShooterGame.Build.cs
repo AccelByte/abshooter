@@ -37,9 +37,11 @@ public class ShooterGame : ModuleRules
 				"JsonUtilities",
 				"WebBrowser",
 				"AccelByteUe4Sdk",
+				"OnlineSubsystemSteam",
+				"Steamworks",
+				"Icmp",
+				"UMG"
 				//"AvengersSDK",
-		"Icmp",
-		"UMG"
 			}
 		);
 

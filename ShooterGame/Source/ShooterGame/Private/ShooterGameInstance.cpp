@@ -42,6 +42,7 @@
 #include "HttpManager.h"
 #include "UMG/LoginMenuUI.h"
 #include "ShooterGameTelemetry.h"
+#include "ShooterGameSteamUtility.h"
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -210,8 +211,6 @@ void UShooterGameInstance::SetupCallbacks()
 		DebugTestEncryptionKey[i] = uint8(i);
 	}
 
-	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
 	OnGetOnlineUsersResponse = Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
 	FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
 
@@ -246,26 +245,39 @@ void UShooterGameInstance::GameClientLogin()
 	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get QoS Latencies..."));
 	GetQos();
 
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Accelbyte SDK Login starts..."));
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher"));
 	bool bHasDone = false;
 	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&]()
 	{
 		ShooterGameTelemetry::Get().Login(ShooterGameTelemetry::ELoginType::LAUNCHER, FRegistry::Credentials.GetUserId());
 		ShooterGameTelemetry::Get().EnableHeartbeat();
 
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher success"));
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login success"));
 		SetupUser();
 		bHasDone = true;
 	});
 	AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher error: %s"), *Message);
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login error: %s"), *Message);
 		// Open login menu with username & password
 		GotoState(ShooterGameInstanceState::LoginMenu);
 		bHasDone = true;
 	});
-	FRegistry::User.LoginWithLauncher(OnLoginSuccess, OnLoginError);
+	
+	FString AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	if (!AuthorizationCode.IsEmpty())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from launcher"));
+		FRegistry::User.LoginWithLauncher(OnLoginSuccess, OnLoginError);
+	}
+	else if (ShooterGameConfig::Get().IsSteamLaunch_)
+	{
+		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from Steam"));
+		ShooterGameSteamUtility::SteamLogin(OnLoginSuccess, OnLoginError);
+	}
+	else
+	{
+		OnLoginError.ExecuteIfBound(301, "This game is standalone mode: Please use username/password.");
+	}
 
 	// Blocking here
 	double LastTime = FPlatformTime::Seconds();
