@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.8.0 (Unreleased)
+## Added
+- Enable Steamworks and OnlineSubsystemSteam within project
+- Login using Steam account
+
 ## 1.7.0 (2020-06-09)
 ## Added
 - AccelByte SDK 2.14.0

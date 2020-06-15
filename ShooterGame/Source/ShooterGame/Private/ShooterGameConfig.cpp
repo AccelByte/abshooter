@@ -14,8 +14,10 @@ ShooterGameConfig::ShooterGameConfig()
 	ServerLatencies_(ServerLatencies),
 	SelectedRegion_(SelectedRegion),
 	PlayerEnteringServerDelay_(PlayerEnteringServerDelay),
+	IsSteamLaunch_(IsSteamLaunch),
 	GameReleaseVersion_(GameReleaseVersion),
 	SdkVersion_(SdkVersion),
+	SteamAppID_(SteamAppID),
 	StatisticCodeKill_(StatisticCodeKill),
 	StatisticCodeMatch_(StatisticCodeMatch),
 	StatisticCodeDeath_(StatisticCodeDeath),
@@ -43,11 +45,8 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeDeath"), StatisticCodeDeath, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("StatisticCodeMvp"), StatisticCodeMVP, GGameIni);
 
-	auto cmdLineArgs = FCommandLine::Get();
-	TArray<FString> tokens, switches;
-	FCommandLine::Parse(FCommandLine::Get(), tokens, switches);
-	IsLocalMode = tokens.Contains(TEXT("localds"));
-
+	auto cmdLineArgs = FCommandLine::GetOriginal();
+	IsLocalMode = FindArgFromCommandLine("localds");
 
 	FString ACCELBYTE_CONFIG_STORE_SECTION = "/Script/ShooterGame.AccelByteConfig.Store";
 	GConfig->GetString(*ACCELBYTE_CONFIG_STORE_SECTION, TEXT("ItemImageSetAs"), ItemImageSetAs, GGameIni);
@@ -59,6 +58,9 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetString(*ACCELBYTE_CONFIG_VERSION_SECTION, TEXT("GameReleaseVersion"), GameReleaseVersion, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_VERSION_SECTION, TEXT("SdkVersion"), SdkVersion, GGameIni);
 
+	FString ONLINE_SUBSYSTEM_STEAM_SECTION = "OnlineSubsystemSteam";
+	GConfig->GetString(*ONLINE_SUBSYSTEM_STEAM_SECTION, TEXT("SteamDevAppId"), SteamAppID, GEngineIni);
+
 	FString ACCELBYTE_CONFIG_ANALYTICS_SECTION = "/Script/ShooterGame.AccelByteConfig.Analytics";
 	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_logged_in"), TelemetryEvents.LoggedIn, GGameIni);
 	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_logged_out"), TelemetryEvents.LoggedOut, GGameIni);
@@ -68,7 +70,25 @@ ShooterGameConfig::ShooterGameConfig()
 	GConfig->GetString(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("event_player_item_equip"), TelemetryEvents.ItemEquip, GGameIni);
 	GConfig->GetFloat(*ACCELBYTE_CONFIG_ANALYTICS_SECTION, TEXT("heartbeat_interval"), TelemetryHeartbeatInterval, GGameIni);
 
+	FString ACCELBYTE_CONFIG_CLIENT_SECTION = "/Script/ShooterGame.AccelByteConfig.Client";
+	FString SteamLaunchCmdArg = "";
+	GConfig->GetString(*ACCELBYTE_CONFIG_CLIENT_SECTION, TEXT("SteamLaunchExecutionCommandLineArgs"), SteamLaunchCmdArg, GGameIni);
+	IsSteamLaunch = FindArgFromCommandLine(SteamLaunchCmdArg);
+
 	PlayerEnteringServerDelay = ServerHeartbeatInterval + 4.0f;
+}
+
+bool ShooterGameConfig::FindArgFromCommandLine(FString Arg)
+{
+	TArray<FString> tokens, switches;
+	FCommandLine::Parse(FCommandLine::Get(), tokens, switches);
+	for (auto& token : tokens) {
+		if (token == Arg.Replace(TEXT("-"), TEXT("")))
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)

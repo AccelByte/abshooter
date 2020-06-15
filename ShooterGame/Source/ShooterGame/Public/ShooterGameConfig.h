@@ -36,8 +36,11 @@ private:
 
 	float PlayerEnteringServerDelay;
 
+	bool IsSteamLaunch;
+
 	FString GameReleaseVersion;
 	FString SdkVersion;
+	FString SteamAppID;
 
 	FString StatisticCodeKill;
 	FString StatisticCodeMatch;
@@ -50,6 +53,8 @@ private:
 
 	ShooterGameTelemetryEvents TelemetryEvents;
 	float TelemetryHeartbeatInterval = 99;
+
+	bool FindArgFromCommandLine(FString Arg);
 
 public:
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
@@ -70,8 +75,11 @@ public:
 
 	const float &PlayerEnteringServerDelay_; //Second
 
+	const bool &IsSteamLaunch_;
+
 	const FString &GameReleaseVersion_;
 	const FString &SdkVersion_;
+	const FString &SteamAppID_;
 
 	const FString &StatisticCodeKill_;
 	const FString &StatisticCodeMatch_;
