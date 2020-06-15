@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.8.0 (Unreleased)
+## 1.8.0 (2020-06-15)
 ## Added
 - Enable Steamworks and OnlineSubsystemSteam within project
 - Login using Steam account
