@@ -4,12 +4,14 @@
 
 #include "ShooterGallery.h"
 #include "ShooterGameInstance.h"
-#include "UMG/GalleryMenuUI.h"
-#include "UMG/GalleryPreviewUI.h"
-#include "UMG/GalleryEditUI.h"
+#include "UMG/GalleryMenu/GalleryMenuUI.h"
+#include "UMG/GalleryMenu/GalleryPreviewPopupUI.h"
+#include "UMG/GalleryMenu/GalleryEditPopupUI.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteCloudStorageApi.h"
+
+FCriticalSection ShooterGalleryMutex;
 
 ShooterGallery::ShooterGallery(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TWeakObjectPtr<UGalleryMenuUI> _GalleryMenuUI)
 	: GameInstance(_GameInstance)
@@ -30,6 +32,7 @@ void ShooterGallery::GetSlots()
 				// Clear unsync saved screenshot.
 				for (int i = 0; i < ScreenshotMetadata.Screenshots.Num(); i++)
 				{
+					if (ScreenshotMetadata.Screenshots.IsValidIndex(i)) continue;
 					FAccelByteModelsSlot LocalSlot = ScreenshotMetadata.Screenshots[i];
 					int32 Index = Result.IndexOfByPredicate([LocalSlot](FAccelByteModelsSlot Slot) {
 						return Slot.SlotId == LocalSlot.SlotId && Slot.Checksum == LocalSlot.Checksum;
@@ -64,7 +67,7 @@ void ShooterGallery::GetSlots()
 		),
 		AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, FString ErrorString)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] FRegistry::CloudStorage.GetAllSlot. ErrorCode: %d. ErrorMessage: %s."), ErrorCode, *ErrorString);
+				UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] AccelByte::FRegistry::CloudStorage.GetAllSlot Failed! Code: %d, Message: %s."), ErrorCode, *ErrorString);
 			}
 		)
 	);
@@ -72,6 +75,10 @@ void ShooterGallery::GetSlots()
 
 void ShooterGallery::AddEmptyGalleryEntry(FAccelByteModelsSlot Slot)
 {
+	if (!GameInstance.IsValid()) return;
+
+	FScopeLock Lock(&ShooterGalleryMutex);
+
 	TWeakObjectPtr<UGalleryEntryUI> GalleryEntry = MakeWeakObjectPtr<UGalleryEntryUI>(CreateWidget<UGalleryEntryUI>(GameInstance.Get(), *GameInstance->GalleryEntryClass.Get()));
 	FString ImagePath = FString::Printf(TEXT("%s\\Content\\Slate\\Images\\Gallery\\GallerySlotEmptyBackground.png"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()));
 	if (IFileManager::Get().FileExists(*ImagePath))
@@ -95,6 +102,8 @@ void ShooterGallery::AddEmptyGalleryEntry(FAccelByteModelsSlot Slot)
 
 void ShooterGallery::AddSavedGalleryEntry(FAccelByteModelsSlot Slot)
 {
+	if (!GameInstance.IsValid()) return;
+
 	TWeakObjectPtr<UGalleryEntryUI> GalleryEntry = MakeWeakObjectPtr<UGalleryEntryUI>(CreateWidget<UGalleryEntryUI>(GameInstance.Get(), *GameInstance->GalleryEntryClass.Get()));
 	FString ImagePath = GetUserScreenshotsDir() / Slot.SlotId + ".png";
 	if (IFileManager::Get().FileExists(*ImagePath))
@@ -108,6 +117,7 @@ void ShooterGallery::AddSavedGalleryEntry(FAccelByteModelsSlot Slot)
 				TSharedPtr<FSlateDynamicImageBrush> GalleryImage = FShooterImageUtils::CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), ImageData);
 				if (GalleryImage.IsValid())
 				{
+					FScopeLock Lock(&ShooterGalleryMutex);
 
 					GalleryEntry->Image = *GalleryImage.Get();
 					GalleryEntry->State = EGalleryState::DONE;
@@ -133,6 +143,8 @@ void ShooterGallery::UpdateGalleryList()
 
 void ShooterGallery::GetSlot(FAccelByteModelsSlot Slot)
 {
+	FScopeLock Lock(&ShooterGalleryMutex);
+
 	int32 Index = GalleryList.IndexOfByPredicate([Slot](UGalleryEntryUI* Entry) {
 		return Entry->SlotId == Slot.SlotId;
 	});
@@ -144,13 +156,14 @@ void ShooterGallery::GetSlot(FAccelByteModelsSlot Slot)
 			Slot.SlotId,
 			AccelByte::THandler<TArray<uint8>>::CreateLambda([this, Slot](const TArray<uint8>& Result)
 				{
-					UE_LOG(LogTemp, Log, TEXT("[ShooterGallery] FRegistry::CloudStorage.GetSlot SlotId: %s. Success."), *Slot.SlotId);
+					UE_LOG(LogTemp, Log, TEXT("[ShooterGallery] AccelByte::FRegistry::CloudStorage.GetSlot SlotId: %s. Success."), *Slot.SlotId);
 					OnReceiveSlotImage(Slot, Result);
 				}
 			),		
 			AccelByte::FErrorHandler::CreateLambda([this, Slot](int32 ErrorCode, FString ErrorString)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] FRegistry::CloudStorage.GetSlot SlotId: %s. ErrorCode: %d. ErrorMessage: %s."), *Slot.SlotId, ErrorCode, *ErrorString);
+					UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] AccelByte::FRegistry::CloudStorage.GetSlot Failed SlotId: %s! Code: %d, Message: %s."), *Slot.SlotId, ErrorCode, *ErrorString);
+					FScopeLock Lock(&ShooterGalleryMutex);
 
 					int32 Index = GalleryList.IndexOfByPredicate([Slot](UGalleryEntryUI* Entry) {
 						return Entry->SlotId == Slot.SlotId;
@@ -174,6 +187,8 @@ void ShooterGallery::OnReceiveSlotImage(FAccelByteModelsSlot Slot, const TArray<
 		TSharedPtr<FSlateDynamicImageBrush> GalleryImage = FShooterImageUtils::CreateBrush(FPaths::GetExtension(ImagePath), FName(*ImagePath), Result);
 		if (GalleryImage.IsValid())
 		{
+			FScopeLock Lock(&ShooterGalleryMutex);
+
 			int32 Index = GalleryList.IndexOfByPredicate([Slot](UGalleryEntryUI* Entry) {
 				return Entry->SlotId == Slot.SlotId;
 			});
@@ -242,11 +257,11 @@ void ShooterGallery::SaveScreenshotMetadata()
 	{
 		if (FFileHelper::SaveStringToFile(MetadataString, *SavePath))
 		{
-			UE_LOG(LogTemp, Log, TEXT("[ShooterGallery] File successfullly saved, Path: %s"), *SavePath)
+			UE_LOG(LogTemp, Log, TEXT("[ShooterGallery] File successfullly saved, Path: %s."), *SavePath)
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] File failed to saved, Path: %s"), *SavePath)
+			UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] File failed to saved, Path: %s."), *SavePath)
 		}
 	}
 }
@@ -283,6 +298,8 @@ void ShooterGallery::DeleteScreenshotImage(FString SlotId)
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	if (PlatformFile.DeleteFile(*ImageFullPath))
 	{
+		FScopeLock Lock(&ShooterGalleryMutex);
+
 		GalleryMenuUI->ClearSelection();
 		GalleryList.RemoveAll([SlotId](UGalleryEntryUI* Entry) {
 			return Entry->SlotId == SlotId;
@@ -299,19 +316,25 @@ void ShooterGallery::DeleteScreenshotImage(FString SlotId)
 #pragma region Override Gallery Entry Interface
 void ShooterGallery::PreviewImage(FSlateBrush Image)
 {
-	GalleryPreviewUI = MakeWeakObjectPtr<UGalleryPreviewUI>(CreateWidget<UGalleryPreviewUI>(GameInstance.Get(), *GameInstance->GalleryPreviewClass.Get()));
-	GalleryPreviewUI->PreviewImage(Image);
+	if (!GameInstance.IsValid()) return;
+
+	GalleryPreviewPopupUI = MakeWeakObjectPtr<UGalleryPreviewPopupUI>(CreateWidget<UGalleryPreviewPopupUI>(GameInstance.Get(), *GameInstance->GalleryPreviewPopupClass.Get()));
+	GalleryPreviewPopupUI->PreviewImage(Image);
 }
 
 void ShooterGallery::EditLabel(FString SlotId, FString Caption)
 {
-	GalleryEditUI = MakeWeakObjectPtr<UGalleryEditUI>(CreateWidget<UGalleryEditUI>(GameInstance.Get(), *GameInstance->GalleryEditClass.Get()));
-	GalleryEditUI->SetInterface(this);
-	GalleryEditUI->Show(SlotId, Caption);
+	if (!GameInstance.IsValid()) return;
+
+	GalleryEditPopupUI = MakeWeakObjectPtr<UGalleryEditPopupUI>(CreateWidget<UGalleryEditPopupUI>(GameInstance.Get(), *GameInstance->GalleryEditPopupClass.Get()));
+	GalleryEditPopupUI->SetInterface(this);
+	GalleryEditPopupUI->Show(SlotId, Caption);
 }
 
 void ShooterGallery::DeleteImage(FString SlotId)
 {
+	FScopeLock Lock(&ShooterGalleryMutex);
+
 	int32 Index = GalleryList.IndexOfByPredicate([SlotId](UGalleryEntryUI* Entry) {
 		return Entry->SlotId == SlotId;
 	});
@@ -328,7 +351,7 @@ void ShooterGallery::DeleteImage(FString SlotId)
 			),
 			AccelByte::FErrorHandler::CreateLambda([this, SlotId](int32 ErrorCode, FString ErrorString)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] FRegistry::CloudStorage.DeleteSlot SlotId: %s. ErrorCode: %d. ErrorMessage: %s."), *SlotId, ErrorCode, *ErrorString);
+					UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] AccelByte::FRegistry::CloudStorage.DeleteSlot Failed SlotId: %s! Code: %d, Message: %s."), *SlotId, ErrorCode, *ErrorString);
 					int32 Index = GalleryList.IndexOfByPredicate([SlotId](UGalleryEntryUI* Entry) {
 						return Entry->SlotId == SlotId;
 					});
@@ -350,6 +373,9 @@ void ShooterGallery::SaveCaption(FString SlotId, FString Label)
 	int32 MetadataIndex = ScreenshotMetadata.Screenshots.IndexOfByPredicate([SlotId](FAccelByteModelsSlot Slot) {
 		return Slot.SlotId == SlotId;
 	});
+	
+	FScopeLock Lock(&ShooterGalleryMutex);
+
 	int32 GalleryListIndex = GalleryList.IndexOfByPredicate([SlotId](UGalleryEntryUI* Entry) {
 		return Entry->SlotId == SlotId;
 	});
@@ -365,10 +391,13 @@ void ShooterGallery::SaveCaption(FString SlotId, FString Label)
 			TEXT(""),
 			AccelByte::THandler<FAccelByteModelsSlot>::CreateLambda([this, SlotId, Label](const FAccelByteModelsSlot& Result)
 				{
-					UE_LOG(LogTemp, Log, TEXT("[ShooterGallery] FRegistry::CloudStorage.UpdateSlotMetadata SlotId: %s. Success."), *SlotId);
+					UE_LOG(LogTemp, Log, TEXT("[ShooterGallery] AccelByte::FRegistry::CloudStorage.UpdateSlotMetadata SlotId: %s. Success."), *SlotId);
 					int32 MetadataIndex = ScreenshotMetadata.Screenshots.IndexOfByPredicate([SlotId](FAccelByteModelsSlot Slot) {
 						return Slot.SlotId == SlotId;
 					});
+
+					FScopeLock Lock(&ShooterGalleryMutex);
+
 					int32 GalleryListIndex = GalleryList.IndexOfByPredicate([SlotId](UGalleryEntryUI* Entry) {
 						return Entry->SlotId == SlotId;
 					});
@@ -390,7 +419,7 @@ void ShooterGallery::SaveCaption(FString SlotId, FString Label)
 			nullptr,
 			AccelByte::FErrorHandler::CreateLambda([SlotId](int32 ErrorCode, FString ErrorString)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] FRegistry::CloudStorage.UpdateSlotMetadata SlotId: %s. ErrorCode: %d. ErrorMessage: %s."), *SlotId, ErrorCode, *ErrorString);
+					UE_LOG(LogTemp, Warning, TEXT("[ShooterGallery] AccelByte::FRegistry::CloudStorage.UpdateSlotMetadata Failed SlotId: %s! Code: %d, Message: %s."), *SlotId, ErrorCode, *ErrorString);
 				}
 			)
 		);

@@ -15,8 +15,8 @@
 #include "Widgets/SShooterInventory.h"
 #include "Widgets/SShooterStore.h"
 #include "Widgets/SShooterLeaderboard.h"
-#include "Widgets/SLobby.h"
-#include "Widgets/SShooterSplitScreenLobbyWidget.h"
+//#include "Widgets/SLobby.h"
+//#include "Widgets/SShooterSplitScreenLobbyWidget.h"
 #include "ShooterOptions.h"
 
 #include "Api/AccelByteWalletApi.h"
@@ -98,18 +98,18 @@ protected:
 	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
 
 	/** SplitScreen Lobby Widget */
-	TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;
+	//TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;
 
 	/* used for removing the SplitScreenLobby */
-	TSharedPtr<class SWeakWidget> SplitScreenLobbyWidgetContainer;
+	//TSharedPtr<class SWeakWidget> SplitScreenLobbyWidgetContainer;
 
 	/** server list widget */
 	TSharedPtr<class SShooterServerList> ServerListWidget;
 
 	/** lobby friend list widget */
-	TSharedPtr<class SLobby> LobbyWidget;
+	//TSharedPtr<class SLobby> LobbyWidget;
 	/** yet another custom menu */
-	TSharedPtr<class FShooterMenuItem> LobbyMenuItem;
+	//TSharedPtr<class FShooterMenuItem> LobbyMenuItem;
 
 	/** dedicated server region selection */
 	TSharedPtr<FShooterMenuItem> DsRegionOption;
@@ -267,7 +267,7 @@ protected:
 	/** Join server */
 	void OnJoinServer();
 
-	void OnShowLobby();
+	//void OnShowLobby();
 
 	void OnShowOption();
 
@@ -438,14 +438,8 @@ private:
 	/** Handle when getting player's avatar image. */
 	void OnThumbImageReceived(FCacheBrush Image);
 
-	/**
-	* @brief Update user profile from cache.
-	*
-	* @param ProfileName Player's profile name.
-	* @param UserID Player's user id.
-	* @param AvatarPath Player's avatar path.
-	*/
-	void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
+	/** Update user profile from cache. */
+	void UpdateUserProfileFromCache();
 
 	/** Owning game instance. */
 	TWeakObjectPtr<UShooterGameInstance> GameInstance;
@@ -455,6 +449,9 @@ private:
 
 	/** Game profile sub-menu widget. */
 	TSharedPtr<class ShooterGameProfile> GameProfile;
+
+	/** Lobby sub-menu widget. */
+	TSharedPtr<class ShooterLobby> Lobby;
 
 	/** Gallery sub-menu widget */
 	TSharedPtr<class ShooterGallery> Gallery;

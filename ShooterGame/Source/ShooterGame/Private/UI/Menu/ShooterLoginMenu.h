@@ -5,7 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UMG/LoginMenuInterface.h"
+#include "UMG/LoginMenu/LoginMenuInterface.h"
 
 class FShooterLoginMenu : public ILoginMenuInterface
 {

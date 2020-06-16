@@ -26,20 +26,20 @@
 #include "SLobbyChatPage.h"
 #include "SLobbyChatTabButton.h"
 
-enum FriendEntryType
+enum FriendEntryTypeDeprecated
 {
 	FRIEND,
 	INCOMING,
 	OUTGOING
 };
 
-struct FFriendEntry
+struct FFriendEntryDeprecated
 {
 	FString UserId;
 	FString Name;
 	FString Presence; //ONLINE, INGAME, IDLE, OFFLINE
 	FString AvatarSmallUrl;
-	FriendEntryType Type;
+	FriendEntryTypeDeprecated Type;
 };
 
 //class declare
@@ -72,17 +72,15 @@ public:
 
 	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
-	FReply OnRequestFriend();
+	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntryDeprecated> Item, const TSharedRef<STableViewBase>& OwnerTable);
 
-	TSharedRef<ITableRow> MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
-
-	void EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo);
+	void EntrySelectionChanged(TSharedPtr<FFriendEntryDeprecated> InItem, ESelectInfo::Type SelectInfo);
 	void UpdateSearchStatus();
 	void InitializeFriends();
 	void SetCurrentUser(FString UserID, FString DisplayName, FString AvatarURL);
 	void SetCurrentUserFromCache(FString UserID, FString DisplayName, FString AvatarPath);
 	FString GetCurrentUserID();
-	void AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryType Type);
+	void AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryTypeDeprecated Type);
 	void RemoveFriend(FString UserId);
 	void RefreshFriendList();
 	void UpdateFriendList();
@@ -134,10 +132,10 @@ protected:
 	FString CurrentUserID;
 	FString CurrentAvatarURL;
 	TSharedPtr<SEditableTextBox> FriendSearchBar;
-	TArray< TSharedPtr<FFriendEntry> > FriendList;
-	TArray< TSharedPtr<FFriendEntry> > CompleteFriendList;
-	TSharedPtr< SListView< TSharedPtr<FFriendEntry> > > LobbyWidget;
-	TSharedPtr<FFriendEntry> SelectedItem;
+	TArray< TSharedPtr<FFriendEntryDeprecated> > FriendList;
+	TArray< TSharedPtr<FFriendEntryDeprecated> > CompleteFriendList;
+	TSharedPtr< SListView< TSharedPtr<FFriendEntryDeprecated> > > LobbyWidget;
+	TSharedPtr<FFriendEntryDeprecated> SelectedItem;
 	FAccelByteModelsInfoPartyResponse PartyInfo;
 
 	FString MapFilterName;
@@ -148,12 +146,7 @@ protected:
 	FText GetFriendHeaderText() const;
 
 #pragma region FRIENDS_SERVICE
-	void OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response);
-	void OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response);
-	void OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFriendsResponse& Response);
-	void OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response);
-	void OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response);
-	void OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response);
+
 #pragma endregion FRIENDS_SERVICE
 
 #pragma region MESSAGE_DIALOG
@@ -174,8 +167,6 @@ protected:
 	bool bAlreadyEnteringLevel = false;
 #pragma endregion Matchmaking
 
-	void OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response);
-
 public:
 #pragma region PARTY
 	TSharedPtr<SParty> PartyWidget;
@@ -194,5 +185,4 @@ public:
 	TSharedPtr<SOverlay> NotificationOverlay;
 	void CloseOverlay(TSharedPtr<SOverlay> Overlay);
 	void OnIncomingNotification(const FAccelByteModelsNotificationMessage& MessageNotification);
-	void OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 };

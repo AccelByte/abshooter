@@ -5,10 +5,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ShooterGameProfleModels.h"
-#include "UMG/StatisticEntryUI.h"
-#include "UMG/AchievementEntryUI.h"
 #include "Utils/ImageUtils.h"
+#include "ShooterGameProfileModels.h"
 
 namespace ShooterGameStatisticName
 {
@@ -85,8 +83,8 @@ private:
 	FShooterStatistic Statistic;
 
 	/** Player's statistic list. */
-	TArray<UStatisticEntryUI*> StatisticList;
+	TArray<class UStatisticEntryUI*> StatisticList;
 
 	/** Player's achievement list. */
-	TArray<UAchievementEntryUI*> AchievementList;
+	TArray<class UAchievementEntryUI*> AchievementList;
 };

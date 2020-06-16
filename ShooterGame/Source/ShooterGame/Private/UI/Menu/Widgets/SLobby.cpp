@@ -123,7 +123,6 @@ void SLobby::Construct(const FArguments& InArgs)
 	MinTimeBetweenSearches = 0.0;
 #endif
 
-	AccelByte::FRegistry::Lobby.SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &SLobby::OnUserPresenceNotification));
 	AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
 	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
 	AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
@@ -137,17 +136,11 @@ void SLobby::Construct(const FArguments& InArgs)
 		CurrentPartyID = TEXT("");
 	}));
 	AccelByte::FRegistry::Lobby.SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
-	AccelByte::FRegistry::Lobby.SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateSP(this, &SLobby::OnRequestFriendSent));
-	AccelByte::FRegistry::Lobby.SetListIncomingFriendsResponseDelegate(AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateSP(this, &SLobby::OnIncomingListFriendRequest));
-	AccelByte::FRegistry::Lobby.SetListOutgoingFriendsResponseDelegate(AccelByte::Api::Lobby::FListOutgoingFriendsResponse::CreateSP(this, &SLobby::OnOutgoingListFriendRequest));
-	AccelByte::FRegistry::Lobby.SetLoadFriendListResponseDelegate(AccelByte::Api::Lobby::FLoadFriendListResponse::CreateSP(this, &SLobby::OnFriendListLoaded));
 	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateLambda([&](const FAccelByteModelsCreatePartyResponse& Response)
 	{
 		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 	}));
-	AccelByte::FRegistry::Lobby.SetOnFriendRequestAcceptedNotifDelegate(AccelByte::Api::Lobby::FAcceptFriendsNotif::CreateSP(this, &SLobby::OnFriendRequestAcceptedNotification));
-	AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &SLobby::OnIncomingFriendRequestNotification));
-	AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &SLobby::OnGetOnlineUserResponse));
+
 	AccelByte::FRegistry::Lobby.SetInvitePartyResponseDelegate(AccelByte::Api::Lobby::FPartyInviteResponse::CreateSP(this, &SLobby::OnPartyInviteResponse));
 	AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
 	{
@@ -270,230 +263,218 @@ void SLobby::Construct(const FArguments& InArgs)
 		[
 			SNew(SOverlay)
 			+ SOverlay::Slot()
-		.VAlign(VAlign_Fill)
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SBox)
-			.HeightOverride(TAttribute<FOptionalSize>::Create([&]()
-	{
-		return FOptionalSize(GetLobbyHeight(1.0));
-	}))
-		.WidthOverride(TAttribute<FOptionalSize>::Create([&]()
-	{
-		return FOptionalSize(GetLobbyWidth(1.0));
-	}))
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.Padding(FMargin(0, 40, 0, 0))
-		[
-			SNew(SHorizontalBox)
-
-#pragma region FriendWidget_ChatWidget
-			+ SHorizontalBox::Slot()
-		.MaxWidth(TAttribute<float>::Create([&]()
-	{
-		return GetLobbyWidth(2);
-	}))
-		.FillWidth(1.0f)
-		.HAlign(HAlign_Fill)
-		[
-
-			SNew(SVerticalBox)
-#pragma region SearchFriend
-			+ SVerticalBox::Slot()	//FriendSearchBar
-		.HAlign(HAlign_Fill)
-		.MaxHeight(50.0f)
-		.AutoHeight()
-		[
-			SNew(SOverlay)
-
-			+ SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		[
-			SNew(SImage)
-			.Image(&LobbyStyle->SearchBarBackground)
-		]
-
-	+ SOverlay::Slot()
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()	//2.1 INPUT FIELD
-		.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		.FillWidth(1.0f)
-		.Padding(15, 20, 0, 5)
-		[
-			SNew(SBox)	//2.1.1 SEDITABLETEXTBOX
-			[
-				SAssignNew(FriendSearchBar, SEditableTextBox)
-				.HintText(FText::FromString(TEXT("Type email here")))
-		.MinDesiredWidth(300.0f)
-		.SelectAllTextWhenFocused(true)
-		.Style(&LobbyStyle->SearchBarStyle)
-			]
-		]
-
-	+ SHorizontalBox::Slot()	//2.1.1 SBUTTON SEARCH FRIEND
-		.AutoWidth()
-		.Padding(6, 5, 5, 5)
-		.MaxWidth(64.0f)
-		[
-			SNew(SButton)
-			.OnClicked(this, &SLobby::OnRequestFriend)
-		.ButtonStyle(&LobbyStyle->AddFriendButtonStyle)
-		.VAlign(VAlign_Fill)
-		]
-		]
-		]
-#pragma endregion SearchFriend
-
-#pragma region FriendList
-	+ SVerticalBox::Slot()	//FriendListView
-		.FillHeight(1.0f)
-		.MaxHeight(TAttribute<float>::Create([&]()
-	{
-		return GetLobbyHeight(2.5);
-	}))
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SOverlay)
-
-			+ SOverlay::Slot()
-		[
-			SNew(SImage)
-			.Image(&LobbyStyle->FriendListBackground)
-		]
-
-	+ SOverlay::Slot()
-		[
-			SNew(SHorizontalBox)
-
-			+ SHorizontalBox::Slot()	//NonScrollBar
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SBox)
+			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
-		.HeightOverride(TAttribute<FOptionalSize>::Create([&]()
-	{
-		return FOptionalSize(GetLobbyHeight(2.0));
-	}))
-		.WidthOverride(TAttribute<FOptionalSize>::Create([&]()
-	{
-		return FOptionalSize(GetLobbyWidth(3.0));
-	}))
-		[
-			SAssignNew(LobbyWidget, SListView<TSharedPtr<FFriendEntry>>)
-			.ListItemsSource(&FriendList)
-		.SelectionMode(ESelectionMode::Single)
-		.OnGenerateRow(this, &SLobby::MakeListViewWidget)
-		.OnSelectionChanged(this, &SLobby::EntrySelectionChanged)
-		.ExternalScrollbar(FriendScrollBar)
-		.ScrollbarVisibility(EVisibility::Visible)
-		.HeaderRow(
-			SNew(SHeaderRow)
-			.Style(&LobbyStyle->HeaderRowStyle)
-			+ SHeaderRow::Column("Friend")
-			.HAlignCell(HAlign_Fill)
-			.VAlignCell(VAlign_Fill)
-			.FillWidth(1.0)
-			.DefaultLabel(this, &SLobby::GetFriendHeaderText)
-			.HAlignHeader(HAlign_Left)
-			.VAlignHeader(VAlign_Center)
-			.HeaderContentPadding(FMargin(2))
-		)
-		]
-		]
+			[
+				SNew(SBox)
+				.HeightOverride(TAttribute<FOptionalSize>::Create([&]()
+				{
+					return FOptionalSize(GetLobbyHeight(1.0));
+				}))
+				.WidthOverride(TAttribute<FOptionalSize>::Create([&]()
+				{
+					return FOptionalSize(GetLobbyWidth(1.0));
+				}))
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.Padding(FMargin(0, 40, 0, 0))
+				[
+					SNew(SHorizontalBox)
 
-	+ SHorizontalBox::Slot()	//Scroll player list
-		.AutoWidth()
-		.Padding(TAttribute<FMargin>::Create([&]()
-	{
-		return FMargin(0.f, LobbyWidget->GetHeaderRow()->GetDesiredSize().Y, 0.f, 0.f);
-	}))
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Right)
-		[
-			SAssignNew(FriendScrollBar, SScrollBar)
-			.IsEnabled(true)
-		.AlwaysShowScrollbar(true)
-		.Thickness(FVector2D(12.0f, 12.0f))
-		.Orientation(EOrientation::Orient_Vertical)
-		.Visibility(EVisibility::Visible)
-		.Style(&LobbyStyle->ScrollBarStyle)
-		]
-		]
+	#pragma region FriendWidget_ChatWidget
+					+ SHorizontalBox::Slot()
+					.MaxWidth(TAttribute<float>::Create([&]()
+					{
+						return GetLobbyWidth(2);
+					}))
+					.FillWidth(1.0f)
+					.HAlign(HAlign_Fill)
+					[
 
-		]
-		]
+						SNew(SVerticalBox)
+	#pragma region SearchFriend
+						+ SVerticalBox::Slot()	//FriendSearchBar
+						.HAlign(HAlign_Fill)
+						.MaxHeight(50.0f)
+						.AutoHeight()
+						[
+							SNew(SOverlay)
+
+							+ SOverlay::Slot()
+							.HAlign(HAlign_Fill)
+							.VAlign(VAlign_Fill)
+							[
+								SNew(SImage)
+								.Image(&LobbyStyle->SearchBarBackground)
+							]
+
+							+ SOverlay::Slot()
+							.HAlign(HAlign_Fill)
+							.VAlign(VAlign_Fill)
+							[
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()	//2.1 INPUT FIELD
+								.HAlign(HAlign_Fill)
+								.VAlign(VAlign_Fill)
+								.FillWidth(1.0f)
+								.Padding(15, 20, 0, 5)
+								[
+									SNew(SBox)	//2.1.1 SEDITABLETEXTBOX
+									[
+										SAssignNew(FriendSearchBar, SEditableTextBox)
+										.HintText(FText::FromString(TEXT("Type email here")))
+										.MinDesiredWidth(300.0f)
+										.SelectAllTextWhenFocused(true)
+										.Style(&LobbyStyle->SearchBarStyle)
+									]
+								]
+							]
+						]
+	#pragma endregion SearchFriend
+
+	#pragma region FriendList
+						+ SVerticalBox::Slot()	//FriendListView
+						.FillHeight(1.0f)
+						.MaxHeight(TAttribute<float>::Create([&]()
+						{
+							return GetLobbyHeight(2.5);
+						}))
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SOverlay)
+
+							+ SOverlay::Slot()
+							[
+								SNew(SImage)
+								.Image(&LobbyStyle->FriendListBackground)
+							]
+
+							+ SOverlay::Slot()
+							[
+								SNew(SHorizontalBox)
+
+								+ SHorizontalBox::Slot()	//NonScrollBar
+								.HAlign(HAlign_Fill)
+								[
+									SNew(SBox)
+									.HAlign(HAlign_Fill)
+									.HeightOverride(TAttribute<FOptionalSize>::Create([&]()
+									{
+										return FOptionalSize(GetLobbyHeight(2.0));
+									}))
+									.WidthOverride(TAttribute<FOptionalSize>::Create([&]()
+									{
+										return FOptionalSize(GetLobbyWidth(3.0));
+									}))
+									[
+										SAssignNew(LobbyWidget, SListView<TSharedPtr<FFriendEntryDeprecated>>)
+										.ListItemsSource(&FriendList)
+										.SelectionMode(ESelectionMode::Single)
+										.OnGenerateRow(this, &SLobby::MakeListViewWidget)
+										.OnSelectionChanged(this, &SLobby::EntrySelectionChanged)
+										.ExternalScrollbar(FriendScrollBar)
+										.ScrollbarVisibility(EVisibility::Visible)
+										.HeaderRow(
+											SNew(SHeaderRow)
+											.Style(&LobbyStyle->HeaderRowStyle)
+											+ SHeaderRow::Column("Friend")
+											.HAlignCell(HAlign_Fill)
+											.VAlignCell(VAlign_Fill)
+											.FillWidth(1.0)
+											.DefaultLabel(this, &SLobby::GetFriendHeaderText)
+											.HAlignHeader(HAlign_Left)
+											.VAlignHeader(VAlign_Center)
+											.HeaderContentPadding(FMargin(2))
+										)
+									]
+								]
+
+								+ SHorizontalBox::Slot()	//Scroll player list
+								.AutoWidth()
+								.Padding(TAttribute<FMargin>::Create([&]()
+								{
+									return FMargin(0.f, LobbyWidget->GetHeaderRow()->GetDesiredSize().Y, 0.f, 0.f);
+								}))
+								[
+									SNew(SBox)
+									.HAlign(HAlign_Right)
+									[
+										SAssignNew(FriendScrollBar, SScrollBar)
+										.IsEnabled(true)
+										.AlwaysShowScrollbar(true)
+										.Thickness(FVector2D(12.0f, 12.0f))
+										.Orientation(EOrientation::Orient_Vertical)
+										.Visibility(EVisibility::Visible)
+										.Style(&LobbyStyle->ScrollBarStyle)
+									]
+								]
+							]
+						]
 #pragma endregion FriendList
 
-	+ SVerticalBox::Slot()	//MARGIN FRIEND >=< CHAT
-		.FillHeight(0.1f)
-		[
-			SNew(SBox)
-		]
+						+ SVerticalBox::Slot()	//MARGIN FRIEND >=< CHAT
+						.FillHeight(0.1f)
+						[
+							SNew(SBox)
+						]
 
 #pragma region ChatWidget
-	+ SVerticalBox::Slot()		//CHAT Widget
-		.VAlign(VAlign_Fill)
-		.MaxHeight(TAttribute<float>::Create([&]()
-	{
-		return GetLobbyHeight(3.0);
-	}))
-		.FillHeight(.8f)
-		.HAlign(HAlign_Fill)
-		[
-			SNew(SOverlay)
+						+ SVerticalBox::Slot()		//CHAT Widget
+						.VAlign(VAlign_Fill)
+						.MaxHeight(TAttribute<float>::Create([&]()
+						{
+							return GetLobbyHeight(3.0);
+						}))
+						.FillHeight(.8f)
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SOverlay)
 
-			+ SOverlay::Slot()
-		[
-			SNew(SImage)
-			.Image(&LobbyStyle->ChatAreaBackground)
-		]
+							+ SOverlay::Slot()
+							[
+								SNew(SImage)
+								.Image(&LobbyStyle->ChatAreaBackground)
+							]
 
-	+ SOverlay::Slot()
-		[
-			SAssignNew(LobbyChatWidget, SLobbyChat)
-			.LobbyParent(SharedThis(this))
-		]
-		]
+							+ SOverlay::Slot()
+							[
+								SAssignNew(LobbyChatWidget, SLobbyChat)
+								.LobbyParent(SharedThis(this))
+							]
+						]
 #pragma endregion ChatWidget
 
-		]
+					]
 #pragma endregion FriendWidget_ChatWidget
 
-	+ SHorizontalBox::Slot()	//MARGIN FRIEND <||> PARTY
-		.AutoWidth()
-		[
-			SNew(SBox)
-			.WidthOverride(TAttribute<FOptionalSize>::Create([&]()
-	{
-		return FOptionalSize(GetLobbyWidth(12.0));
-	}))
-		]
+					+ SHorizontalBox::Slot()	//MARGIN FRIEND <||> PARTY
+					.AutoWidth()
+					[
+						SNew(SBox)
+						.WidthOverride(TAttribute<FOptionalSize>::Create([&]()
+						{
+							return FOptionalSize(GetLobbyWidth(12.0));
+						}))
+					]
 
 #pragma region PartyWidget_StartMatchWidget
-	+ SHorizontalBox::Slot()
-		.MaxWidth(TAttribute<float>::Create([&]()
-	{
-		return GetLobbyWidth(2.5);
-	}))
-		.AutoWidth()
-		[
-			SNew(SVerticalBox)
+					+ SHorizontalBox::Slot()
+					.MaxWidth(TAttribute<float>::Create([&]()
+					{
+						return GetLobbyWidth(2.5);
+					}))
+					.AutoWidth()
+					[
+						SNew(SVerticalBox)
 
 #pragma region PartyWidget
-			+ SVerticalBox::Slot()	//PARTY_WIDGET
-		.FillHeight(1.0f)
-		[
-			SAssignNew(PartyWidget, SParty)
-			.LobbyStyle(LobbyStyle)
-		]
+						+ SVerticalBox::Slot()	//PARTY_WIDGET
+						.FillHeight(1.0f)
+						[
+							SAssignNew(PartyWidget, SParty)
+							.LobbyStyle(LobbyStyle)
+						]
 #pragma endregion PartyWidget
 
 	//+SVerticalBox::Slot()	//MARGIN PARTY >=< STARTMATCH
@@ -504,184 +485,184 @@ void SLobby::Construct(const FArguments& InArgs)
 	//]
 
 #pragma region StartMatch
-	+ SVerticalBox::Slot()	//STARTMATCH_BUTTON
-		.AutoHeight()
-		.VAlign(VAlign_Bottom)
-		[
-			SNew(SOverlay)
-			+ SOverlay::Slot()
-		[
-			SNew(SButton)
-			.VAlign(VAlign_Bottom)
-		.HAlign(HAlign_Center)
-		.ButtonStyle(&LobbyStyle->StartMatchButton)
-		.Visibility(TAttribute<EVisibility>::Create([&]
-	{
-		if (CurrentPartyID != "")
-		{
-			if (bIsPartyLeader && !bMatchmakingStarted)
-			{
-				return EVisibility::Visible;
-			}
-		}
+						+ SVerticalBox::Slot()	//STARTMATCH_BUTTON
+						.AutoHeight()
+						.VAlign(VAlign_Bottom)
+						[
+							SNew(SOverlay)
+							+ SOverlay::Slot()
+							[
+								SNew(SButton)
+								.VAlign(VAlign_Bottom)
+								.HAlign(HAlign_Center)
+								.ButtonStyle(&LobbyStyle->StartMatchButton)
+								.Visibility(TAttribute<EVisibility>::Create([&]
+								{
+									if (CurrentPartyID != "")
+									{
+										if (bIsPartyLeader && !bMatchmakingStarted)
+										{
+											return EVisibility::Visible;
+										}
+									}
 
-		return EVisibility::Collapsed;
-	}))
-		.OnClicked(FOnClicked::CreateLambda([&]
-	{
-		bMatchmakingStarted = true;
-		PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
-		bReadyConsent = false;
-		GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
+									return EVisibility::Collapsed;
+								}))
+								.OnClicked(FOnClicked::CreateLambda([&]
+								{
+									bMatchmakingStarted = true;
+									PartyWidget->UpdateMatchmakingStatus(bMatchmakingStarted);
+									bReadyConsent = false;
+									GameMode = FString::Printf(TEXT("%dvs%d"), PartyWidget->GetCurrentPartySize(), PartyWidget->GetCurrentPartySize());
 
-		TSharedPtr<FTimerHandle> DummyHandle = MakeShared<FTimerHandle>();
-		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*DummyHandle, TFunction<void(void)>([&, DummyHandle]()
-		{
-			if (!FRegistry::Lobby.IsConnected())
-			{
-				bMatchmakingStarted = false;
-				GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*DummyHandle);
-				ShowMessageDialog("Connection lost when finding match!", FOnClicked::CreateLambda([&]()
-				{
-					CloseMessageDialog();
-					return FReply::Handled();
-				}));
-			}
-			else
-			{
-				if (bAlreadyEnteringLevel)
-				{
-					GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*DummyHandle);
-				}
-			}
-		}), 1.0f, true, 0.f);
+									TSharedPtr<FTimerHandle> DummyHandle = MakeShared<FTimerHandle>();
+									GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*DummyHandle, TFunction<void(void)>([&, DummyHandle]()
+									{
+										if (!FRegistry::Lobby.IsConnected())
+										{
+											bMatchmakingStarted = false;
+											GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*DummyHandle);
+											ShowMessageDialog("Connection lost when finding match!", FOnClicked::CreateLambda([&]()
+											{
+												CloseMessageDialog();
+												return FReply::Handled();
+											}));
+										}
+										else
+										{
+											if (bAlreadyEnteringLevel)
+											{
+												GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*DummyHandle);
+											}
+										}
+									}), 1.0f, true, 0.f);
 
-		if (ShooterGameConfig::Get().IsLocalMode_)
-		{
-			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
-				GameMode,
-				ShooterGameConfig::Get().LocalServerName_
-			);
-		}
-		else
-		{
-			AccelByte::FRegistry::Lobby.SendStartMatchmaking(
-				GameMode,
-				TEXT(""),
-				ShooterGameConfig::Get().ServerImageVersion_,
-				ShooterGameConfig::Get().SelectedRegion_
-			);
-		}
+									if (ShooterGameConfig::Get().IsLocalMode_)
+									{
+										AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+											GameMode,
+											ShooterGameConfig::Get().LocalServerName_
+										);
+									}
+									else
+									{
+										AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+											GameMode,
+											TEXT(""),
+											ShooterGameConfig::Get().ServerImageVersion_,
+											ShooterGameConfig::Get().SelectedRegion_
+										);
+									}
 		
-		return FReply::Handled();
-	}))
-		]
-	+ SOverlay::Slot()
-		.HAlign(HAlign_Center)
-		[
-			SNew(SHorizontalBox)
-			.Visibility(TAttribute<EVisibility>::Create([&]
-	{
-		if (bMatchmakingStarted)
-		{
-			return EVisibility::Visible;
-		}
+									return FReply::Handled();
+								}))
+							]
+							+ SOverlay::Slot()
+							.HAlign(HAlign_Center)
+							[
+								SNew(SHorizontalBox)
+								.Visibility(TAttribute<EVisibility>::Create([&]
+								{
+									if (bMatchmakingStarted)
+									{
+										return EVisibility::Visible;
+									}
 
-		return EVisibility::Collapsed;
-	}))
-		+ SHorizontalBox::Slot()
-		.VAlign(VAlign_Center)
-		.AutoWidth()
-		[
-			SNew(SOverlay)
-			+ SOverlay::Slot()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString("Finding Match"))
-		.TextStyle(&LobbyStyle->FindingMatchTextStyle)
-		.Visibility(TAttribute<EVisibility>::Create([&]
-	{
-		return !bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
-	}))
-		]
-	+ SOverlay::Slot()
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString("Waiting for the Other Party"))
-		.TextStyle(&LobbyStyle->FindingMatchTextStyle)
-		.Visibility(TAttribute<EVisibility>::Create([&]
-	{
-		return bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
-	}))
-		]
-		]
-	+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SThrobber)
-		]
-	+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		.Visibility(TAttribute<EVisibility>::Create([&]
-	{
-		if (bIsPartyLeader && bMatchmakingStarted)
-		{
-			return EVisibility::Visible;
-		}
+									return EVisibility::Collapsed;
+								}))
+								+ SHorizontalBox::Slot()
+								.VAlign(VAlign_Center)
+								.AutoWidth()
+								[
+									SNew(SOverlay)
+									+ SOverlay::Slot()
+									[
+										SNew(STextBlock)
+										.Text(FText::FromString("Finding Match"))
+										.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+										.Visibility(TAttribute<EVisibility>::Create([&]
+										{
+											return !bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
+										}))
+									]
+									+ SOverlay::Slot()
+									[
+										SNew(STextBlock)
+										.Text(FText::FromString("Waiting for the Other Party"))
+										.TextStyle(&LobbyStyle->FindingMatchTextStyle)
+										.Visibility(TAttribute<EVisibility>::Create([&]
+										{
+											return bReadyConsent ? EVisibility::Visible : EVisibility::Collapsed;
+										}))
+									]
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SThrobber)
+								]
+								+ SHorizontalBox::Slot()
+								.AutoWidth()
+								[
+									SNew(SButton)
+									.VAlign(VAlign_Center)
+									.HAlign(HAlign_Center)
+									.Visibility(TAttribute<EVisibility>::Create([&]
+									{
+										if (bIsPartyLeader && bMatchmakingStarted)
+										{
+											return EVisibility::Visible;
+										}
 
-		return EVisibility::Collapsed;
-	}))
-		.ButtonStyle(&LobbyStyle->CancelMatchButton)
-		.OnClicked(FOnClicked::CreateLambda([&]
-	{
-		AccelByte::FRegistry::Lobby.SendCancelMatchmaking(GameMode);
-		return FReply::Handled();
-	}))
-		]
-		]
-		]
+										return EVisibility::Collapsed;
+									}))
+									.ButtonStyle(&LobbyStyle->CancelMatchButton)
+									.OnClicked(FOnClicked::CreateLambda([&]
+									{
+										AccelByte::FRegistry::Lobby.SendCancelMatchmaking(GameMode);
+										return FReply::Handled();
+									}))
+								]
+							]
+						]
 #pragma endregion StartMatch
 
-		]
+					]
 #pragma endregion PartyWidget_StartMatchWidget
-		]
-		]
+				]
+			]
 
-	+ SOverlay::Slot()
-		.VAlign(VAlign_Bottom)
-		.HAlign(HAlign_Right)
-		.Padding(0, 0, 200, 17)
-		[
-			SNew(SBox)
+			+ SOverlay::Slot()
 			.VAlign(VAlign_Bottom)
-		.HAlign(HAlign_Right)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-		.AutoWidth()
-		[
-			SNew(SButton)
-			.ButtonStyle(&MenuStyle->EscapeButton)
-		.VAlign(VAlign_Bottom)
-		.OnClicked(FOnClicked::CreateLambda([&]()
-	{
-		static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
-		return FReply::Handled();
-	}))
-		]
-	+ SHorizontalBox::Slot()
-		.Padding(10, 0, 0, 0)
-		.AutoWidth()
-		[
-			SNew(SImage)
-			.Image(&MenuStyle->EscapeMainMenuInfo)
-		]
-		]
-		]
+			.HAlign(HAlign_Right)
+			.Padding(0, 0, 200, 17)
+			[
+				SNew(SBox)
+				.VAlign(VAlign_Bottom)
+				.HAlign(HAlign_Right)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.ButtonStyle(&MenuStyle->EscapeButton)
+						.VAlign(VAlign_Bottom)
+						.OnClicked(FOnClicked::CreateLambda([&]()
+						{
+							static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+							return FReply::Handled();
+						}))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(10, 0, 0, 0)
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Image(&MenuStyle->EscapeMainMenuInfo)
+					]
+				]
+			]
 		];
 }
 
@@ -947,95 +928,6 @@ void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
 
 }
 
-void SLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenceNotice& Response)
-{
-	//IF Response.UserID is in the Friendlist, THEN PROCEED
-	bool UserPresenceIsFriend = false;
-	for (int i = 0; i < CompleteFriendList.Num(); i++)
-	{
-		if (Response.UserID == CompleteFriendList[i]->UserId)
-		{
-			UserPresenceIsFriend = true;
-		}
-	}
-	if (!UserPresenceIsFriend)
-	{
-		return;
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("OnUserPresenceNotification: %s Activity: %s"), *Response.UserID, *Response.Activity);
-
-	// add to friend list, download the avatar
-	if (Response.Activity == "Shooter Game" && Response.Availability == "1")
-	{
-		// user online
-		// check if exist
-		bool found = false;
-		for (int i = 0; i < CompleteFriendList.Num(); i++)
-		{
-			if (CompleteFriendList[i]->UserId == Response.UserID)
-			{
-				found = true;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			AddFriend(Response.UserID, Response.UserID, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
-			RefreshFriendList();
-			UpdateSearchStatus();
-		}
-		else
-		{
-			// update his status
-			for (int i = 0; i < CompleteFriendList.Num(); i++)
-			{
-				if (CompleteFriendList[i]->UserId == Response.UserID)
-				{
-					CompleteFriendList[i]->Presence = "ONLINE";
-					break;
-				}
-			}
-			RefreshFriendList();
-			UpdateSearchStatus();
-		}
-
-		FString DisplayName = CheckDisplayName(Response.UserID) ? GetDisplayName(Response.UserID) : Response.UserID;
-		FSlateBrush* MemberAvatar = GetAvatarOrDefault(Response.UserID);
-
-		// show popup
-		FString NotificationMessage = FString::Printf(TEXT("%s has been online"), *DisplayName);
-		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
-			.NotificationMessage(NotificationMessage)
-			.AvatarImage(MemberAvatar)
-			.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
-		{
-		});
-		Popup->Show();
-
-
-	}
-	else if (Response.Availability == "0")
-	{
-		UE_LOG(LogTemp, Log, TEXT("There is user going offline : %s"), *Response.UserID);
-		// user is offline, update his status
-		// update UI
-		for (int i = 0; i < CompleteFriendList.Num(); i++)
-		{
-			if (CompleteFriendList[i]->UserId == Response.UserID)
-			{
-				UE_LOG(LogTemp, Log, TEXT("Set the user to offline : %s"), *Response.UserID);
-				CompleteFriendList[i]->Presence = "OFFLINE";
-				LobbyChatWidget->Remove(Response.UserID);
-				break;
-			}
-		}
-		RefreshFriendList();
-		UpdateSearchStatus();
-	}
-}
-
 /** Updates current search status */
 void SLobby::UpdateSearchStatus()
 {
@@ -1135,7 +1027,7 @@ FString SLobby::GetCurrentUserID()
 	return CurrentUserID;
 }
 
-void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryType Type)
+void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, FriendEntryTypeDeprecated Type)
 {
 	for (auto entry : CompleteFriendList)
 	{
@@ -1145,7 +1037,7 @@ void SLobby::AddFriend(FString UserID, FString DisplayName, FString Avatar, Frie
 		}
 	}
 
-	TSharedPtr<FFriendEntry> FriendEntry1 = MakeShareable(new FFriendEntry());
+	TSharedPtr<FFriendEntryDeprecated> FriendEntry1 = MakeShareable(new FFriendEntryDeprecated());
 	FriendEntry1->UserId = UserID;
 	FriendEntry1->Name = DisplayName;
 	FriendEntry1->AvatarSmallUrl = Avatar;
@@ -1264,8 +1156,8 @@ FText SLobby::GetFriendHeaderText() const
 
 	for (int i = 0; i < FriendList.Num(); i++)
 	{
-		OnlineFriendsCount += ((FriendList[i]->Presence == TEXT("ONLINE")) && FriendList[i]->Type == FriendEntryType::FRIEND);
-		AllFriendsCount += (FriendList[i]->Type == FriendEntryType::FRIEND);
+		OnlineFriendsCount += ((FriendList[i]->Presence == TEXT("ONLINE")) && FriendList[i]->Type == FriendEntryTypeDeprecated::FRIEND);
+		AllFriendsCount += (FriendList[i]->Type == FriendEntryTypeDeprecated::FRIEND);
 	}
 
 	return FText::FromString(FString::Printf(TEXT("    %d/%d ONLINE FRIENDS"), OnlineFriendsCount, AllFriendsCount));
@@ -1311,7 +1203,7 @@ FReply SLobby::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& I
 	return FReply::Handled().SetUserFocus(LobbyWidget.ToSharedRef(), EFocusCause::SetDirectly);
 }
 
-void SLobby::EntrySelectionChanged(TSharedPtr<FFriendEntry> InItem, ESelectInfo::Type SelectInfo)
+void SLobby::EntrySelectionChanged(TSharedPtr<FFriendEntryDeprecated> InItem, ESelectInfo::Type SelectInfo)
 {
 	if (InItem.IsValid())
 	{
@@ -1360,67 +1252,6 @@ FReply SLobby::OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEven
 	return Result;
 }
 
-FReply SLobby::OnRequestFriend()
-{
-	// if the input field is empty or whitespace, do not send the request, return
-	if (FriendSearchBar->GetText().IsEmptyOrWhitespace())
-	{
-		return FReply::Handled();
-	}
-
-	const FString FriendEmailAddress = FriendSearchBar->GetText().ToString();
-
-	FErrorHandler OnSearchUserFailed = FErrorHandler::CreateLambda([&, FriendEmailAddress](int32 Code, FString Message)
-		{
-			FString ErrorMessage = Message;
-			if (Code == 404)
-			{
-				ErrorMessage = FString::Printf(TEXT("%s does not exist."), *FriendEmailAddress);
-			}
-			CloseOverlay(NotificationOverlay);
-			TSharedPtr<SShooterConfirmationDialog> Dialog;
-			SAssignNew(NotificationOverlay, SOverlay)
-				+ SOverlay::Slot()
-				[
-					SNew(SBox)
-					.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					SNew(SImage)
-					.Image(&OverlayBackgroundBrush)
-				]
-				]
-			+ SOverlay::Slot()
-				[
-					SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-					.MessageText(FText::FromString(ErrorMessage))
-				.ConfirmText(FText::FromString("OK"))
-				.OnConfirmClicked(FOnClicked::CreateLambda([&]()
-					{
-						CloseOverlay(NotificationOverlay);
-						return FReply::Handled();
-					}))
-				];
-
-			GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-			FSlateApplication::Get().SetKeyboardFocus(Dialog);
-		});
-
-	FRegistry::User.SearchUsers(FriendEmailAddress,
-		THandler<FPagedPublicUsersInfo>::CreateLambda([&, OnSearchUserFailed](const FPagedPublicUsersInfo& Users)
-	{
-		if (Users.Data.Num() == 0)
-		{
-			OnSearchUserFailed.Execute(404, "Email not found");
-		}
-		else
-		{
-			FRegistry::Lobby.RequestFriend(Users.Data[0].UserId);
-		}
-	}), OnSearchUserFailed);
-	return FReply::Handled();
-}
-
 FSlateBrush* SLobby::GetAvatarOrDefault(const FString& UserId) const
 {
 	//if (CheckAvatar(UserId))
@@ -1455,9 +1286,9 @@ void SLobby::OnThumbImageReceived(FHttpRequestPtr Request, FHttpResponsePtr Resp
 	}
 }
 
-TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, const TSharedRef<STableViewBase>& OwnerTable)
+TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntryDeprecated> Item, const TSharedRef<STableViewBase>& OwnerTable)
 {
-	class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntry> >
+	class SFriendEntryWidget : public SMultiColumnTableRow< TSharedPtr<FFriendEntryDeprecated> >
 	{
 	public:
 
@@ -1467,17 +1298,17 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 		{}
 		SLATE_END_ARGS()
 
-			TSharedPtr<FFriendEntry> Item;
+			TSharedPtr<FFriendEntryDeprecated> Item;
 		TWeakPtr<SLobby, ESPMode::NotThreadSafe> ParentClass;
 
 
-		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntry> InItem, SLobby* Parent)
+		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntryDeprecated> InItem, SLobby* Parent)
 		{
 			Item = InItem;
 			ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
 
 
-			SMultiColumnTableRow< TSharedPtr<FFriendEntry> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
+			SMultiColumnTableRow< TSharedPtr<FFriendEntryDeprecated> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
 		}
 
 		TSharedRef<SWidget> GenerateWidgetForColumn(const FName& ColumnName)
@@ -1568,63 +1399,6 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 				.OnClicked(this, &SFriendEntryWidget::OnInviteClicked)
 				.ButtonStyle(&LobbyStyle->InviteButtonStyle)
 				]
-
-			+ SHorizontalBox::Slot()	//3.UNFRIEND BUTTON FriendEntryType::FRIEND
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(0, 0, 0, 0)
-				[
-					SNew(SButton)
-					.Visibility(TAttribute<EVisibility>::Create([&]()
-			{
-				return (GetType() == FRIEND) ? EVisibility::Visible : EVisibility::Collapsed;
-			}))
-				.OnClicked(this, &SFriendEntryWidget::OnUnfriendClicked)
-				.ButtonStyle(&LobbyStyle->UnfriendButtonStyle)
-				]
-
-			+ SHorizontalBox::Slot()	//3.ACCEPT BUTTON FriendEntryType::INCOMING
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(0, 0, 0, 0)
-				[
-					SNew(SButton)
-					.Visibility(TAttribute<EVisibility>::Create([&]()
-			{
-				return (GetType() == INCOMING) ? EVisibility::Visible : EVisibility::Collapsed;
-			}))
-				.OnClicked(this, &SFriendEntryWidget::OnAcceptIncomingRequestClicked)
-				.ButtonStyle(&LobbyStyle->AcceptRequestFriendButtonStyle)
-				]
-
-			+ SHorizontalBox::Slot()	//3.REJECT BUTTON FriendEntryType::INCOMING
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(0, 0, 0, 0)
-				[
-					SNew(SButton)
-					.Visibility(TAttribute<EVisibility>::Create([&]()
-			{
-				return (GetType() == INCOMING) ? EVisibility::Visible : EVisibility::Collapsed;
-			}))
-				.OnClicked(this, &SFriendEntryWidget::OnRejectIncomingRequestClicked)
-				.ButtonStyle(&LobbyStyle->RejectRequestFriendButtonStyle)
-				]
-
-			+ SHorizontalBox::Slot()	//3.CANCEL BUTTON FriendEntryType::Outgoing
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				.Padding(0, 0, 0, 0)
-				[
-					SNew(SButton)
-					.Visibility(TAttribute<EVisibility>::Create([&]()
-			{
-				return (GetType() == OUTGOING) ? EVisibility::Visible : EVisibility::Collapsed;
-			}))
-				.OnClicked(this, &SFriendEntryWidget::OnCancelOutgoingRequestClicked)
-				.ButtonStyle(&LobbyStyle->CancelRequestFriendButtonStyle)
-				]
-
 			;
 		}
 
@@ -1650,38 +1424,6 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			{
 				AccelByte::FRegistry::Lobby.SendInviteToPartyRequest(Item->UserId);
 			}
-			return FReply::Handled();
-		}
-
-		FReply OnUnfriendClicked()
-		{
-			AccelByte::FRegistry::Lobby.Unfriend(Item->UserId);
-			AccelByte::FRegistry::Lobby.LoadFriendsList();
-			ParentClass.Pin()->LobbyChatWidget->Remove(Item->UserId);
-			return FReply::Handled();
-		}
-
-		FReply OnAcceptIncomingRequestClicked()
-		{
-			AccelByte::FRegistry::Lobby.AcceptFriend(Item->UserId);
-			AccelByte::FRegistry::Lobby.LoadFriendsList();
-			ParentClass.Pin()->RemoveFriend(Item->UserId);
-			return FReply::Handled();
-		}
-
-		FReply OnRejectIncomingRequestClicked()
-		{
-			AccelByte::FRegistry::Lobby.RejectFriend(Item->UserId);
-			AccelByte::FRegistry::Lobby.LoadFriendsList();
-			ParentClass.Pin()->RemoveFriend(Item->UserId);
-			return FReply::Handled();
-		}
-
-		FReply OnCancelOutgoingRequestClicked()
-		{
-			AccelByte::FRegistry::Lobby.CancelFriendRequest(Item->UserId);
-			AccelByte::FRegistry::Lobby.LoadFriendsList();
-			ParentClass.Pin()->RemoveFriend(Item->UserId);
 			return FReply::Handled();
 		}
 
@@ -1714,7 +1456,7 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 			}
 			else return FText::FromString("");
 		}
-		FriendEntryType GetType() const
+		FriendEntryTypeDeprecated GetType() const
 		{
 			return Item->Type;
 		}
@@ -1747,211 +1489,6 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntry> Item, 
 }
 
 #pragma region FRIENDS_SERVICE
-
-void SLobby::OnRequestFriendSent(const FAccelByteModelsRequestFriendsResponse& Response)
-{
-	AccelByte::FRegistry::Lobby.LoadFriendsList();
-	FString Message;
-	if (Response.Code == TEXT("11703"))
-	{
-		Message = TEXT("Friend request is already sent.");
-	}
-	else
-		if (Response.Code == TEXT("11702"))
-		{
-			Message = TEXT("You sent a request to yourself!");
-		}
-		else
-			if (Response.Code == TEXT("0"))
-			{
-				FriendSearchBar->SetText(FText::FromString(""));
-				return;
-			}
-			else
-			{
-				Message = FString::Printf(TEXT("Failed. Error code= %s"), *Response.Code);
-			}
-
-	CloseOverlay(NotificationOverlay);
-	TSharedPtr<SShooterConfirmationDialog> Dialog;
-	SAssignNew(NotificationOverlay, SOverlay)
-		+ SOverlay::Slot()
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		[
-			SNew(SImage)
-			.Image(&OverlayBackgroundBrush)
-		]
-		]
-	+ SOverlay::Slot()
-		[
-			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-			.MessageText(FText::FromString(Message))
-		.ConfirmText(FText::FromString("CLOSE"))
-		.OnConfirmClicked(FOnClicked::CreateLambda([&]()
-	{
-		CloseOverlay(NotificationOverlay);
-		return FReply::Handled();
-	}))
-		];
-
-	GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(Dialog);
-}
-
-void SLobby::OnIncomingListFriendRequest(const FAccelByteModelsListIncomingFriendsResponse& Response)
-{
-	int Length = Response.friendsId.Num();
-	if (Length == 0)
-	{
-		AccelByte::FRegistry::Lobby.ListOutgoingFriends();
-		return;
-	}
-	for (int i = 0; i < Length; i++)
-	{
-		FRegistry::User.GetUserByUserId(Response.friendsId[i], THandler<FUserData>::CreateLambda([&, i, Length, Response](const FUserData& User)
-		{
-			AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::INCOMING);
-			RefreshFriendList();
-			if (i == Length - 1)
-			{
-				AccelByte::FRegistry::Lobby.ListOutgoingFriends();
-			}
-		}),
-			FErrorHandler::CreateLambda([&, i, Length, Response](int32 Code, FString Message)
-		{
-			AddFriend(Response.friendsId[i], TEXT("not found"), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::INCOMING);
-			RefreshFriendList();
-			if (i == Length - 1)
-			{
-				AccelByte::FRegistry::Lobby.ListOutgoingFriends();
-			}
-		}));
-	}
-}
-
-void SLobby::OnOutgoingListFriendRequest(const FAccelByteModelsListOutgoingFriendsResponse& Response)
-{
-	int Length = Response.friendsId.Num();
-	for (int i = 0; i < Length; i++)
-	{
-		FRegistry::User.GetUserByUserId(Response.friendsId[i], THandler<FUserData>::CreateLambda([&, Length, Response](const FUserData& User)
-		{
-			AddFriend(User.UserId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::OUTGOING);
-			RefreshFriendList();
-		}),
-			FErrorHandler::CreateLambda([&, i, Response](int32 Code, FString Message)
-		{
-			AddFriend(Response.friendsId[i], TEXT("not found"), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::OUTGOING);
-			RefreshFriendList();
-		}));
-	}
-}
-
-void SLobby::OnFriendListLoaded(const FAccelByteModelsLoadFriendListResponse& Response)
-{
-	InitializeFriends();
-
-	if (Response.Code != TEXT("0"))
-	{
-		return;
-	}
-
-	FriendList.Reset();
-	CompleteFriendList.Reset();
-
-	for (int i = 0; i < Response.friendsId.Num(); i++)
-	{
-		if (CheckDisplayName(Response.friendsId[i]))
-		{
-			AddFriend(Response.friendsId[i], GetDisplayName(Response.friendsId[i]), TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
-		}
-		else
-		{
-			FRegistry::User.GetUserByUserId(Response.friendsId[i], THandler<FUserData>::CreateLambda([&, FriendId = Response.friendsId[i]](const FUserData& User)
-				{
-					AddFriend(FriendId, User.DisplayName, TEXT("https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg"), FriendEntryType::FRIEND);
-					RefreshFriendList();
-				}),
-				FErrorHandler::CreateLambda([&, i, Response](int32 Code, FString Message){}));
-		}
-	}
-	AccelByte::FRegistry::Lobby.SendGetOnlineUsersRequest();
-
-	RefreshFriendList();
-	AccelByte::FRegistry::Lobby.ListIncomingFriends();
-}
-
-void SLobby::OnFriendRequestAcceptedNotification(const FAccelByteModelsAcceptFriendsNotif& Response)
-{
-	FRegistry::User.GetUserByUserId(Response.friendId, THandler<FUserData>::CreateLambda([&, Response](const FUserData& User)
-	{
-		RefreshFriendList();
-		FSlateBrush* FriendAvatar = GetAvatarOrDefault(Response.friendId);
-
-		FString NotificationMessage = FString::Printf(TEXT("%s accept your friend request!"), *User.DisplayName);
-		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
-			.NotificationMessage(NotificationMessage)
-			.AvatarImage(FriendAvatar)
-			.OnPopupClosed_Lambda([]()
-		{
-		});
-		Popup->Show();
-
-		AccelByte::FRegistry::Lobby.LoadFriendsList();
-	}), FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-	{}));
-
-}
-
-void SLobby::OnIncomingFriendRequestNotification(const FAccelByteModelsRequestFriendsNotif& Response)
-{
-	FString DisplayName = CheckDisplayName(Response.friendId) ? GetDisplayName(Response.friendId) : Response.friendId;
-
-	FRegistry::User.GetUserByUserId(Response.friendId, THandler<FUserData>::CreateLambda([&, Response](const FUserData& User)
-	{
-		CloseOverlay(NotificationOverlay);
-		TSharedPtr<SShooterConfirmationDialog> Dialog;
-		SAssignNew(NotificationOverlay, SOverlay)
-			+ SOverlay::Slot()
-			[
-				SNew(SBox)
-				.HAlign(HAlign_Fill)
-				.VAlign(VAlign_Fill)
-				[
-					SNew(SImage)
-					.Image(&OverlayBackgroundBrush)
-				]
-			]
-		+ SOverlay::Slot()
-			[
-				SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-				.MessageText(FText::FromString(FString::Printf(TEXT("You have an incoming friend request from %s"), *User.DisplayName)))
-				.ConfirmText(FText::FromString("ACCEPT"))
-				.OnConfirmClicked(FOnClicked::CreateLambda([&, Response]()
-				{
-					AccelByte::FRegistry::Lobby.AcceptFriend(Response.friendId);
-					CloseOverlay(NotificationOverlay);
-					AccelByte::FRegistry::Lobby.LoadFriendsList();
-					return FReply::Handled();
-				}))
-				.CancelText(FText::FromString("REJECT"))
-				.OnCancelClicked(FOnClicked::CreateLambda([&, Response]()
-				{
-					AccelByte::FRegistry::Lobby.RejectFriend(Response.friendId);
-					CloseOverlay(NotificationOverlay);
-					return FReply::Handled();
-				}))
-			];
-
-		GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-		FSlateApplication::Get().SetKeyboardFocus(Dialog);
-
-	}), FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-	{}));
-}
 
 #pragma endregion FRIENDS_SERVICE
 
@@ -1991,31 +1528,6 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 	FSlateApplication::Get().SetKeyboardFocus(Dialog);
 }
 
-void SLobby::OnGetOnlineUserResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
-{
-	for (int i = 0; i < Response.friendsId.Num(); i++)
-	{
-		if (Response.activity[i] == "Shooter Game")
-		{
-			for (int j = 0; j < CompleteFriendList.Num(); j++)
-			{
-				if (CompleteFriendList[j]->UserId == Response.friendsId[i])
-				{
-					if (Response.availability[i] == "0")
-					{
-						CompleteFriendList[j]->Presence = "OFFLINE";
-					}
-					else if (Response.availability[i] == "1")
-					{
-						CompleteFriendList[j]->Presence = "ONLINE";
-					}
-				}
-			}
-		}
-	}
-	RefreshFriendList();
-	UpdateSearchStatus();
-}
 
 void SLobby::OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response)
 {
