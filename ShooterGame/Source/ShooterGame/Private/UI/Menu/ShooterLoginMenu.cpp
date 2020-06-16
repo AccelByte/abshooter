@@ -4,7 +4,7 @@
 
 #include "ShooterLoginMenu.h"
 #include "ShooterGameInstance.h"
-#include "UMG/LoginMenuUI.h"
+#include "UMG/LoginMenu/LoginMenuUI.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -18,7 +18,7 @@ void FShooterLoginMenu::Construct()
 {
 	UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Construct"));
 
-	check(GameInstance.IsValid());
+	if(!GameInstance.IsValid()) return;
 
 	// Load login menu widget
 	if (!ensure(GameInstance->LoginMenuClass.IsValid())) return;
@@ -54,12 +54,12 @@ void FShooterLoginMenu::LoginWithUsername(FString Username, FString Password)
 	FString ErrorMessage = TEXT("");
 	AccelByte::FVoidHandler OnLoginSuccess = AccelByte::FVoidHandler::CreateLambda([&bHasDone]()
 	{
-		UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Login with username success"));
+		UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] AccelByte::FRegistry::User.LoginWithUsername Success."));
 		bHasDone = true;
 	});
 	AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&ErrorMessage, &bHasDone](int32 Code, FString Message)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] Login with username error: %s"), *Message);
+		UE_LOG(LogTemp, Log, TEXT("[FShooterLoginMenu] AccelByte::FRegistry::User.LoginWithUsername Failed! Code: %d, Message: %s."), Code, *Message);
 		ErrorMessage = TEXT("Failed to Login");
 		bHasDone = true;
 	});

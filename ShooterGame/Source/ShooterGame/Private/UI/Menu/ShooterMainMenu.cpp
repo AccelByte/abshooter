@@ -3,11 +3,14 @@
 #include "ShooterMainMenu.h"
 #include "ShooterGameInstance.h"
 #include "ShooterGameProfile.h"
+#include "ShooterLobby.h"
 #include "ShooterGallery.h"
-#include "UMG/MainMenuUI.h"
-#include "UMG/GameProfileMenuUI.h"
-#include "UMG/GalleryMenuUI.h"
+#include "UMG/MainMenu/MainMenuUI.h"
+#include "UMG/GameProfileMenu/GameProfileMenuUI.h"
+#include "UMG/LobbyMenu/LobbyMenuUI.h"
+#include "UMG/GalleryMenu/GalleryMenuUI.h"
 #include "Utils/FileUtils.h"
+#include "Utils/CacheUtils.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
 
@@ -31,13 +34,12 @@
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "ShooterGameConfig.h"
+#include "ShooterGameTelemetry.h"
 // AccelByte
 #include "Api/AccelByteOauth2Api.h"
-#include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteWalletApi.h"
 #include "Api/AccelByteQos.h"
 #include "Core/AccelByteCredentials.h"
-#include "ShooterGameConfig.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
@@ -80,7 +82,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 {
 	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Construct"));
 
-	check(GameInstance.IsValid());
+	if (!GameInstance.IsValid()) return;
 
 	// Load main menu widget
 	if (!ensure(GameInstance->MainMenuClass.IsValid())) return;
@@ -98,19 +100,22 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 	MainMenuUI->Setup();
 
 	// Set up
-	LobbyWidget = SNew(SLobby);
+	//LobbyWidget = SNew(SLobby);
+	FShooterCacheUtils::LoadUserCaches();
 	GameProfile = MakeShareable(new ShooterGameProfile(GameInstance, MakeWeakObjectPtr<UGameProfileMenuUI>(MainMenuUI->GetGameProfileMenu())));
 	GameProfile->Initialize();
+	Lobby = MakeShareable(new ShooterLobby(GameInstance, MakeWeakObjectPtr<ULobbyMenuUI>(MainMenuUI->GetLobbyMenu())));
+	Lobby->Connect();
 	Gallery = MakeShareable(new ShooterGallery(GameInstance, MakeWeakObjectPtr<UGalleryMenuUI>(MainMenuUI->GetGalleryMenu())));
 	Gallery->Initialize();
 
 	UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Get User Profile ..."));
 
 	// Check cache first
-	FString AvatarPath = FShooterFileUtils::GetAvatarCachePatch(GameInstance->UserProfileInfo.UserId);
-	if (!AvatarPath.IsEmpty())
+	bool isUserCached = FShooterCacheUtils::IsUserCacheExist(GameInstance->UserProfileInfo.UserId);
+	if (isUserCached)
 	{
-		UpdateUserProfileFromCache(GameInstance->UserToken.Display_name, GameInstance->UserProfileInfo.UserId, AvatarPath);
+		UpdateUserProfileFromCache();
 	}
 	else
 	{
@@ -153,8 +158,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 						),
 						AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message)
 							{
+								UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Attempt to create default user Profile Failed! Code: %d, Message: %s."), Code, *Message);
+
 								UpdateUserProfile(GameInstance->UserToken.Display_name, GameInstance->UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
-								UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Attempt to create default user Profile...Error: %s"), *Message);
 							}
 						)
 					);
@@ -594,9 +600,9 @@ void FShooterMainMenu::UpdateUserProfile(FString ProfileName, FString UserID, FS
 	if ((GameProfile->AvatarURL.IsEmpty() || GameProfile->AvatarURL != AvatarURL) && !AvatarURL.IsEmpty())
 	{
 		GameProfile->AvatarURL = AvatarURL;
-		FShooterImageUtils::GetImage(AvatarURL, FOnImageReceived::CreateSP(this, &FShooterMainMenu::OnThumbImageReceived));
+		FString Filename = FShooterCacheUtils::CacheDir / UserID + TEXT(".png");
+		FShooterImageUtils::GetImage(AvatarURL, FOnImageReceived::CreateSP(this, &FShooterMainMenu::OnThumbImageReceived), Filename);
 	}
-	LobbyWidget->SetCurrentUser(UserID, ProfileName, AvatarURL);
 	GameProfile->ProfileName = ProfileName;
 }
 
@@ -606,22 +612,19 @@ void FShooterMainMenu::OnThumbImageReceived(FCacheBrush Image)
 	{
 		GameProfile->ThumbnailBrush = Image;
 		MainMenuUI->SetAvatarImage(*Image.Get());
+		FUserCache UserCache;
+		UserCache.UserId = GameInstance->UserToken.User_id;
+		UserCache.DisplayName = GameInstance->UserToken.Display_name;
+		FShooterCacheUtils::SaveUserCache(UserCache);
 	}
 }
 
-void FShooterMainMenu::UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath)
+void FShooterMainMenu::UpdateUserProfileFromCache()
 {
-	MainMenuUI->SetDisplayName(ProfileName);
-	TArray<uint8> ImageData;
-	if (FFileHelper::LoadFileToArray(ImageData, *AvatarPath))
-	{
-		GameProfile->ThumbnailBrush = FShooterImageUtils::CreateBrush(FPaths::GetExtension(AvatarPath), FName(*AvatarPath), ImageData);
-		if (GameProfile->ThumbnailBrush.IsValid())
-		{
-			MainMenuUI->SetAvatarImage(*GameProfile->ThumbnailBrush.Get());
-		}
-	}
-	LobbyWidget->SetCurrentUserFromCache(UserId, ProfileName, AvatarPath);
+	MainMenuUI->SetDisplayName(GameInstance->UserToken.Display_name);
+	FCacheBrush UserAvatar = FShooterCacheUtils::GetUserAvatarCache(GameInstance->UserToken.User_id);
+	MainMenuUI->SetAvatarImage(*UserAvatar.Get());
+	GameProfile->ThumbnailBrush = UserAvatar;
 }
 
 // TODO: Migrate into UMG
@@ -777,7 +780,7 @@ void FShooterMainMenu::OnUserCanPlayOnlineQuickMatch(const FUniqueNetId& UserId,
 
 		MatchType = EMatchType::Quick;
 
-		SplitScreenLobbyWidget->SetIsJoining(false);
+		//SplitScreenLobbyWidget->SetIsJoining(false);
 
 		// Skip splitscreen for PS4
 #if PLATFORM_PS4 || MAX_LOCAL_PLAYERS == 1
@@ -786,9 +789,9 @@ void FShooterMainMenu::OnUserCanPlayOnlineQuickMatch(const FUniqueNetId& UserId,
 		UGameViewportClient* const GVC = GEngine->GameViewport;
 
 		RemoveMenuFromGameViewport();
-		GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
+		//GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 
-		SplitScreenLobbyWidget->Clear();
+		//SplitScreenLobbyWidget->Clear();
 		FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
 #endif
 	}
@@ -895,10 +898,10 @@ void FShooterMainMenu::OnSplitScreenSelected()
 #endif
 	{
 		UGameViewportClient* const GVC = GEngine->GameViewport;
-		GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
+		//GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 
-		SplitScreenLobbyWidget->Clear();
-		FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
+		//SplitScreenLobbyWidget->Clear();
+		//FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
 	}
 }
 
@@ -918,7 +921,7 @@ void FShooterMainMenu::OnHostOnlineSelected()
 	{
 		GameInstance->SetOnlineMode(NewOnlineMode);
 	}
-	SplitScreenLobbyWidget->SetIsJoining(false);
+	//SplitScreenLobbyWidget->SetIsJoining(false);
 	MenuWidget->EnterSubMenu();
 }
 
@@ -989,14 +992,14 @@ void FShooterMainMenu::OnHostOfflineSelected()
 	{
 		GameInstance->SetOnlineMode(EOnlineMode::Offline);
 	}
-	SplitScreenLobbyWidget->SetIsJoining( false );
+	//SplitScreenLobbyWidget->SetIsJoining( false );
 
 	MenuWidget->EnterSubMenu();
 }
 
 FReply FShooterMainMenu::OnSplitScreenBackedOut()
 {	
-	SplitScreenLobbyWidget->Clear();
+	//SplitScreenLobbyWidget->Clear();
 	SplitScreenBackedOut();
 	return FReply::Handled();
 }
@@ -1008,13 +1011,13 @@ FReply FShooterMainMenu::OnSplitScreenPlay()
 		case EMatchType::Custom:
 		{
 #if SHOOTER_CONSOLE_UI
-			if ( SplitScreenLobbyWidget->GetIsJoining() )
+			//if ( SplitScreenLobbyWidget->GetIsJoining() )
 			{
 #if 1
 				// Until we can make split-screen menu support sub-menus, we need to do it this way
 				if (GEngine && GEngine->GameViewport)
 				{
-					GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
+					//GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 				}
 				AddMenuToGameViewport();
 
@@ -1037,10 +1040,10 @@ FReply FShooterMainMenu::OnSplitScreenPlay()
 				ServerListWidget->UpdateServerList();
 				MenuWidget->EnterSubMenu();
 #else
-				SplitScreenLobbyWidget->NextMenu = JoinServerItem->SubMenu;
+				//SplitScreenLobbyWidget->NextMenu = JoinServerItem->SubMenu;
 				ServerListWidget->BeginServerSearch(bIsLanMatch, bIsDedicatedServer, SelectedMapFilterName);
 				ServerListWidget->UpdateServerList();
-				SplitScreenLobbyWidget->EnterSubMenu();
+				//SplitScreenLobbyWidget->EnterSubMenu();
 #endif
 			}
 			else
@@ -1048,7 +1051,7 @@ FReply FShooterMainMenu::OnSplitScreenPlay()
 			{
 				if (GEngine && GEngine->GameViewport)
 				{
-					GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
+					//GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 				}
 				OnUIHostTeamDeathMatch();
 			}
@@ -1059,7 +1062,7 @@ FReply FShooterMainMenu::OnSplitScreenPlay()
 		{
 			if (GEngine && GEngine->GameViewport)
 			{
-				GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
+				//GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 			}
 			BeginQuickMatchSearch();
 			break;
@@ -1073,7 +1076,7 @@ void FShooterMainMenu::SplitScreenBackedOut()
 {
 	if (GEngine && GEngine->GameViewport)
 	{
-		GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());	
+		//GEngine->GameViewport->RemoveViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());	
 	}
 	AddMenuToGameViewport();
 
@@ -1557,12 +1560,12 @@ void FShooterMainMenu::OnUserCanPlayOnlineJoin(const FUniqueNetId& UserId, EUser
 #else
 		// Show splitscreen menu
 		RemoveMenuFromGameViewport();	
-		GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
+		//GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 
-		SplitScreenLobbyWidget->Clear();
-		FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
+		//SplitScreenLobbyWidget->Clear();
+		//FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
 
-		SplitScreenLobbyWidget->SetIsJoining( true );
+		//SplitScreenLobbyWidget->SetIsJoining( true );
 #endif
 #else
 		MenuWidget->NextMenu = JoinServerItem->SubMenu;
@@ -1590,21 +1593,21 @@ void FShooterMainMenu::OnShowLeaderboard()
 	MenuWidget->EnterSubMenu();
 }
 
-void FShooterMainMenu::OnShowLobby()
-{
-	if (!AccelByte::FRegistry::Lobby.IsConnected())
-	{
-		AccelByte::FRegistry::Lobby.Connect();
-		return;
-	}
-
-	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
-	ChangeBackground(MenuStyle->LobbyBackground);
-
-	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-	MenuWidget->NextMenu = LobbyMenuItem->SubMenu;
-	MenuWidget->EnterSubMenu();
-}
+//void FShooterMainMenu::OnShowLobby()
+//{
+//	if (!AccelByte::FRegistry::Lobby.IsConnected())
+//	{
+//		AccelByte::FRegistry::Lobby.Connect();
+//		return;
+//	}
+//
+//	const FShooterMenuStyle *MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
+//	ChangeBackground(MenuStyle->LobbyBackground);
+//
+//	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+//	MenuWidget->NextMenu = LobbyMenuItem->SubMenu;
+//	MenuWidget->EnterSubMenu();
+//}
 
 void FShooterMainMenu::OnShowOption()
 {
@@ -1800,8 +1803,8 @@ void FShooterMainMenu::GetQoS()
 			// Then back to main menu
 			MenuWidget->NextMenu = MenuWidget->MainMenu;
 			MenuWidget->EnterSubMenu();
-			const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
-			ChangeBackground(LobbyStyle->MainMenuMaterial);
+			//const FLobbyStyle* LobbyStyle = &FShooterStyle::Get().GetWidgetStyle<FLobbyStyle>("DefaultLobbyStyle");
+			//ChangeBackground(LobbyStyle->MainMenuMaterial);
 			FSlateApplication::Get().PlaySound(MenuSounds.StartGameSound, GetPlayerOwnerControllerId());
 
 			}),

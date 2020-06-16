@@ -26,9 +26,8 @@ struct FScreenshotMetadata
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Models")
-	TArray<FAccelByteModelsSlot> Screenshots;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gallery | Models")
+		TArray<FAccelByteModelsSlot> Screenshots;
 };
 
 USTRUCT(BlueprintType)
@@ -36,7 +35,6 @@ struct FScreenshotSave
 {
 	GENERATED_BODY()
 
-public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Models")
-	TArray<FAccelByteModelsSlot> Screenshots;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gallery | Models")
+		TArray<FAccelByteModelsSlot> Screenshots;
 };

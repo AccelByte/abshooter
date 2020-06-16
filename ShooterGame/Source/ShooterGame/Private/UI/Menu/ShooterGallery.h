@@ -5,21 +5,22 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "UMG/GalleryEntryUI.h"
-#include "UMG/GalleryEditUI.h"
 #include "Utils/ImageUtils.h"
+#include "Models/ShooterGalleryModels.h"
+#include "UMG/GalleryMenu/GalleryEntryInterface.h"
+#include "UMG/GalleryMenu/GalleryEditPopupInterface.h"
 // AccelByte
 #include "Models/AccelByteCloudStorageModels.h"
 
 /** Handle Gallery stuffs. */
-class ShooterGallery : public IGalleryEntryInterface, public IGalleryEditInterface
+class ShooterGallery : public IGalleryEntryInterface, public IGalleryEditPopupInterface
 {
 public:
 	/**
 	* @brief Default Constructor.
 	*
 	* @param _GameInstance The instance of the game.
-	* @param _GameProfileMenuUI Game profile menu ui container.
+	* @param _GalleryMenuUI Gallery menu ui container.
 	*/
 	ShooterGallery(TWeakObjectPtr<class UShooterGameInstance> _GameInstance, TWeakObjectPtr<class UGalleryMenuUI> _GalleryMenuUI);
 
@@ -122,7 +123,7 @@ private:
 	void DeleteImage(FString SlotId) override;
 	#pragma endregion Override Gallery Entry Interface
 
-	#pragma region Override Gallery Edit Interface
+	#pragma region Override Gallery Edit Popup Interface
 	/**
 	* @brief Save gallery image's label.
 	*
@@ -130,7 +131,7 @@ private:
 	* @param Label Gallery image's label.
 	*/
 	void SaveCaption(FString SlotId, FString Label) override;
-	#pragma endregion Override Gallery Edit Interface
+	#pragma endregion Override Gallery Edit Popup Interface
 
 	/** Owning game instance. */
 	TWeakObjectPtr<class UShooterGameInstance> GameInstance;
@@ -139,13 +140,13 @@ private:
 	TWeakObjectPtr<class UGalleryMenuUI> GalleryMenuUI;
 
 	/** Gallery preview UI widget. */
-	TWeakObjectPtr<class UGalleryPreviewUI> GalleryPreviewUI;
+	TWeakObjectPtr<class UGalleryPreviewPopupUI> GalleryPreviewPopupUI;
 
 	/** Gallery edit UI widget. */
-	TWeakObjectPtr<class UGalleryEditUI> GalleryEditUI;
+	TWeakObjectPtr<class UGalleryEditPopupUI> GalleryEditPopupUI;
 
 	/** Gallery list. */
-	TArray<UGalleryEntryUI*> GalleryList;
+	TArray<class UGalleryEntryUI*> GalleryList;
 
 	/** Local screenshot data. */
 	FScreenshotMetadata ScreenshotMetadata;

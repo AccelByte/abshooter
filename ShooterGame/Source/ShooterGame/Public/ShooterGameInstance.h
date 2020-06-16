@@ -114,9 +114,6 @@ public:
 	virtual void ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate) override;
 	virtual void ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate) override;
 
-	/** After login game client will connect to lobby. */
-	void ConnectToLobby();
-
 	/** Handle disconnect from lobby. */
 	void DisconnectFromLobby();
 
@@ -242,10 +239,25 @@ public:
 	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEntryClass;
 
 	/** Hold gallery preview widget from UMG. */
-	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryPreviewClass;
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryPreviewPopupClass;
 
 	/** Hold gallery edit widget from UMG. */
-	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEditClass;
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEditPopupClass;
+
+	/** Hold friend search result entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> FriendSearchResultEntryClass;
+
+	/** Hold friend search result popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> FriendSearchResultPopupClass;
+
+	/** Hold friend entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> FriendEntryClass;
+
+	/** Hold incoming friend request popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> IncomingFriendRequestPopupClass;
+
+	/** Hold adding friend response popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> AddingFriendResponsePopupClass;
 	#pragma endregion UMG menu class
 
 private:
@@ -463,9 +475,6 @@ private:
 
 	/** Handle confirming the controller disconnected dialog. */
 	FReply OnControllerReconnectConfirm();	
-
-	AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
-	void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 
 	/** Get QoS. */
 	void GetQos();

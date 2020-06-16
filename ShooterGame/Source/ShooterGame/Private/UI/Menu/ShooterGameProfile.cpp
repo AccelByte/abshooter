@@ -4,11 +4,13 @@
 
 #include "ShooterGameProfile.h"
 #include "ShooterGameInstance.h"
-#include "UMG/GameProfileMenuUI.h"
+#include "UMG/GameProfileMenu/GameProfileMenuUI.h"
 #include "ShooterGameConfig.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteStatisticApi.h"
+
+FCriticalSection ShooterGameProfileMutex;
 
 namespace ShooterGameStatisticName
 {
@@ -42,6 +44,10 @@ void ShooterGameProfile::InitStatisticItems()
 
 void ShooterGameProfile::AddStatisticEntry(FString Name, int32 Value, FString ImagePath)
 {
+	if (!GameInstance.IsValid()) return;
+
+	FScopeLock Lock(&ShooterGameProfileMutex);
+
 	TWeakObjectPtr<UStatisticEntryUI> StatisticEntry = MakeWeakObjectPtr<UStatisticEntryUI>(CreateWidget<UStatisticEntryUI>(GameInstance.Get(), *GameInstance->StatisticEntryClass.Get()));
 	FString ImageFullPath = FPaths::ProjectContentDir() / ImagePath;
 	if (IFileManager::Get().FileExists(*ImageFullPath))
@@ -98,7 +104,7 @@ void ShooterGameProfile::GetStatisticItems()
 		}
 	}), FErrorHandler::CreateLambda([](int32 Code, FString Message)
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameProfile] Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterGameProfile] AccelByte::FRegistry::Statistic.GetUserStatItems Failed! Code: %d, Message: %s."), Code, *Message);
 	}));
 }
 
@@ -146,6 +152,10 @@ void ShooterGameProfile::GetAchievements()
 
 void ShooterGameProfile::AddAchievementEntry(FString Name, FString ImagePath)
 {
+	if (!GameInstance.IsValid()) return;
+
+	FScopeLock Lock(&ShooterGameProfileMutex);
+
 	TWeakObjectPtr<UAchievementEntryUI> AchievementEntry = MakeWeakObjectPtr<UAchievementEntryUI>(CreateWidget<UAchievementEntryUI>(GameInstance.Get(), *GameInstance->AchievementEntryClass.Get()));
 	FString ImageFullPath = FPaths::ProjectContentDir() / ImagePath;
 	if (IFileManager::Get().FileExists(*ImageFullPath))
