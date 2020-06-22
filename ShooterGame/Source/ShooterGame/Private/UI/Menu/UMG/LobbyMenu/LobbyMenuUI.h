@@ -25,8 +25,12 @@ public:
 	/** Open connect process panel (loading bar). */
 	void OpenConnectProcessPanel();
 
-	/** Open connect failed panel (error message). */
-	void OpenConnectFailedPanel();
+	/**
+	* @brief Open connect failed panel (error message).
+	*
+	* @param Message Lobby error message.
+	*/
+	void OpenConnectFailedPanel(FString Message);
 
 	/**
 	* @brief Set lobby menu interface.
@@ -93,6 +97,10 @@ private:
 	/** Online friends field. */
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* OnlineFriendsField;
+
+	/** Lobby error message text. */
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* LobbyErrorText;
 
 	/** Lobby menu interface. */
 	ILobbyMenuInterface* LobbyMenuInterface;

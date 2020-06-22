@@ -31,6 +31,7 @@ bool ULobbyMenuUI::Initialize()
 	if (!ensure(FriendUsernameField != nullptr)) return false;
 	if (!ensure(FriendListView != nullptr)) return false;
 	if (!ensure(OnlineFriendsField != nullptr)) return false;
+	if (!ensure(LobbyErrorText != nullptr)) return false;
 
 	return true;
 }
@@ -45,8 +46,9 @@ void ULobbyMenuUI::OpenConnectProcessPanel()
 	LobbySwitcher->SetActiveWidget(ConnectProcess);
 }
 
-void ULobbyMenuUI::OpenConnectFailedPanel()
+void ULobbyMenuUI::OpenConnectFailedPanel(FString Message)
 {
+	LobbyErrorText->SetText(FText::FromString(Message));
 	LobbySwitcher->SetActiveWidget(ConnectFailed);
 }
 

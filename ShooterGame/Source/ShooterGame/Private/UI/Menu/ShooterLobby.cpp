@@ -68,7 +68,7 @@ void ShooterLobby::SetLobbyDelegate()
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Lobby Connect Failed! Code: %d, Message: %s."), Code, *Message);
 		if (LobbyMenuUI != nullptr)
 		{
-			LobbyMenuUI->OpenConnectFailedPanel();
+			LobbyMenuUI->OpenConnectFailedPanel(TEXT("Lobby Failed to Connect!"));
 		}
 	});
 	AccelByte::FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyConnectFailed);
@@ -78,8 +78,12 @@ void ShooterLobby::SetLobbyDelegate()
 	});
 	AccelByte::FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
 
-	AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([](int32 StatusCode, const FString& Reason, bool WasClean) {
+	AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([this](int32 StatusCode, const FString& Reason, bool WasClean) {
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Lobby Disconnected! Code: %d, Message: %s, WasClean: %d."), StatusCode, *Reason, WasClean);
+		if (LobbyMenuUI != nullptr)
+		{
+			LobbyMenuUI->OpenConnectFailedPanel(TEXT("Lobby is Disconnected!"));
+		}
 	});
 	AccelByte::FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
 	
