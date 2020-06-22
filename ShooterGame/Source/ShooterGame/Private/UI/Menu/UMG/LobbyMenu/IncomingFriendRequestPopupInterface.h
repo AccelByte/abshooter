@@ -27,21 +27,21 @@ public:
 	/**
 	* @brief Ignore incoming friend request.
 	*
-	* @param UserId Friend's userid who send the friend request.
+	* @param UserId Friend's userid who sends the friend request.
 	*/
 	virtual void IgnoreIncomingFriendRequest(FString UserId) = 0;
 
 	/**
 	* @brief Reject incoming friend request.
 	*
-	* @param UserId Friend's userid who send the friend request.
+	* @param UserId Friend's userid who sends the friend request.
 	*/
 	virtual void RejectIncomingFriendRequest(FString UserId) = 0;
 
 	/**
 	* @brief Accept incoming friend request.
 	*
-	* @param UserId Friend's userid who send the friend request.
+	* @param UserId Friend's userid who sends the friend request.
 	*/
 	virtual void AcceptIncomingFriendRequest(FString UserId) = 0;
 };

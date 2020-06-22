@@ -29,7 +29,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 Value;
 	
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 };

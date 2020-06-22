@@ -7,6 +7,7 @@
 #include "OnlineSessionInterface.h"
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
+#include "Utils/ImageUtils.h"
 #include "Api/AccelByteUserProfileApi.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteGeneralModels.h"
@@ -256,9 +257,18 @@ public:
 	/** Hold incoming friend request popup widget from UMG. */
 	TSharedPtr<TSubclassOf<class UUserWidget>> IncomingFriendRequestPopupClass;
 
-	/** Hold adding friend response popup widget from UMG. */
-	TSharedPtr<TSubclassOf<class UUserWidget>> AddingFriendResponsePopupClass;
+	/** Hold general notification popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GeneralNotificationPopupClass;
+
+	/** Hold party member entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> PartyMemberEntryClass;
+
+	/** Hold party invitation popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> PartyInvitationPopupClass;
 	#pragma endregion UMG menu class
+
+	/** Player's avatar slate image. */
+	FCacheBrush PlayerAvatar;
 
 private:
 	UPROPERTY(config)

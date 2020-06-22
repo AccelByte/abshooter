@@ -30,7 +30,7 @@ public:
 	/** Friend profile data. */
 	FFriendEntry Data;
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
@@ -39,16 +39,13 @@ protected:
 	// Function below will be deprecated on 4.23 version, and renamed into NativeOnListItemObjectSet.
 	void SetListItemObjectInternal(UObject* InObject) override;
 
-	void NativeOnItemSelectionChanged(bool bIsSelected) override;
-
-private:
 	/** Send chat friend request. */
 	UFUNCTION()
 	void SendChatRequest();
 
 	/** Send invitation match request. */
 	UFUNCTION()
-	void SendInviteRequest();
+	void SendPartyInvitationRequest();
 
 	/** Send unfriend request. */
 	UFUNCTION()

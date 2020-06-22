@@ -23,11 +23,10 @@ public:
 	*/
 	void PreviewImage(FSlateBrush Image);
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
-private:
 	/** Close preview image. */
 	UFUNCTION()
 	void CloseImage();

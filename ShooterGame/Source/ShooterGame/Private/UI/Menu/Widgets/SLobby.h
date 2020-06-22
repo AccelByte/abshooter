@@ -172,13 +172,6 @@ public:
 	TSharedPtr<SParty> PartyWidget;
 	TSharedPtr<SOverlay> InvitationOverlay;
 	FString CurrentPartyID;
-	void OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification);
-	void OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification);
-	void OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo);
-	void OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& CreatePartyInfo);
-	void OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo);
-	void OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo);
-	void OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response);
 	FSlateColorBrush OverlayBackgroundBrush;
 #pragma endregion PARTY
 

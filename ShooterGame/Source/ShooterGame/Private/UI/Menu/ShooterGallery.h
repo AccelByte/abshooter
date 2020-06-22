@@ -139,12 +139,6 @@ private:
 	/** Gallery sub-menu UI. */
 	TWeakObjectPtr<class UGalleryMenuUI> GalleryMenuUI;
 
-	/** Gallery preview UI widget. */
-	TWeakObjectPtr<class UGalleryPreviewPopupUI> GalleryPreviewPopupUI;
-
-	/** Gallery edit UI widget. */
-	TWeakObjectPtr<class UGalleryEditPopupUI> GalleryEditPopupUI;
-
 	/** Gallery list. */
 	TArray<class UGalleryEntryUI*> GalleryList;
 

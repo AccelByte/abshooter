@@ -25,7 +25,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FSlateBrush Image;
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 };

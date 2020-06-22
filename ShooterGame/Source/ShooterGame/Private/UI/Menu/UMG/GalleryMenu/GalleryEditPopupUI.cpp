@@ -27,9 +27,6 @@ bool UGalleryEditPopupUI::Initialize()
 	FString ErrorMessage = FString::Printf(TEXT("Please only use max %d characters."), MAX_CHARACTERS);
 	ErrorText->SetText(FText::FromString(ErrorMessage));
 
-	RedColor = FLinearColor(1, 0, 0, 1);
-	WhiteColor = FLinearColor(1, 1, 1, 1);
-
 	return true;
 }
 
@@ -57,13 +54,13 @@ void UGalleryEditPopupUI::CheckMaxLabelCharacters(const FText& Text)
 
 	if (Length > MAX_CHARACTERS)
 	{
-		CharacterCount->SetColorAndOpacity(RedColor);
+		CharacterCount->SetColorAndOpacity(FLinearColor::Red);
 		ErrorText->SetVisibility(ESlateVisibility::Visible);
 		bIsCharactersOverLimit = true;
 	}
 	else
 	{
-		CharacterCount->SetColorAndOpacity(WhiteColor);
+		CharacterCount->SetColorAndOpacity(FLinearColor::White);
 		ErrorText->SetVisibility(ESlateVisibility::Collapsed);
 		bIsCharactersOverLimit = false;
 	}

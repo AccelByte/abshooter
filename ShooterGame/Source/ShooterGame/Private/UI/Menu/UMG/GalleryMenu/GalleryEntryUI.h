@@ -40,7 +40,7 @@ public:
 	/** Screenshot image. */
 	FSlateBrush Image;
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
@@ -51,7 +51,6 @@ protected:
 
 	void NativeOnItemSelectionChanged(bool bIsSelected) override;
 
-private:
 	/** Preview image. */
 	UFUNCTION()
 	void PreviewImage();

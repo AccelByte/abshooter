@@ -38,11 +38,9 @@ public:
 	UFUNCTION()
 	void ClosePopup();
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
-
-private:
 
 	/** Close button. */
 	UPROPERTY(meta = (BindWidget))

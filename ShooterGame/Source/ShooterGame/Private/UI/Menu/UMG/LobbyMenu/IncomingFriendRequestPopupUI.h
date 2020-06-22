@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
 #include "IncomingFriendRequestPopupInterface.h"
 #include "IncomingFriendRequestPopupUI.generated.h"
 
@@ -20,8 +21,8 @@ public:
 	/**
 	* @brief Show incoming friend request popup UI widget.
 	*
-	* @param FriendId Incoming request friend id.
-	* @param DisplayName Incoming request friend display name.
+	* @param FriendId The friend's id who send the request friend.
+	* @param DisplayName The friend's display who send the request friend.
 	*/
 	void Show(FString FriendId, FString DisplayName);
 
@@ -32,11 +33,10 @@ public:
 	*/
 	void SetInterface(IIncomingFriendRequstPopupInterface* Interface);
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
-private:
 	/** Ignore incoming friend request. */
 	UFUNCTION()
 	void IgnoreRequest();
@@ -65,7 +65,7 @@ private:
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* MessageText;
 
-	/** Incoming request friend id. */
+	/** The friend's id who send the request friend. */
 	FString UserId;
 
 	/** Incoming friend request popup interface. */

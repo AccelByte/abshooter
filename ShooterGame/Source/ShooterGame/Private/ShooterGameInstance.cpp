@@ -192,12 +192,26 @@ UShooterGameInstance::UShooterGameInstance(const FObjectInitializer& ObjectIniti
 	IncomingFriendRequestPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(IncomingFriendRequestPopupBPClass.Class));
 	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *IncomingFriendRequestPopupClass->Get()->GetName());
 
-	// AddingFriendResponsePopup
-	static ConstructorHelpers::FClassFinder<UUserWidget> AddingFriendResponsePopupBPClass(TEXT("/Game/UMG/LobbyMenu/WB_AddingFriendResponsePopup"));
-	if (!ensure(AddingFriendResponsePopupBPClass.Class != nullptr)) return;
+	// GeneralNotificationPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> GeneralNotificationPopupBPClass(TEXT("/Game/UMG/BaseWidget/WB_GeneralNotificationPopup"));
+	if (!ensure(GeneralNotificationPopupBPClass.Class != nullptr)) return;
 
-	AddingFriendResponsePopupClass = MakeShareable(new TSubclassOf<UUserWidget>(AddingFriendResponsePopupBPClass.Class));
-	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *AddingFriendResponsePopupClass->Get()->GetName());
+	GeneralNotificationPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(GeneralNotificationPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *GeneralNotificationPopupClass->Get()->GetName());
+
+	// PartyMemberEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> PartyMemberEntryBPClass(TEXT("/Game/UMG/LobbyMenu/WB_PartyMemberEntry"));
+	if (!ensure(PartyMemberEntryBPClass.Class != nullptr)) return;
+
+	PartyMemberEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(PartyMemberEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *PartyMemberEntryClass->Get()->GetName());
+
+	// PartyInvitationPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> PartyInvitationPopupBPClass(TEXT("/Game/UMG/LobbyMenu/WB_PartyInvitationPopup"));
+	if (!ensure(PartyInvitationPopupBPClass.Class != nullptr)) return;
+
+	PartyInvitationPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(PartyInvitationPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *PartyInvitationPopupClass->Get()->GetName());
 }
 
 void UShooterGameInstance::Init() 
@@ -457,6 +471,8 @@ void UShooterGameInstance::DisconnectFromLobby()
 	if (AccelByte::FRegistry::Lobby.IsConnected())
 	{
 		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] Disconnect from Lobby..."));
+
+		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
 		AccelByte::FRegistry::Lobby.UnbindEvent();
 		AccelByte::FRegistry::Lobby.Disconnect();
 	}
@@ -481,7 +497,9 @@ void UShooterGameInstance::Shutdown()
 	if (ensure(FriendSearchResultPopupClass.IsValid())) FriendSearchResultPopupClass.Reset();
 	if (ensure(FriendEntryClass.IsValid())) FriendEntryClass.Reset();
 	if (ensure(IncomingFriendRequestPopupClass.IsValid())) IncomingFriendRequestPopupClass.Reset();
-	if (ensure(AddingFriendResponsePopupClass.IsValid())) AddingFriendResponsePopupClass.Reset();
+	if (ensure(GeneralNotificationPopupClass.IsValid())) GeneralNotificationPopupClass.Reset();
+	if (ensure(PartyMemberEntryClass.IsValid())) PartyMemberEntryClass.Reset();
+	if (ensure(PartyInvitationPopupClass.IsValid())) PartyInvitationPopupClass.Reset();
 
 	if (LoginMenuUI.IsValid())
 	{

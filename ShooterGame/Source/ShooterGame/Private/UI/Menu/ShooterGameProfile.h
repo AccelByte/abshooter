@@ -31,15 +31,6 @@ public:
 	/** Initialize menu. */
 	void Initialize();
 
-	/** Player's profile name. */
-	FString ProfileName;
-
-	/** Player's avatar url. */
-	FString AvatarURL;
-
-	/** Player's avatar slate image. */
-	FCacheBrush ThumbnailBrush;
-
 private:
 	/** Initiate statistic items. */
 	void InitStatisticItems();

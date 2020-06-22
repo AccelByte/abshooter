@@ -28,11 +28,10 @@ public:
 	/** Clear any entries selection. */
 	void ClearSelection();
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
-private:
 	/** Gallery list view. */
 	UPROPERTY(meta = (BindWidget))
 	class UTileView* GalleryTileView;

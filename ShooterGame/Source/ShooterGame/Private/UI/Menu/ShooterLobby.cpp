@@ -5,12 +5,14 @@
 #include "ShooterLobby.h"
 #include "ShooterGameInstance.h"
 #include "Utils/CacheUtils.h"
+#include "UMG/GeneralNotificationPopupUI.h"
 #include "UMG/LobbyMenu/LobbyMenuUI.h"
 #include "UMG/LobbyMenu/FriendSearchResultEntryUI.h"
 #include "UMG/LobbyMenu/FriendSearchResultPopupUI.h"
 #include "UMG/LobbyMenu/FriendEntryUI.h"
 #include "UMG/LobbyMenu/IncomingFriendRequestPopupUI.h"
-#include "UMG/LobbyMenu/AddingFriendResponsePopupUI.h"
+#include "UMG/LobbyMenu/PartyMemberEntryUI.h"
+#include "UMG/LobbyMenu/PartyInvitationPopupUI.h"
 // AccelByte
 #include "Core/AccelByteRegistry.h"
 #include "Api/AccelByteUserApi.h"
@@ -35,7 +37,11 @@ void ShooterLobby::Initialize()
 	AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
 	ReloadFriendList();
 
+	PartyMembers.Empty();
+
 	LobbyMenuUI->SetInterface(this);
+
+	LoadGameModes();
 }
 
 void ShooterLobby::Connect()
@@ -86,7 +92,7 @@ void ShooterLobby::SetLobbyDelegate()
 		}
 	});
 	AccelByte::FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
-	
+
 	AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &ShooterLobby::OnGetAllUserPresenceResponse));
 	AccelByte::FRegistry::Lobby.SetLoadFriendListResponseDelegate(AccelByte::Api::Lobby::FLoadFriendListResponse::CreateSP(this, &ShooterLobby::OnLoadFriendListResponse));
 	AccelByte::FRegistry::Lobby.SetListIncomingFriendsResponseDelegate(AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateSP(this, &ShooterLobby::OnListIncomingFriendsResponse));
@@ -95,6 +101,17 @@ void ShooterLobby::SetLobbyDelegate()
 	AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &ShooterLobby::OnIncomingRequestFriendsNotification));
 	AccelByte::FRegistry::Lobby.SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &ShooterLobby::OnUserPresenceNotification));
 	AccelByte::FRegistry::Lobby.SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateSP(this, &ShooterLobby::OnRequestFriendsResponse));
+
+	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &ShooterLobby::OnCreatePartyResponse));
+	AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &ShooterLobby::OnInfoPartyResponse));
+	AccelByte::FRegistry::Lobby.SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &ShooterLobby::OnPartyLeaveNotification));
+	AccelByte::FRegistry::Lobby.SetInvitePartyResponseDelegate(AccelByte::Api::Lobby::FPartyInviteResponse::CreateSP(this, &ShooterLobby::OnInvitePartyResponse));
+	AccelByte::FRegistry::Lobby.SetInvitePartyKickMemberResponseDelegate(AccelByte::Api::Lobby::FPartyKickResponse::CreateSP(this, &ShooterLobby::OnInvitePartyKickMemberResponse));
+	AccelByte::FRegistry::Lobby.SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &ShooterLobby::OnPartyJoinNotification));
+	AccelByte::FRegistry::Lobby.SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &ShooterLobby::OnPartyKickNotification));
+	AccelByte::FRegistry::Lobby.SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateSP(this, &ShooterLobby::OnLeavePartyResponse));
+	AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &ShooterLobby::OnPartyGetInvitedNotification));
+	AccelByte::FRegistry::Lobby.SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateSP(this, &ShooterLobby::OnInvitePartyJoinResponse));
 }
 
 void ShooterLobby::OnGetAllUserPresenceResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
@@ -280,6 +297,31 @@ void ShooterLobby::OnAvatarReceived(FCacheBrush Image, FFriendEntry Friend)
 	}
 }
 
+void ShooterLobby::OnAvatarReceived(FCacheBrush Image, FPartyMemberEntry PartyMember)
+{
+	if (!GameInstance.IsValid()) return;
+
+	TWeakObjectPtr<UPartyMemberEntryUI> Entry = MakeWeakObjectPtr<UPartyMemberEntryUI>(CreateWidget<UPartyMemberEntryUI>(GameInstance.Get(), *GameInstance->PartyMemberEntryClass.Get()));
+	Entry->Data.UserId = PartyMember.UserId;
+	Entry->Data.DisplayName = PartyMember.DisplayName;
+
+	if (Image.IsValid())
+	{
+		Entry->Data.Avatar = *Image.Get();
+
+		FUserCache UserCache;
+		UserCache.UserId = PartyMember.UserId;
+		UserCache.DisplayName = PartyMember.DisplayName;
+		FShooterCacheUtils::SaveUserCache(UserCache);
+	}
+
+	FScopeLock Lock(&ShooterLobbyMutex);
+
+	Entry->SetInterface(this);
+	PartyMembers.Add(Entry.Get());
+	UpdatePartyMemberList();
+}
+
 void ShooterLobby::UpdateFriendEntry(FString UserId, EFriendType FriendType, EFriendPresence Presence)
 {
 	FScopeLock Lock(&ShooterLobbyMutex);
@@ -301,10 +343,38 @@ void ShooterLobby::UpdateFriendEntry(FString UserId, EFriendType FriendType, EFr
 
 void ShooterLobby::UpdateFriendList()
 {
+	for (auto FriendEntry : FriendList)
+	{
+		if(CurrentPartyId.IsEmpty())
+		{ 
+			FriendEntry->Data.onParty = true;
+		}
+		else
+		{
+			if (FriendEntry->Data.Presence == EFriendPresence::ONLINE)
+			{
+				FriendEntry->Data.onParty = PartyMembers.ContainsByPredicate([FriendEntry](UPartyMemberEntryUI* Entry) {
+					return Entry->Data.UserId == FriendEntry->Data.UserId;
+				});
+			}
+			else
+			{
+				FriendEntry->Data.onParty = false;
+			}
+		}
+	}
+
 	FriendList.StableSort([](const UFriendEntryUI& EntryA, const UFriendEntryUI& EntryB) {
 		bool isSorted = false;
 		if ((uint8)EntryA.Data.Type < (uint8)EntryB.Data.Type) isSorted = true;
-		else if (((uint8)EntryA.Data.Type == (uint8)EntryB.Data.Type) && ((uint8)EntryA.Data.Presence < (uint8)EntryB.Data.Presence)) isSorted = true;
+		else if (((uint8)EntryA.Data.Type == (uint8)EntryB.Data.Type))
+		{
+			if ((uint8)EntryA.Data.Presence < (uint8)EntryB.Data.Presence) isSorted = true;
+			else if ((uint8)EntryA.Data.Presence == (uint8)EntryB.Data.Presence)
+			{
+				if(EntryA.Data.onParty < EntryB.Data.onParty) isSorted = true;
+			}
+		}
 		return isSorted;
 	});
 	LobbyMenuUI->UpdateFriendList(FriendList);
@@ -314,7 +384,7 @@ void ShooterLobby::ShowIncomingFriendRequestPopup(FString UserId, FString Displa
 {
 	if (!GameInstance.IsValid()) return;
 
-	IncomingFriendRequestPopup = MakeWeakObjectPtr<UIncomingFriendRequestPopupUI>(CreateWidget<UIncomingFriendRequestPopupUI>(GameInstance.Get(), *GameInstance->IncomingFriendRequestPopupClass.Get()));
+	TWeakObjectPtr<class UIncomingFriendRequestPopupUI> IncomingFriendRequestPopup = MakeWeakObjectPtr<UIncomingFriendRequestPopupUI>(CreateWidget<UIncomingFriendRequestPopupUI>(GameInstance.Get(), *GameInstance->IncomingFriendRequestPopupClass.Get()));
 	IncomingFriendRequestPopup->Show(UserId, DisplayName);
 	IncomingFriendRequestPopup->SetInterface(this);
 }
@@ -390,6 +460,18 @@ void ShooterLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenc
 		else
 		{
 			FriendList[Index]->Data.Presence = EFriendPresence::OFFLINE;
+
+			if (PartyMembers.Num() > 0)
+			{
+				if (PartyMembers[0]->Data.UserId == UserId)
+				{
+					LeaveParty();
+				}
+				else if (PartyMembers[0]->Data.UserId == GameInstance->UserToken.User_id)
+				{
+					KickPartyMember(UserId);
+				}
+			}
 		}
 		UpdateFriendList();
 	}
@@ -400,10 +482,468 @@ void ShooterLobby::OnUserPresenceNotification(const FAccelByteModelsUsersPresenc
 void ShooterLobby::OnRequestFriendsResponse(const FAccelByteModelsRequestFriendsResponse& Response)
 {
 	ReloadFriendList();
-	if (Response.Code == TEXT("0")) return;
+	if (Response.Code != TEXT("0"))
+	{
+		TWeakObjectPtr<UGeneralNotificationPopupUI> AddingFriendResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+		AddingFriendResponsePopup->Show(ENotificationType::ERROR, TEXT("Failed to Add Friend!"));
+	}
+}
 
-	AddingFriendResponsePopup = MakeWeakObjectPtr<UAddingFriendResponsePopupUI>(CreateWidget<UAddingFriendResponsePopupUI>(GameInstance.Get(), *GameInstance->AddingFriendResponsePopupClass.Get()));
-	AddingFriendResponsePopup->Show();
+void ShooterLobby::LoadGameModes()
+{
+	GameModes.Empty();
+
+	// TODO: Read from game config. Below is just a hardcoded-mock up.
+	GameModes.Add({ "FFA", "10ffa", 1 });
+	GameModes.Add({ "3 vs 3", "3v3", 3 });
+	GameModes.Add({ "4 vs 4", "4v4", 4 });
+	GameModes.Add({ "5 vs 5", "5v5", 5 });
+
+	if (GameModes.Num() > 0)
+	{
+		TArray<FString> GameModeNames;
+		for (FGameModeEntry GameMode : GameModes)
+		{
+			GameModeNames.Add(GameMode.Name);
+		}
+		CurrenGameMode = GameModes[0];
+		LobbyMenuUI->SetGameModes(GameModeNames);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Fatal, TEXT("[ShooterLobby] Failed to set Game Mode. GameMode options is empty."));
+	}
+}
+
+void ShooterLobby::AddPartyMember(FString UserId, bool isLeader)
+{
+	auto onCreateEntry = TBaseDelegate<void, FString, FSlateBrush>::CreateLambda([this, UserId, isLeader](FString DisplayName, FSlateBrush Avatar)
+	{
+		int32 Index = PartyMembers.IndexOfByPredicate([](UPartyMemberEntryUI* Entry){
+			return Entry->Data.UserId.IsEmpty();
+		});
+		if (Index != INDEX_NONE)
+		{
+			PartyMembers[Index]->Data.UserId = UserId;
+			PartyMembers[Index]->Data.DisplayName = DisplayName;
+			PartyMembers[Index]->Data.Avatar = Avatar;
+			PartyMembers[Index]->Data.isLeader = isLeader;
+		}
+		else
+		{
+			TWeakObjectPtr<UPartyMemberEntryUI> Entry = MakeWeakObjectPtr<UPartyMemberEntryUI>(CreateWidget<UPartyMemberEntryUI>(GameInstance.Get(), *GameInstance->PartyMemberEntryClass.Get()));
+			Entry->Data.UserId = UserId;
+			Entry->Data.DisplayName = DisplayName;
+			Entry->Data.Avatar = Avatar;
+			Entry->Data.isLeader = isLeader;
+			Entry->SetInterface(this);
+			PartyMembers.Add(Entry.Get());
+		}
+		UpdatePartyMemberList();
+	});
+	int32 Index = FriendList.IndexOfByPredicate([UserId](UFriendEntryUI* Entry) {
+		return Entry->Data.UserId == UserId;
+	});
+	if (Index != INDEX_NONE)
+	{
+		onCreateEntry.ExecuteIfBound(FriendList[Index]->Data.DisplayName, FriendList[Index]->Data.Avatar);
+	}
+	else
+	{
+		bool isCached = FShooterCacheUtils::IsUserCacheExist(UserId);
+		if (isCached)
+		{
+			FUserCache UserCache = FShooterCacheUtils::GetUserCache(UserId);
+			FCacheBrush Avatar = FShooterCacheUtils::GetUserAvatarCache(UserId);
+			if (Avatar.IsValid())
+			{
+				onCreateEntry.ExecuteIfBound(UserCache.DisplayName, *Avatar.Get());
+			}
+			else
+			{
+				onCreateEntry.ExecuteIfBound(UserCache.DisplayName, FSlateBrush());
+			}
+		}
+		else
+		{
+			AccelByte::FRegistry::User.GetUserByUserId(
+				UserId,
+				THandler<FUserData>::CreateLambda([this, UserId, isLeader, onCreateEntry](const FUserData& User) mutable
+					{
+						FPartyMemberEntry PartyMember;
+						PartyMember.UserId = UserId;
+						PartyMember.DisplayName = User.DisplayName;
+						PartyMember.isLeader = isLeader;
+						AccelByte::FRegistry::UserProfile.GetPublicUserProfileInfo(
+							UserId,
+							AccelByte::THandler<FAccelByteModelsPublicUserProfileInfo>::CreateLambda([this, UserId, PartyMember](const FAccelByteModelsPublicUserProfileInfo& UserProfileInfo)
+								{
+									UE_LOG(LogTemp, Log, TEXT("[ShooterLobby] Get User Public Profile: %s - > %s Success."), *UserProfileInfo.UserId, *UserProfileInfo.AvatarSmallUrl);
+
+									FString Filename = FShooterCacheUtils::CacheDir / UserId + TEXT(".png");
+									FString AvatarUrl = UserProfileInfo.AvatarSmallUrl;
+									FShooterImageUtils::GetImage(
+										AvatarUrl,
+										FOnImageReceived::CreateLambda([this, PartyMember](const FCacheBrush Image) {
+											OnAvatarReceived(Image, PartyMember);
+										}),
+										Filename
+									);
+								}
+							),
+							AccelByte::FErrorHandler::CreateLambda([this, PartyMember, onCreateEntry](int32 Code, FString Message)
+								{
+									UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] AccelByte::FRegistry::User.GetPublicUserProfileInfo Failed UserId: %s! Code: %d, Message: %s."), *PartyMember.UserId, Code, *Message);
+
+									onCreateEntry.ExecuteIfBound(PartyMember.DisplayName, FSlateBrush());
+								}
+							)
+						);
+					}
+				),
+				FErrorHandler::CreateLambda([UserId, onCreateEntry](int32 Code, FString Message)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] AccelByte::FRegistry::User.GetUserByUserId Failed UserId: %s! Code: %d, Message: %s."), *UserId, Code, *Message);
+
+						onCreateEntry.ExecuteIfBound(UserId, FSlateBrush());
+					}
+				)
+			);
+		}
+	}
+}
+
+void ShooterLobby::UpdatePartyMemberList()
+{
+	if (!CurrentPartyId.IsEmpty())
+	{
+		if (PartyMembers.Num() > 0)
+		{
+			PartyMembers.RemoveAll([](UPartyMemberEntryUI* Entry) {
+				return Entry->Data.UserId.IsEmpty();
+			});
+
+			LobbyMenuUI->SetOverPartyMember(0);
+			if (PartyMembers[0]->Data.UserId == GameInstance->UserToken.User_id)
+			{
+				if (PartyMembers.Num() <= CurrenGameMode.MaxMembers)
+				{
+					for (int i = PartyMembers.Num(); i < CurrenGameMode.MaxMembers; i++)
+					{
+						TWeakObjectPtr<UPartyMemberEntryUI> Entry = MakeWeakObjectPtr<UPartyMemberEntryUI>(CreateWidget<UPartyMemberEntryUI>(GameInstance.Get(), *GameInstance->PartyMemberEntryClass.Get()));
+						Entry->SetInterface(this);
+						PartyMembers.Add(Entry.Get());
+					}
+				}
+				else
+				{
+					LobbyMenuUI->SetOverPartyMember(PartyMembers.Num() - CurrenGameMode.MaxMembers);
+				}
+			}
+
+			PartyMembers.StableSort([](const UPartyMemberEntryUI& EntryA, const UPartyMemberEntryUI& EntryB) {
+				return EntryB.Data.UserId.IsEmpty() ? true : false;
+			});
+
+			if (PartyMembers.Num() > 0 && PartyMembers[0]->Data.UserId == GameInstance->UserToken.User_id)
+			{
+				for (int i = 1; i < PartyMembers.Num(); i++)
+				{
+					PartyMembers[i]->Data.isKickable = true;
+				}
+			}
+		}
+
+		LobbyMenuUI->UpdatePartyMemberList(PartyMembers);
+		UpdateFriendList();
+	}
+}
+
+void ShooterLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& PartyInfo)
+{
+	if (PartyInfo.Code == TEXT("0"))
+	{
+		if (GameModes.Num() > 0)
+		{
+			CurrenGameMode = GameModes[0];
+		}
+		else
+		{
+			UE_LOG(LogTemp, Fatal, TEXT("[ShooterLobby] GameMode options is empty."));
+		}
+
+		CurrentPartyId = PartyInfo.PartyId;
+
+		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+		TWeakObjectPtr<UPartyMemberEntryUI> Entry = MakeWeakObjectPtr<UPartyMemberEntryUI>(CreateWidget<UPartyMemberEntryUI>(GameInstance.Get(), *GameInstance->PartyMemberEntryClass.Get()));
+		Entry->Data.UserId = GameInstance.Get()->UserToken.User_id;
+		Entry->Data.DisplayName = GameInstance.Get()->UserToken.Display_name;
+		if (GameInstance.Get()->PlayerAvatar.IsValid())
+		{
+			Entry->Data.Avatar = *GameInstance.Get()->PlayerAvatar.Get();
+		}
+		Entry->Data.isLeader = true;
+		Entry->Data.isMySelf = true;
+		Entry->SetInterface(this);
+		PartyMembers.Add(Entry.Get());
+		UpdatePartyMemberList();
+
+		LobbyMenuUI->OpenPartySetupPanel();
+		LobbyMenuUI->ShowGameModeComboBox(true);
+	}
+	else
+	{
+		LobbyMenuUI->OpenCreatePartyPanel();
+		FString Message = TEXT("Failed to Create Party!");
+		if (!PartyInfo.Code.IsEmpty())
+		{
+			Message.Append(FString::Printf(TEXT("\nCode: %s."), *PartyInfo.Code));
+		}
+		TWeakObjectPtr<UGeneralNotificationPopupUI> InvitePartyResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+		InvitePartyResponsePopup->Show(ENotificationType::ERROR, Message);
+
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] %s"), *Message);
+	}
+}
+
+void ShooterLobby::OnInfoPartyResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
+{
+	if (PartyInfo.Code == TEXT("0"))
+	{
+		PartyMembers.RemoveAll([PartyInfo](UPartyMemberEntryUI* Entry) {
+			return Entry->Data.onBeingKicked && !PartyInfo.Members.Contains(Entry->Data.UserId);
+		});
+		UpdatePartyMemberList();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Failed get info party! Code: %s."), *PartyInfo.Code);
+	}
+
+	// TODO: Add party chat tab
+	//LobbyChatWidget->AddParty(PartyInfo.PartyId);
+	//SLobby::PartyInfo = PartyInfo;
+}
+
+void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
+{
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+	FString LeavingUserId = LeaveInfo.UserID;
+	PartyMembers.RemoveAll([LeavingUserId](UPartyMemberEntryUI* Entry) {
+		return Entry->Data.UserId == LeavingUserId;
+	});
+
+	FString LeaderId = LeaveInfo.LeaderID;
+	int32 Index = PartyMembers.IndexOfByPredicate([LeaderId](UPartyMemberEntryUI* Entry) {
+		return Entry->Data.UserId == LeaderId;
+	});
+	if (Index != INDEX_NONE)
+	{
+		PartyMembers[Index]->Data.isLeader = true;
+	}
+
+	if (LeaderId == GameInstance->UserToken.User_id)
+	{
+		LobbyMenuUI->ShowGameModeComboBox(true);
+	}
+
+	UpdatePartyMemberList();
+
+	// TODO: Show leave notification
+}
+
+void ShooterLobby::OnInvitePartyResponse(const FAccelByteModelsPartyInviteResponse& Response)
+{
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+	if (Response.Code != TEXT("0"))
+	{
+		FString Message = TEXT("Failed to Invite Friend!");
+		if (Response.Code == TEXT("11254"))
+		{
+			Message.Append(TEXT("\nFriend already has a party."));
+		}
+		else if (!Response.Code.IsEmpty())
+		{
+			Message.Append(FString::Printf(TEXT("\nCode: %s."), *Response.Code));
+		}
+		
+		TWeakObjectPtr<UGeneralNotificationPopupUI> InvitePartyResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+		InvitePartyResponsePopup->Show(ENotificationType::ERROR, Message);
+
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] %s"), *Message);
+	}
+}
+
+void ShooterLobby::OnInvitePartyKickMemberResponse(const FAccelByteModelsKickPartyMemberResponse& Response) // Kick a member
+{
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+	if (Response.Code != TEXT("0"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Failed to kick a member! Code: %s"), *Response.Code);
+	}
+}
+
+void ShooterLobby::OnPartyJoinNotification(const FAccelByteModelsPartyJoinNotice& Notification)
+{
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+	FString UserId = Notification.UserId;
+	int32 Index = PartyMembers.IndexOfByPredicate([UserId](UPartyMemberEntryUI* Entry) {
+		return Entry->Data.UserId == UserId;
+	});
+	if (Index != INDEX_NONE)
+	{
+		PartyMembers[Index]->Data.onInvitation = false;
+		UpdatePartyMemberList();
+	}
+	else
+	{
+		AddPartyMember(UserId);
+	}
+
+	// SCENARIO: if party member is more than max party member of the gamemode, show warning notification
+	
+	// TODO: Show join popup
+}
+
+void ShooterLobby::OnPartyKickNotification(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo) // Is Kicked
+{
+	if (KickInfo.UserId == GameInstance->UserToken.User_id)
+	{
+		PartyMembers.Empty();
+		UpdatePartyMemberList();
+
+		CurrentPartyId = TEXT("");
+
+		UpdateFriendList();
+
+		// TODO: show "you has been kicked" popup
+	}
+	else
+	{
+		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+		FString UserId = KickInfo.UserId;
+		PartyMembers.RemoveAll([UserId](UPartyMemberEntryUI* Entry) {
+			return Entry->Data.UserId == UserId;
+		});
+
+		// TODO: show "a user has been kicked" popup
+	}
+}
+
+void ShooterLobby::OnLeavePartyResponse(const FAccelByteModelsLeavePartyResponse& Response)
+{
+	if (Response.Code == TEXT("0"))
+	{
+		PartyMembers.Empty();
+		UpdatePartyMemberList();
+
+		CurrentPartyId = TEXT("");
+
+		UpdateFriendList();
+	}
+	else if (Response.Code != TEXT("0"))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Failed to leave party! Code: %s."), *Response.Code);
+
+		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+	}
+}
+
+void ShooterLobby::OnPartyGetInvitedNotification(const FAccelByteModelsPartyGetInvitedNotice& Notification)
+{
+	if (!GameInstance.IsValid()) return;
+
+	auto onGetDispayName = TBaseDelegate<void, FString, FAccelByteModelsPartyGetInvitedNotice>::CreateLambda([this](FString DisplayName, FAccelByteModelsPartyGetInvitedNotice Notification)
+	{
+		TWeakObjectPtr<UPartyInvitationPopupUI> PartyInvitationPopup = MakeWeakObjectPtr<UPartyInvitationPopupUI>(CreateWidget<UPartyInvitationPopupUI>(GameInstance.Get(), *GameInstance->PartyInvitationPopupClass.Get()));
+		PartyInvitationPopup->Show(DisplayName, Notification);
+		PartyInvitationPopup->SetInterface(this);
+	});
+
+	FString UserId = Notification.From;
+	int32 Index = FriendList.IndexOfByPredicate([UserId](UFriendEntryUI* Entry) {
+		return Entry->Data.UserId == UserId;
+	});
+	if (Index != INDEX_NONE)
+	{
+		onGetDispayName.ExecuteIfBound(FriendList[Index]->Data.DisplayName, Notification);
+	}
+	else
+	{
+		bool isCached = FShooterCacheUtils::IsUserCacheExist(UserId);
+		if (isCached)
+		{
+			FUserCache UserCache = FShooterCacheUtils::GetUserCache(UserId);
+			onGetDispayName.ExecuteIfBound(UserCache.DisplayName, Notification);
+		}
+		else
+		{
+			AccelByte::FRegistry::User.GetUserByUserId(
+				UserId,
+				THandler<FUserData>::CreateLambda([Notification, onGetDispayName](const FUserData& User) mutable
+					{
+						onGetDispayName.ExecuteIfBound(User.DisplayName, Notification);
+					}
+				),
+				FErrorHandler::CreateLambda([UserId, Notification, onGetDispayName](int32 Code, FString Message)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] AccelByte::FRegistry::User.GetUserByUserId Failed UserId: %s! Code: %d, Message: %s."), *UserId, Code, *Message);
+
+						onGetDispayName.ExecuteIfBound(UserId, Notification);
+					}
+				)
+			);
+		}
+	}
+}
+
+void ShooterLobby::OnInvitePartyJoinResponse(const FAccelByteModelsPartyJoinReponse& Response)
+{
+	if (Response.Code == TEXT("0"))
+	{
+		CurrentPartyId = Response.PartyId;
+
+		// Add party leader
+		AddPartyMember(Response.LeaderId, true);
+
+		// Add member
+		for (FString Member : Response.Members)
+		{
+			if (Member == GameInstance.Get()->UserToken.User_id)
+			{
+				TWeakObjectPtr<UPartyMemberEntryUI> MySelf = MakeWeakObjectPtr<UPartyMemberEntryUI>(CreateWidget<UPartyMemberEntryUI>(GameInstance.Get(), *GameInstance->PartyMemberEntryClass.Get()));
+				MySelf->Data.UserId = GameInstance.Get()->UserToken.User_id;
+				MySelf->Data.DisplayName = GameInstance.Get()->UserToken.Display_name;
+				if (GameInstance.Get()->PlayerAvatar.IsValid())
+				{
+					MySelf->Data.Avatar = *GameInstance.Get()->PlayerAvatar.Get();
+				}
+				MySelf->Data.isMySelf = true;
+				MySelf->SetInterface(this);
+				PartyMembers.Add(MySelf.Get());
+
+				UpdatePartyMemberList();
+
+				LobbyMenuUI->OpenPartySetupPanel();
+				LobbyMenuUI->ShowGameModeComboBox(false);
+
+			}
+			else if(Member != Response.LeaderId)
+			{
+				AddPartyMember(Member);
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Invited member failed to join party! Code: %s."), *Response.Code);
+	}
 }
 
 #pragma region Override Lobby Menu Interface
@@ -456,6 +996,35 @@ void ShooterLobby::RefreshFriendList()
 	FriendList.Empty();
 	ReloadFriendList();
 }
+
+void ShooterLobby::CreateParty()
+{
+	AccelByte::FRegistry::Lobby.SendCreatePartyRequest();
+}
+
+void ShooterLobby::ChangeGameMode(FString GameModeName)
+{
+	if(GameModes.Num() == 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Failed change GameMode. GameMode is empty."));
+		return;
+	}
+
+	int32 Index = GameModes.IndexOfByPredicate([GameModeName](FGameModeEntry Entry) {
+		return Entry.Name == GameModeName;
+	});
+	if (Index != INDEX_NONE)
+	{
+		CurrenGameMode = GameModes[Index];
+
+	}
+	else
+	{
+		CurrenGameMode = GameModes[0];
+	}
+
+	UpdatePartyMemberList();
+}
 #pragma endregion Override Lobby Menu Interface
 
 #pragma region Override Friend Search Result Entry Interface
@@ -470,6 +1039,30 @@ void ShooterLobby::SendFriendRequest(FString UserId)
 #pragma endregion Override Friend Search Result Entry Interface
 
 #pragma region Override Friend Entry Interface
+void ShooterLobby::SendPartyInvitationRequest(FString UserId)
+{
+	if (!CurrentPartyId.IsEmpty())
+	{
+		AccelByte::FRegistry::Lobby.SendInviteToPartyRequest(UserId);
+
+		TWeakObjectPtr<UPartyMemberEntryUI> Entry = MakeWeakObjectPtr<UPartyMemberEntryUI>(CreateWidget<UPartyMemberEntryUI>(GameInstance.Get(), *GameInstance->PartyMemberEntryClass.Get()));
+		Entry->Data.UserId = UserId;
+		Entry->Data.DisplayName = UserId;
+		Entry->Data.onInvitation = true;
+		int32 Index = FriendList.IndexOfByPredicate([UserId](UFriendEntryUI* Entry) {
+			return Entry->Data.UserId == UserId;
+		});
+		if (Index != INDEX_NONE)
+		{
+			Entry->Data.DisplayName = FriendList[Index]->Data.DisplayName;
+			Entry->Data.Avatar = FriendList[Index]->Data.Avatar;
+		}
+		Entry->SetInterface(this);
+		PartyMembers.Add(Entry.Get());
+		UpdatePartyMemberList();
+	}
+}
+
 void ShooterLobby::SendUnfriendRequest(FString UserId)
 {
 	AccelByte::FRegistry::Lobby.Unfriend(UserId);
@@ -533,4 +1126,40 @@ void ShooterLobby::AcceptIncomingFriendRequest(FString UserId)
 
 	UpdateFriendEntry(UserId, EFriendType::FRIEND, EFriendPresence::ONLINE);
 }
-#pragma region Override Incoming Friend Request Popup Interface
+#pragma endregion Override Incoming Friend Request Popup Interface
+
+#pragma region Override Party Member Entry Interface
+void ShooterLobby::LeaveParty()
+{
+	AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
+}
+
+void ShooterLobby::KickPartyMember(FString UserId)
+{
+	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
+
+	int32 Index = PartyMembers.IndexOfByPredicate([UserId](UPartyMemberEntryUI* Entry) {
+		return Entry->Data.UserId == UserId;
+	});
+
+	if (Index != INDEX_NONE)
+	{
+		if (!PartyMembers[Index]->Data.onInvitation)
+		{
+			AccelByte::FRegistry::Lobby.SendKickPartyMemberRequest(UserId);
+		}
+
+		PartyMembers[Index]->Data.onInvitation = false;
+		PartyMembers[Index]->Data.onBeingKicked = true;
+		UpdatePartyMemberList();
+	}
+}
+#pragma endregion Override Party Member Entry Interface
+
+#pragma region Override Party Invitation Popup Interface
+void ShooterLobby::AcceptPartyInvitation(FAccelByteModelsPartyGetInvitedNotice InvitationInformation)
+{
+	CurrentPartyId = InvitationInformation.PartyId;
+	AccelByte::FRegistry::Lobby.SendAcceptInvitationRequest(InvitationInformation.PartyId, InvitationInformation.InvitationToken);
+}
+#pragma endregion Override Party Invitation Popup Interface
