@@ -48,9 +48,6 @@ public:
 	void UpdateAchievementList(TArray<UAchievementEntryUI*> AchievementList);
 
 protected:
-	/** Initialize widget. */
-	virtual bool Initialize();
-
 	/** Player's statistic list view. */
 	UPROPERTY(meta = (BindWidget), EditAnywhere, BlueprintReadWrite)
 	class UTileView* StatisticTileView;
@@ -60,6 +57,9 @@ protected:
 	class UTileView* AchievementTileView;
 
 private:
+	/** Initialize widget. */
+	virtual bool Initialize();
+
 	/** Player's avatar. */
 	UPROPERTY(meta = (BindWidget))
 	class UImage* AvatarImage;

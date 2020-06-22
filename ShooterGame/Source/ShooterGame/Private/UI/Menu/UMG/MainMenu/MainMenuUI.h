@@ -41,9 +41,6 @@ public:
 	class UGalleryMenuUI* GetGalleryMenu();
 
 protected:
-	/** Initialize widget. */
-	virtual bool Initialize();
-
 	/** Handle on key pressed. */
 	FReply NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
 
@@ -52,6 +49,9 @@ protected:
 	class UTextBlock* DisplayNameField;
 
 private:
+	/** Initialize widget. */
+	virtual bool Initialize();
+
 	/** Open main menu. */
 	UFUNCTION()
 	void OpenMainMenu();

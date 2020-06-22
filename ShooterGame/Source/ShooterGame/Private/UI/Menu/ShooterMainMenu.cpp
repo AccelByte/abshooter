@@ -122,7 +122,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 		THandler<FAccelByteModelsUserProfileInfo> OnUserProfileObtained = THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
 			{
 				GameInstance->UserProfileInfo = UserProfileInfo; // save our own
-				UpdateUserProfile();
+				UpdateUserProfile(UserProfileInfo.AvatarUrl);
 			}
 		);
 		FRegistry::UserProfile.GetUserProfile(
@@ -160,7 +160,7 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 							{
 								UE_LOG(LogTemp, Log, TEXT("[FShooterMainMenu] Attempt to create default user Profile Failed! Code: %d, Message: %s."), Code, *Message);
 
-								UpdateUserProfile(GameInstance->UserToken.Display_name, GameInstance->UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
+								UpdateUserProfile(defaultCreateProfileRequest.AvatarUrl);
 							}
 						)
 					);
@@ -588,34 +588,26 @@ void FShooterMainMenu::Teardown()
 	}
 }
 
-void FShooterMainMenu::UpdateUserProfile()
+void FShooterMainMenu::UpdateUserProfile(FString AvatarURL)
 {
-	UpdateUserProfile(GameInstance->UserToken.Display_name, GameInstance->UserToken.User_id, GameInstance->UserProfileInfo.AvatarUrl);
-}
-
-void FShooterMainMenu::UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL)
-{
-	MainMenuUI->SetDisplayName(ProfileName);
-
-	if ((GameProfile->AvatarURL.IsEmpty() || GameProfile->AvatarURL != AvatarURL) && !AvatarURL.IsEmpty())
+	MainMenuUI->SetDisplayName(GameInstance->UserToken.Display_name);
+	if (!AvatarURL.IsEmpty())
 	{
-		GameProfile->AvatarURL = AvatarURL;
-		FString Filename = FShooterCacheUtils::CacheDir / UserID + TEXT(".png");
+		FString Filename = FShooterCacheUtils::CacheDir / GameInstance->UserToken.User_id + TEXT(".png");
 		FShooterImageUtils::GetImage(AvatarURL, FOnImageReceived::CreateSP(this, &FShooterMainMenu::OnThumbImageReceived), Filename);
 	}
-	GameProfile->ProfileName = ProfileName;
 }
 
 void FShooterMainMenu::OnThumbImageReceived(FCacheBrush Image)
 {
 	if (Image.IsValid())
 	{
-		GameProfile->ThumbnailBrush = Image;
 		MainMenuUI->SetAvatarImage(*Image.Get());
 		FUserCache UserCache;
 		UserCache.UserId = GameInstance->UserToken.User_id;
 		UserCache.DisplayName = GameInstance->UserToken.Display_name;
 		FShooterCacheUtils::SaveUserCache(UserCache);
+		GameInstance->PlayerAvatar = Image;
 	}
 }
 
@@ -623,8 +615,11 @@ void FShooterMainMenu::UpdateUserProfileFromCache()
 {
 	MainMenuUI->SetDisplayName(GameInstance->UserToken.Display_name);
 	FCacheBrush UserAvatar = FShooterCacheUtils::GetUserAvatarCache(GameInstance->UserToken.User_id);
-	MainMenuUI->SetAvatarImage(*UserAvatar.Get());
-	GameProfile->ThumbnailBrush = UserAvatar;
+	if(UserAvatar.IsValid())
+	{
+		MainMenuUI->SetAvatarImage(*UserAvatar.Get());
+		GameInstance->PlayerAvatar = UserAvatar;
+	}
 }
 
 // TODO: Migrate into UMG

@@ -35,7 +35,7 @@ public:
 	/** The email address of the friend who is searched. */
 	FString Email;
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
@@ -44,7 +44,6 @@ protected:
 	// Function below will be deprecated on 4.23 version, and renamed into NativeOnListItemObjectSet.
 	void SetListItemObjectInternal(UObject* InObject) override;
 
-private:
 	/** Send a friend request. */
 	UFUNCTION()
 	void SendFriendRequest();

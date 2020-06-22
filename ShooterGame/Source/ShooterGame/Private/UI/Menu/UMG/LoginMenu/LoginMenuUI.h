@@ -32,11 +32,10 @@ public:
 	*/
 	void SetInterface(ILoginMenuInterface* MenuInterface);
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
-private:
 	/** Login with username and password. */
 	UFUNCTION()
 	void LoginWithUsername();

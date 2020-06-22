@@ -27,7 +27,6 @@ ShooterGameProfile::ShooterGameProfile(TWeakObjectPtr<UShooterGameInstance> _Gam
 
 void ShooterGameProfile::Initialize()
 {
-	ThumbnailBrush.Reset();
 	InitStatisticItems();
 	GetStatisticItems();
 	GetAchievements();

@@ -25,30 +25,37 @@ class IFriendEntryInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	/**
+	* @brief Send a party invitation request.
+	*
+	* @param UserId Friend's user id who will be invited to the party.
+	*/
+	virtual void SendPartyInvitationRequest(FString UserId) = 0;
+
+	/**
 	* @brief Send an unfriend request.
 	*
-	* @param UserId Friend's userid who will be unfriend.
+	* @param UserId Friend's user id who will be unfriend.
 	*/
 	virtual void SendUnfriendRequest(FString UserId) = 0;
 
 	/**
 	* @brief Send accept incoming friend request.
 	*
-	* @param UserId Friend's userid who send the friend request.
+	* @param UserId Friend's user id who send the friend request.
 	*/
 	virtual void SendAcceptFriendRequest(FString UserId) = 0;
 
 	/**
 	* @brief Send reject incoming friend request.
 	*
-	* @param UserId Friend's userid who send the friend request.
+	* @param UserId Friend's user id who send the friend request.
 	*/
 	virtual void SendRejectFriendRequest(FString UserId) = 0;
 
 	/**
 	* @brief Send cancel outgoing friend request.
 	*
-	* @param UserId Friend's userid who will be cancelled.
+	* @param UserId Friend's user id who will be cancelled.
 	*/
 	virtual void SendCancelFriendRequest(FString UserId) = 0;
 };

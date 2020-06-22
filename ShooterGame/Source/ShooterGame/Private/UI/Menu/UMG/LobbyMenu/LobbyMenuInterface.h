@@ -33,4 +33,14 @@ public:
 
 	/** Refresh friend list. */
 	virtual void RefreshFriendList() = 0;
+
+	/** Create a party. */
+	virtual void CreateParty() = 0;
+
+	/**
+	* @brief Change Game Mode.
+	*
+	* @param GameModeName The Game Mode for the matchmaking.
+	*/
+	virtual void ChangeGameMode(FString GameModeName) = 0;
 };

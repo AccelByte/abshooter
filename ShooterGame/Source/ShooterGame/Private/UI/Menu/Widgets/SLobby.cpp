@@ -123,12 +123,6 @@ void SLobby::Construct(const FArguments& InArgs)
 	MinTimeBetweenSearches = 0.0;
 #endif
 
-	AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &SLobby::OnGetPartyInfoResponse));
-	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &SLobby::OnCreatePartyResponse));
-	AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &SLobby::OnInvitedToParty));
-	AccelByte::FRegistry::Lobby.SetPartyJoinNotifDelegate(AccelByte::Api::Lobby::FPartyJoinNotif::CreateSP(this, &SLobby::OnInvitedFriendJoinParty));
-	AccelByte::FRegistry::Lobby.SetPartyKickNotifDelegate(AccelByte::Api::Lobby::FPartyKickNotif::CreateSP(this, &SLobby::OnKickedFromParty));
-	AccelByte::FRegistry::Lobby.SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &SLobby::OnLeavingParty));
 	AccelByte::FRegistry::Lobby.SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateLambda([this](const FAccelByteModelsLeavePartyResponse& Response)
 	{
 		PartyWidget->ResetAll();
@@ -136,12 +130,6 @@ void SLobby::Construct(const FArguments& InArgs)
 		CurrentPartyID = TEXT("");
 	}));
 	AccelByte::FRegistry::Lobby.SetMessageNotifDelegate(AccelByte::Api::Lobby::FMessageNotif::CreateSP(this, &SLobby::OnIncomingNotification));
-	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateLambda([&](const FAccelByteModelsCreatePartyResponse& Response)
-	{
-		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-	}));
-
-	AccelByte::FRegistry::Lobby.SetInvitePartyResponseDelegate(AccelByte::Api::Lobby::FPartyInviteResponse::CreateSP(this, &SLobby::OnPartyInviteResponse));
 	AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateLambda([&](const FAccelByteModelsMatchmakingResponse& Response)
 	{
 		if (Response.Code != "0")
@@ -737,197 +725,6 @@ void SLobby::CloseMessageDialog()
 	}
 }
 
-
-void SLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& PartyInfo)
-{
-	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-}
-
-void SLobby::OnGetPartyInfoResponse(const FAccelByteModelsInfoPartyResponse& PartyInfo)
-{
-	PartyWidget->ResetAll();
-	if (PartyInfo.Code != "0")
-	{
-		return;
-	}
-	bIsPartyLeader = (PartyInfo.LeaderId == GetCurrentUserID());
-
-	FString LeaderDisplayName = CheckDisplayName(PartyInfo.LeaderId) ? GetDisplayName(PartyInfo.LeaderId) : PartyInfo.LeaderId;
-	FSlateBrush* LeaderAvatar = GetAvatarOrDefault(PartyInfo.LeaderId);
-
-	PartyWidget->InsertLeader(PartyInfo.LeaderId, LeaderDisplayName, LeaderAvatar, bIsPartyLeader);
-	for (FString MemberId : PartyInfo.Members)
-	{
-		if (MemberId != PartyInfo.LeaderId)
-		{
-			FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
-			FSlateBrush* MemberAvatar = GetAvatarOrDefault(MemberId);
-			PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
-		}
-	}
-	PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
-	// add chat tab
-	CurrentPartyID = PartyInfo.PartyId;
-	LobbyChatWidget->AddParty(PartyInfo.PartyId);
-	SLobby::PartyInfo = PartyInfo;
-}
-
-void SLobby::OnInvitedFriendJoinParty(const FAccelByteModelsPartyJoinNotice& Notification)
-{
-	// show popup
-	FString DisplayName = CheckDisplayName(Notification.UserId) ? GetDisplayName(Notification.UserId) : Notification.UserId;
-	FSlateBrush* MemberAvatar = GetAvatarOrDefault(Notification.UserId);
-	FString NotificationMessage = FString::Printf(TEXT("%s has join the party"), *DisplayName);
-	TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
-		.NotificationMessage(NotificationMessage)
-		.AvatarImage(MemberAvatar)
-		.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
-	{
-	});
-	Popup->Show();
-
-	// update using OnGetPartyInfoResponse, so we have to trigger SendInfoPartyRequest
-	// TODO optimize this
-	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-}
-
-void SLobby::OnInvitedToParty(const FAccelByteModelsPartyGetInvitedNotice& Notification)
-{
-	FString DisplayName = CheckDisplayName(Notification.From) ? GetDisplayName(Notification.From) : Notification.From;
-	CloseOverlay(InvitationOverlay);
-	TSharedPtr<SShooterConfirmationDialog> Dialog;
-	SAssignNew(InvitationOverlay, SOverlay)
-		+ SOverlay::Slot()
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Fill)
-		.VAlign(VAlign_Fill)
-		[
-			SNew(SImage)
-			.Image(&OverlayBackgroundBrush)
-		]
-		]
-	+ SOverlay::Slot()
-		[
-			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-			.MessageText(FText::FromString(FString::Printf(TEXT("You're invited by %s to join a party."), *DisplayName)))
-		.ConfirmText(FText::FromString("Accept"))
-		.CancelText(FText::FromString("Reject"))
-		.OnConfirmClicked(FOnClicked::CreateLambda([&, Notification]()
-	{
-		//Leave old party & reset CurrentPartyId
-		if (!CurrentPartyID.IsEmpty())
-		{
-			LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
-			CurrentPartyID = TEXT("");
-			AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
-		}
-
-		//Join new party (set CurrentPartyId, accept invitation, set widgets after there's join response)
-		CurrentPartyID = Notification.PartyId;
-		AccelByte::FRegistry::Lobby.SendAcceptInvitationRequest(Notification.PartyId, Notification.InvitationToken);
-		AccelByte::FRegistry::Lobby.SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateLambda([&](const FAccelByteModelsPartyJoinReponse& Response)
-		{
-			PartyWidget->ResetAll();
-
-			FString LeaderDisplayName = CheckDisplayName(Response.LeaderId) ? GetDisplayName(Response.LeaderId) : Response.LeaderId;
-			FSlateBrush* LeaderAvatar = GetAvatarOrDefault(Response.LeaderId);
-
-			PartyWidget->InsertLeader(Response.LeaderId, LeaderDisplayName, LeaderAvatar, PartyInfo.LeaderId == GetCurrentUserID());
-			for (FString MemberId : Response.Members)
-			{
-				if (MemberId != Response.LeaderId)
-				{
-					FString MemberDisplayName = CheckDisplayName(MemberId) ? GetDisplayName(MemberId) : MemberId;
-					FSlateBrush* MemberAvatar = GetAvatarOrDefault(MemberId);
-
-					PartyWidget->InsertMember(MemberId, MemberDisplayName, MemberAvatar, (MemberId == GetCurrentUserID()));
-				}
-			}
-			PartyWidget->ButtonCreateParty->SetVisibility(EVisibility::Collapsed);
-			AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-		}));
-		CloseOverlay(InvitationOverlay);
-		// add chat tab
-		LobbyChatWidget->AddParty(Notification.PartyId);
-		return FReply::Handled();
-	}))
-		.OnCancelClicked(FOnClicked::CreateLambda([&]()
-	{
-		CloseOverlay(InvitationOverlay);
-		return FReply::Handled();
-	}))
-		];
-
-	GEngine->GameViewport->AddViewportWidgetContent(InvitationOverlay.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(Dialog);
-}
-
-void SLobby::OnKickedFromParty(const FAccelByteModelsGotKickedFromPartyNotice& KickInfo)
-{
-	if (KickInfo.UserId == CurrentUserID)
-	{
-		PartyWidget->ResetAll();
-		LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
-		CurrentPartyID = TEXT("");
-
-		FSlateBrush* MemberAvatar = GetAvatarOrDefault(CurrentUserID);
-		// show popup
-		FString NotificationMessage = FString::Printf(TEXT("You has been kicked from party"));
-		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
-			.NotificationMessage(NotificationMessage)
-			.AvatarImage(MemberAvatar)
-			.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
-		{
-		});
-		Popup->Show();
-
-
-	}
-	else
-	{
-		AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-
-		// show popup
-		FString DisplayName = CheckDisplayName(KickInfo.UserId) ? GetDisplayName(KickInfo.UserId) : KickInfo.UserId;
-		FSlateBrush* MemberAvatar = GetAvatarOrDefault(KickInfo.UserId);
-
-		FString NotificationMessage = FString::Printf(TEXT("%s has been kicked from party"), *DisplayName);
-		TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
-			.NotificationMessage(NotificationMessage)
-			.AvatarImage(MemberAvatar)
-			.OnPopupClosed_Lambda([]()
-		{
-		});
-		Popup->Show();
-	}
-}
-
-void SLobby::OnLeavingParty(const FAccelByteModelsLeavePartyNotice& LeaveInfo)
-{
-	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
-
-	if (LeaveInfo.UserID == CurrentUserID)
-	{
-		bIsPartyLeader = false;
-		LobbyChatWidget->RemovePartyChatTab(CurrentPartyID);
-		CurrentPartyID = TEXT("");
-	}
-
-	// show popup
-	FString DisplayName = CheckDisplayName(LeaveInfo.UserID) ? GetDisplayName(LeaveInfo.UserID) : LeaveInfo.UserID;
-	FSlateBrush* MemberAvatar = GetAvatarOrDefault(LeaveInfo.UserID);
-	FString NotificationMessage = FString::Printf(TEXT("%s has left party"), *DisplayName);
-	TSharedPtr<SShooterNotificationPopup> Popup = SNew(SShooterNotificationPopup)
-		.NotificationMessage(NotificationMessage)
-		.AvatarImage(MemberAvatar)
-		.OnPopupClosed_Lambda([]() //Hold Brush until popup closed
-	{
-	});
-	Popup->Show();
-
-}
-
 /** Updates current search status */
 void SLobby::UpdateSearchStatus()
 {
@@ -1516,55 +1313,6 @@ void SLobby::OnIncomingNotification(const FAccelByteModelsNotificationMessage& M
 		[
 			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
 			.MessageText(FText::FromString(FString::Printf(TEXT("Notification!\nFrom: %s\nMessage: %s"), *MessageNotification.From, *MessageNotification.Payload)))
-			.ConfirmText(FText::FromString("CLOSE"))
-			.OnConfirmClicked(FOnClicked::CreateLambda([&]()
-			{
-				CloseOverlay(NotificationOverlay);
-				return FReply::Handled();
-			}))
-		];
-
-	GEngine->GameViewport->AddViewportWidgetContent(NotificationOverlay.ToSharedRef());
-	FSlateApplication::Get().SetKeyboardFocus(Dialog);
-}
-
-
-void SLobby::OnPartyInviteResponse(const FAccelByteModelsPartyInviteResponse& Response)
-{
-	FString Message;
-	if (Response.Code == TEXT("11254"))
-	{
-		Message = TEXT("Friend already have a party");
-	}
-	else
-	{
-		if (Response.Code == TEXT("0"))
-		{
-			return;
-		}
-		else
-		{
-			Message = FString::Printf(TEXT("Failed. Error code= %s"), *Response.Code);
-		}
-	}
-
-	CloseOverlay(NotificationOverlay);
-	TSharedPtr<SShooterConfirmationDialog> Dialog;
-	SAssignNew(NotificationOverlay, SOverlay)
-		+ SOverlay::Slot()
-		[
-			SNew(SBox)
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SImage)
-				.Image(&OverlayBackgroundBrush)
-			]
-		]
-	+ SOverlay::Slot()
-		[
-			SAssignNew(Dialog, SShooterConfirmationDialog).PlayerOwner(PlayerOwner)
-			.MessageText(FText::FromString(Message))
 			.ConfirmText(FText::FromString("CLOSE"))
 			.OnConfirmClicked(FOnClicked::CreateLambda([&]()
 			{

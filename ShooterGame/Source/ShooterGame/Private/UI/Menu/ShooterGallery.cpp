@@ -318,17 +318,17 @@ void ShooterGallery::PreviewImage(FSlateBrush Image)
 {
 	if (!GameInstance.IsValid()) return;
 
-	GalleryPreviewPopupUI = MakeWeakObjectPtr<UGalleryPreviewPopupUI>(CreateWidget<UGalleryPreviewPopupUI>(GameInstance.Get(), *GameInstance->GalleryPreviewPopupClass.Get()));
-	GalleryPreviewPopupUI->PreviewImage(Image);
+	TWeakObjectPtr<UGalleryPreviewPopupUI> GalleryPreviewPopup = MakeWeakObjectPtr<UGalleryPreviewPopupUI>(CreateWidget<UGalleryPreviewPopupUI>(GameInstance.Get(), *GameInstance->GalleryPreviewPopupClass.Get()));
+	GalleryPreviewPopup->PreviewImage(Image);
 }
 
 void ShooterGallery::EditLabel(FString SlotId, FString Caption)
 {
 	if (!GameInstance.IsValid()) return;
 
-	GalleryEditPopupUI = MakeWeakObjectPtr<UGalleryEditPopupUI>(CreateWidget<UGalleryEditPopupUI>(GameInstance.Get(), *GameInstance->GalleryEditPopupClass.Get()));
-	GalleryEditPopupUI->SetInterface(this);
-	GalleryEditPopupUI->Show(SlotId, Caption);
+	TWeakObjectPtr<UGalleryEditPopupUI> GalleryEditPopup = MakeWeakObjectPtr<UGalleryEditPopupUI>(CreateWidget<UGalleryEditPopupUI>(GameInstance.Get(), *GameInstance->GalleryEditPopupClass.Get()));
+	GalleryEditPopup->SetInterface(this);
+	GalleryEditPopup->Show(SlotId, Caption);
 }
 
 void ShooterGallery::DeleteImage(FString SlotId)

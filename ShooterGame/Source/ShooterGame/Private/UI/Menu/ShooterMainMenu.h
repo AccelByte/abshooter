@@ -423,17 +423,12 @@ protected:
 	FDelegateHandle OnLoginCompleteDelegateHandle;
 
 private:
-	/** Update user profile based on the game instance. */
-	void UpdateUserProfile();
-
 	/**
 	* @brief Update user profile.
 	*
-	* @param ProfileName Player's profile name.
-	* @param UserID Player's user id.
 	* @param AvatarURL Player's avatar url.
 	*/
-	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
+	void UpdateUserProfile(FString AvatarURL);
 
 	/** Handle when getting player's avatar image. */
 	void OnThumbImageReceived(FCacheBrush Image);

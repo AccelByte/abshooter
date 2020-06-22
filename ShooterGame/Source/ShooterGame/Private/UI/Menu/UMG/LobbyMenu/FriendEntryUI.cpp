@@ -19,7 +19,7 @@ bool UFriendEntryUI::Initialize()
 	ChatButton->OnClicked.AddDynamic(this, &UFriendEntryUI::SendChatRequest);
 
 	if (!ensure(InviteButton != nullptr)) return false;
-	InviteButton->OnClicked.AddDynamic(this, &UFriendEntryUI::SendInviteRequest);
+	InviteButton->OnClicked.AddDynamic(this, &UFriendEntryUI::SendPartyInvitationRequest);
 
 	if (!ensure(UnfriendButton != nullptr)) return false;
 	UnfriendButton->OnClicked.AddDynamic(this, &UFriendEntryUI::SendUnfriendRequest);
@@ -74,8 +74,6 @@ void UFriendEntryUI::SetListItemObjectInternal(UObject* InObject)
 	DisplayNameField->SetText(FText::FromString(Entry->Data.DisplayName));
 
 	FString PresenceText = TEXT("OFFLINE");
-
-
 	OnlineBox->SetVisibility(ESlateVisibility::Collapsed);
 	PresenceField->SetVisibility(ESlateVisibility::Collapsed);
 	switch (Entry->Data.Type)
@@ -88,6 +86,14 @@ void UFriendEntryUI::SetListItemObjectInternal(UObject* InObject)
 		case EFriendPresence::ONLINE:
 			PresenceText = TEXT("ONLINE");
 			OnlineBox->SetVisibility(ESlateVisibility::Visible);
+			if (Entry->Data.onParty)
+			{
+				InviteButton->SetVisibility(ESlateVisibility::Collapsed);
+			}
+			else
+			{
+				InviteButton->SetVisibility(ESlateVisibility::Visible);
+			}
 			break;
 		case EFriendPresence::INGAME:
 			PresenceText = TEXT("INGAME");
@@ -126,18 +132,6 @@ void UFriendEntryUI::SetListItemObjectInternal(UObject* InObject)
 	EntryInterface = Entry->EntryInterface;
 }
 
-void UFriendEntryUI::NativeOnItemSelectionChanged(bool bIsSelected)
-{
-	if (bIsSelected)
-	{
-
-	}
-	else
-	{
-
-	}
-}
-
 #pragma region Button Callback
 void UFriendEntryUI::SendChatRequest()
 {
@@ -149,14 +143,14 @@ void UFriendEntryUI::SendChatRequest()
 	// TODO: Create send chat request interface.
 }
 
-void UFriendEntryUI::SendInviteRequest()
+void UFriendEntryUI::SendPartyInvitationRequest()
 {
 	if (EntryInterface == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[UFriendEntryUI] EntryInterface is null"));
 		return;
 	}
-	// TODO: Create send party invitation request interface.
+	EntryInterface->SendPartyInvitationRequest(Data.UserId);
 }
 
 void UFriendEntryUI::SendUnfriendRequest()

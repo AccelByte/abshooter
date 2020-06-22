@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Blueprint/UserWidget.h"
 #include "GalleryEditPopupInterface.h"
 #include "GalleryEditPopupUI.generated.h"
 
@@ -32,11 +33,10 @@ public:
 	*/
 	void SetInterface(IGalleryEditPopupInterface* Interface);
 
-protected:
+private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
-private:
 	/** Close edit box. */
 	UFUNCTION()
 	void CloseBox();
@@ -77,10 +77,4 @@ private:
 
 	/** Character over-limit flag. */
 	bool bIsCharactersOverLimit = false;
-
-	/** Red color. */
-	FLinearColor RedColor;
-
-	/** White color. */
-	FLinearColor WhiteColor;
 };

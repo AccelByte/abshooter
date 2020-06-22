@@ -43,4 +43,52 @@ struct FFriendEntry
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
 		FSlateBrush Avatar;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		bool onParty = false;
+};
+
+USTRUCT(BlueprintType)
+struct FGameModeEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		FString Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		FString GameMode;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		int32 MaxMembers = 0;
+};
+
+USTRUCT(BlueprintType)
+struct FPartyMemberEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		FString UserId;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		FString DisplayName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		FSlateBrush Avatar;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		bool isLeader = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		bool isMySelf = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		bool isKickable = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		bool onInvitation = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
+		bool onBeingKicked = false;
 };

@@ -6,7 +6,6 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 
-
 bool UIncomingFriendRequestPopupUI::Initialize()
 {
 	bool Success = Super::Initialize();
