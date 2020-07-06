@@ -93,3 +93,8 @@ ShooterGame/Plugins/AvengersSDK/Intermediate/
 ShooterGame/Output2/
 ShooterGame/DerivedDataCache/
 ShooterGame/Content/Internationalization/
+
+# pre commit hook
+node_modules
+yarn.lock
+package.json

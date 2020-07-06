@@ -21,3 +21,8 @@ We're assuming that you using Win10 to compiling these and Linux as the Server.
 `6.` You should have your docker image now, you can check it using command `docker images`. Now refer to this [documentation](https://docs.aws.amazon.com/AmazonECR/latest/userguide/docker-push-ecr-image.html) to upload the image to your ECR.
 `7.` Open admin portal, fill the pod configuration parameter with these string "Highrise -server -log -nosteam localds PORT=7778". Highrise is the default map opened by server. PORT parameter is the specific argument used by Unreal Engine, it should match to Admin Portal -> Dedicated Server -> Configurations -> Port number.
 `8.` Dockerfile's ENTRYPOINT has "ShooterGame.sh" file, please open it and adjust the Linux executable path if you rename the path.
+
+# Commit Message Standardization
+We are following Conventional Commits as a standard to follow for writing commit messages. The details of the rules can be found in the [conventional commits website](https://www.conventionalcommits.org/en/v1.0.0/). 
+
+We optionally provide a git commit-hook that will be triggered when you do a commit through the terminal that will execute an interactive cli that can guide you to write commit message that follows the standard, to enable this, run `make SetupCommitHook`
