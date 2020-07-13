@@ -26,7 +26,10 @@ class AShooterGame_TeamDeathMatch : public AShooterGameMode
 
 	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options, const FString& Portal = TEXT("")) override;
 
+	/** use restart game for reinit matchmaking info */
 	virtual void RestartGame() override;
+
+	/** use endmatch for set statistic values for each players, unregister the game server or shutdown game server from accelbyte armada*/
 	virtual void EndMatch() override;
 
 protected:
@@ -57,10 +60,17 @@ protected:
 	FAccelByteModelsMatchmakingInfo MatchmakingInfo;
 
 public:
+	/** initialization for a match after getting matchmaking info from lobby*/
 	void SetupMatch(const FAccelByteModelsMatchmakingInfo& Info);
+
 	bool SetupSecondParty(const FAccelByteModelsMatchmakingInfo& Info);
+
+	/** checking whether the match has started or not */
 	bool IsMatchStarted();
+
+	/** get match related info */
 	FAccelByteModelsMatchInfo GetMatchInfo();
 
+	/** revert matchmaking info */
 	bool ResetMatch(bool Force = false);
 };

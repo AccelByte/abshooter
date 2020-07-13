@@ -693,7 +693,7 @@ void AShooterPlayerController::SetIsVibrationEnabled(bool bEnable)
 
 void AShooterPlayerController::ClientGameStarted_Implementation()
 {
-	//Add player leave match detector
+	// Player leave in the mid match detection
 	GetWorld()->GetTimerManager().ClearTimer(PlayerCounterTimerHandle);
 	PlayerCounterTimerHandle = FTimerHandle();
 	TSharedPtr<TArray<TTuple<int32, FString>>> Player_Id_Name_Pairs = MakeShared<TArray<TTuple<int32, FString>>>();
@@ -710,7 +710,6 @@ void AShooterPlayerController::ClientGameStarted_Implementation()
 					GameState->GetRankedMap(i, OutRankedMap);
 					for (auto& entry : OutRankedMap)
 					{
-						//CurrentPlayerStates.Add(entry.Value);
 						CurrentPlayerStates_.Add(TTuple<int32, FString>(entry.Value->PlayerId, entry.Value->GetOldPlayerName()));
 					}
 				}
@@ -733,7 +732,7 @@ void AShooterPlayerController::ClientGameStarted_Implementation()
 					}
 				}
 
-				//notify
+				// Notify player when other player leaves the match
 				for (auto& Name : MissingPlayerNames)
 				{
 					AShooterHUD* ShooterHUD = GetShooterHUD();

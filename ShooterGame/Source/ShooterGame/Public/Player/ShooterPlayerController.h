@@ -63,11 +63,7 @@ public:
 
 	/** RPC for clients to talk to server */
 	UFUNCTION(unreliable, server, WithValidation)
-	void ServerSay(const FString& Msg);	
-
-	/** Local function run an emote */
-// 	UFUNCTION(exec)
-// 	virtual void Emote(const FString& Msg);
+	void ServerSay(const FString& Msg);
 
 	/** notify local client about deaths */
 	void OnDeathMessage(class AShooterPlayerState* KillerPlayerState, class AShooterPlayerState* KilledPlayerState, const UDamageType* KillerDamageType);
@@ -319,7 +315,10 @@ public:
 	// For tracking whether or not to send the end event
 	bool bHasSentStartEvents;
 
+	/** Get screenshot listing */
 	const TArray<TSharedPtr<FSlateBrush>>& GetScreenshotList();
+
+	/** Get screenshot time record listing */
 	const TArray<FDateTime>& GetScreenshotTimestamps();
 
 private:
@@ -332,8 +331,10 @@ private:
 	/** Hold Player Screenshot */
 	TArray<TSharedPtr<FSlateBrush>> ScreenshotList;
 
+	/** Hold screenshot time record */
 	TArray<FDateTime> ScreenshotTimestamps;
 
+	/** Timer handle when other players left the match */
 	FTimerHandle PlayerCounterTimerHandle;
 };
 

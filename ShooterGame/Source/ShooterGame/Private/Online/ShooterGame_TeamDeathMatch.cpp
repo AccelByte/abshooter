@@ -457,12 +457,12 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 	}
 	if (MVP != nullptr) { matchResults_.Add({ 1.0f, MVP->GetUserId(), ShooterGameConfig::Get().StatisticCodeMVP_}); }
 
-	//Submit statistic
+	// Submit statistics
 	FRegistry::ServerStatistic.IncrementManyUsersStatItems(matchResults_,
 		THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateLambda([](const TArray<FAccelByteModelsBulkStatItemOperationResult>& submittedResult) {}),
 		AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { UE_LOG(LogTemp, Log, TEXT("Failed to submit player's match statistic result.")); }));
 
-	//Shutdown anyway
+	// Shutdown game server
 	if (ShooterGameConfig::Get().IsLocalMode_)
 	{
 		FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ShooterGameConfig::Get().LocalServerName_, 

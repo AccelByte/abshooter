@@ -4,8 +4,6 @@
 	ShooterGameInstance.cpp
 =============================================================================*/
 
-#define FORCE_PROVIDER_AWS
-
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 // shootergame
@@ -140,17 +138,14 @@ void UShooterGameInstance::Init()
 
 	LocalPlayerOnlineStatus.InsertDefaulted(0, MAX_LOCAL_PLAYERS);
 
-	//moved to setupcallbacks()
 	SetupCallbacks();
 
 	if (!IsRunningDedicatedServer())
 	{
-		// Login with launcher
 		GameClientLogin();
 	}
 	else
 	{
-		// Login with credentials
 		GameServerLogin();
 	}
 
@@ -279,7 +274,7 @@ void UShooterGameInstance::GameClientLogin()
 		OnLoginError.ExecuteIfBound(301, "This game is standalone mode: Please use username/password.");
 	}
 
-	// Blocking here
+	/** Do blocking, wait for game client login response */
 	double LastTime = FPlatformTime::Seconds();
 	while (!bHasDone)
 	{
@@ -400,7 +395,7 @@ void UShooterGameInstance::GameServerLogin()
 	})
 		);
 
-	// Blocking here
+	/** Do blocking, wait for game server login response */
 	double lastTime = FPlatformTime::Seconds();
 	while (!bClientLoginDone)
 	{
@@ -760,7 +755,6 @@ bool UShooterGameInstance::LoadFrontEndMap(const FString& MapName)
 	if (World)
 	{
 		FString const CurrentMapName = *World->PersistentLevel->GetOutermost()->GetName();
-		//if (MapName.Find(TEXT("Highrise")) != -1)
 		if (CurrentMapName == MapName)
 		{
 			return bSuccess;
@@ -773,7 +767,7 @@ bool UShooterGameInstance::LoadFrontEndMap(const FString& MapName)
 		*FString::Printf(TEXT("%s"), *MapName)
 		);
 
-	if (URL.Valid && !HasAnyFlags(RF_ClassDefaultObject)) //CastChecked<UEngine>() will fail if using Default__ShooterGameInstance, so make sure that we're not default
+	if (URL.Valid && !HasAnyFlags(RF_ClassDefaultObject))
 	{
 		BrowseRet = GetEngine()->Browse(*WorldContext, URL, Error);
 
@@ -1040,13 +1034,6 @@ void UShooterGameInstance::BeginLoginMenuState()
 	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState setup LoginMenuUI to viewport"));
 	LoginMenuUI->Setup();
 
-	/*AShooterPlayerController* playerController = nullptr;
-	if(LocalPlayers.Num() > 1)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState get player controller cast it to AShooterPlayerController"));
-		playerController = Cast<AShooterPlayerController>(LocalPlayers[0]->PlayerController);
-	}*/
-
 	LoginMenuUI->SetMenuInterface(this);
 
 	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState END"));
@@ -1277,24 +1264,7 @@ void UShooterGameInstance::GetStatItems()
 void UShooterGameInstance::GetQos()
 {
 	FRegistry::Qos.GetServerLatencies(THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result){
-#ifdef FORCE_PROVIDER_AWS
-		TArray<TPair<FString, float>> aws_only;
-		for(TPair<FString, float> region : Result)
-		{
-			UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] GetQos region : %s"), *region.Key);
-			const FString sg_str = "ap-southeast-1";
-			const FString us_str = "us-west-2";
-			if (region.Key == sg_str || region.Key == us_str)
-			{
-				UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] GetQos add aws : %s"));
-				aws_only.Add(region);
-			}
-		}
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] GetQos set aws_only"));
-		ShooterGameConfig::Get().SetServerLatencies(aws_only);
-#else
-		ShooterGameConfig::Get().SetServerLatencies(Result);
-#endif // FORCE_PROVIDER_AWS
+	ShooterGameConfig::Get().SetServerLatencies(Result);
 		}),
 		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
 			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
@@ -1929,10 +1899,6 @@ bool UShooterGameInstance::Tick(float DeltaSeconds)
 void UShooterGameInstance::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse & Response)
 {
 	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance::OnFriendOnlineResponse] Found Online friends: "));
-	//for (int i = 0; i < Response.UserIdList.Num(); i++)
-	//{
-	//	UE_LOG(LogTemp, Log, TEXT("Found Online User ID: %s"), *Response.UserIdList[i]);
-	//}
 }
 
 bool UShooterGameInstance::HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)
@@ -2750,24 +2716,7 @@ void UShooterGameInstance::SetupUser()
 	UserToken.Display_name = AccelByte::FRegistry::Credentials.GetUserDisplayName();
 
 	ConnectToLobby();
-
 	InitStatistic();
 
 	GotoState(ShooterGameInstanceState::MainMenu);
-
-	/*UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Create Distribution Receiver..."));
-	AccelByte::Api::UserProfile::CreateEntitlementReceiver(
-		UserToken.User_id,
-		TEXT("ext-userid-001"),
-		TEXT("{\"attributes\":{\"serverId\":\"70391cb5af52427e896e05290bc65832\",\"serverName\":\"default-server\",\"characterId\":\"32aaf2eabcbb45d096e06be8a4584320\",\"characterName\":\"character-functional-test\"}}"),
-		AccelByte::THandler<FString>::CreateLambda([&bHasDone](FString Result) mutable
-	{
-		bHasDone = true;
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] SUCCESSFUL Creating Entitlement Receiver:%s"), *Result);
-
-	}), AccelByte::FErrorHandler::CreateLambda([&bHasDone](int32 Code, FString Message) mutable
-	{
-		bHasDone = true;
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] FAILED Creating Entitlement Receiver\n%s"), *Message);
-	}));*/
 }

@@ -1,4 +1,7 @@
 # Changelog
+## 1.8.1 (2020-07-13)
+## Fixed
+- Clean up operation for the main game classes
 
 ## 1.8.0 (2020-06-15)
 ## Added
