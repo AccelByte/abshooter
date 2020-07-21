@@ -136,8 +136,8 @@ void InitClassReplicationInfo(FClassReplicationInfo& Info, UClass* Class, bool b
 	AActor* CDO = Class->GetDefaultObject<AActor>();
 	if (bSpatialize)
 	{
-		Info.CullDistanceSquared = CDO->NetCullDistanceSquared;
-		UE_LOG(LogShooterReplicationGraph, Log, TEXT("Setting cull distance for %s to %f (%f)"), *Class->GetName(), Info.CullDistanceSquared, FMath::Sqrt(Info.CullDistanceSquared));
+		Info.SetCullDistanceSquared(CDO->NetCullDistanceSquared);
+		UE_LOG(LogShooterReplicationGraph, Log, TEXT("Setting cull distance for %s to %f (%f)"), *Class->GetName(), Info.GetCullDistanceSquared(), FMath::Sqrt(Info.GetCullDistanceSquared()));
 	}
 
 	Info.ReplicationPeriodFrame = FMath::Max<uint32>( (uint32)FMath::RoundToFloat(ServerMaxTickRate / CDO->NetUpdateFrequency), 1);
@@ -151,15 +151,16 @@ void InitClassReplicationInfo(FClassReplicationInfo& Info, UClass* Class, bool b
 	UE_LOG(LogShooterReplicationGraph, Log, TEXT("Setting replication period for %s (%s) to %d frames (%.2f)"), *Class->GetName(), *NativeClass->GetName(), Info.ReplicationPeriodFrame, CDO->NetUpdateFrequency);
 }
 
-const UClass* GetParentNativeClass(const UClass* Class)
-{
-	while(Class && !Class->IsNative())
-	{
-		Class = Class->GetSuperClass();
-	}
-
-	return Class;
-}
+// https://docs.unrealengine.com/en-US/API/Runtime/CoreUObject/UObject/GetParentNativeClass/index.html
+//UClass* GetParentNativeClass(UClass* Class)
+//{
+//	while(Class && !Class->IsNative())
+//	{
+//		Class = Class->GetSuperClass();
+//	}
+//
+//	return Class;
+//}
 
 void UShooterReplicationGraph::ResetGameWorldState()
 {
@@ -291,7 +292,7 @@ void UShooterReplicationGraph::InitGlobalActorClassSettings()
 	PawnClassRepInfo.DistancePriorityScale = 1.f;
 	PawnClassRepInfo.StarvationPriorityScale = 1.f;
 	PawnClassRepInfo.ActorChannelFrameTimeout = 4;
-	PawnClassRepInfo.CullDistanceSquared = 15000.f * 15000.f; // Yuck
+	PawnClassRepInfo.SetCullDistanceSquared(15000.f * 15000.f); // Yuck
 	SetClassInfo( APawn::StaticClass(), PawnClassRepInfo );
 
 	FClassReplicationInfo PlayerStateRepInfo;
@@ -323,11 +324,11 @@ void UShooterReplicationGraph::InitGlobalActorClassSettings()
 	UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EClassRepNodeMapping"));
 	for (auto ClassMapIt = ClassRepNodePolicies.CreateIterator(); ClassMapIt; ++ClassMapIt)
 	{		
-		const UClass* Class = CastChecked<UClass>(ClassMapIt.Key().ResolveObjectPtr());
+		UClass* Class = CastChecked<UClass>(ClassMapIt.Key().ResolveObjectPtr());
 		const EClassRepNodeMapping Mapping = ClassMapIt.Value();
 
 		// Only print if different than native class
-		const UClass* ParentNativeClass = GetParentNativeClass(Class);
+		UClass* ParentNativeClass = GetParentNativeClass(Class);
 		const EClassRepNodeMapping* ParentMapping = ClassRepNodePolicies.Get(ParentNativeClass);
 		if (ParentMapping && Class != ParentNativeClass && Mapping == *ParentMapping)
 		{
@@ -342,7 +343,7 @@ void UShooterReplicationGraph::InitGlobalActorClassSettings()
 	FClassReplicationInfo DefaultValues;
 	for (auto ClassRepInfoIt = GlobalActorReplicationInfoMap.CreateClassMapIterator(); ClassRepInfoIt; ++ClassRepInfoIt)
 	{
-		const UClass* Class = CastChecked<UClass>(ClassRepInfoIt.Key().ResolveObjectPtr());
+		UClass* Class = CastChecked<UClass>(ClassRepInfoIt.Key().ResolveObjectPtr());
 		const FClassReplicationInfo& ClassInfo = ClassRepInfoIt.Value();
 		UE_LOG(LogShooterReplicationGraph, Log, TEXT("  %s (%s) -> %s"), *Class->GetName(), *GetNameSafe(GetParentNativeClass(Class)), *ClassInfo.BuildDebugStringDelta());
 	}
@@ -415,7 +416,7 @@ void UShooterReplicationGraph::InitConnectionGraphNodes(UNetReplicationGraphConn
 	AddConnectionGraphNode(AlwaysRelevantConnectionNode, RepGraphConnection);
 }
 
-EClassRepNodeMapping UShooterReplicationGraph::GetMappingPolicy(const UClass* Class)
+EClassRepNodeMapping UShooterReplicationGraph::GetMappingPolicy(UClass* Class)
 {
 	EClassRepNodeMapping* PolicyPtr = ClassRepNodePolicies.Get(Class);
 	EClassRepNodeMapping Policy = PolicyPtr ? *PolicyPtr : EClassRepNodeMapping::NotRouted;
@@ -528,11 +529,12 @@ void UShooterReplicationGraph::OnCharacterEquipWeapon(AShooterCharacter* Charact
 		CHECK_WORLDS(Character);
 
 		FGlobalActorReplicationInfo& ActorInfo = GlobalActorReplicationInfoMap.Get(Character);
-		ActorInfo.DependentActorList.PrepareForWrite();
+        FActorRepListRefView& DependentActorList = const_cast<FActorRepListRefView&>(ActorInfo.GetDependentActorList());
+        DependentActorList.PrepareForWrite();
 
-		if (!ActorInfo.DependentActorList.Contains(NewWeapon))
+		if (!DependentActorList.Contains(NewWeapon))
 		{
-			ActorInfo.DependentActorList.Add(NewWeapon);
+			DependentActorList.Add(NewWeapon);
 		}
 	}
 }
@@ -544,9 +546,8 @@ void UShooterReplicationGraph::OnCharacterUnEquipWeapon(AShooterCharacter* Chara
 		CHECK_WORLDS(Character);
 
 		FGlobalActorReplicationInfo& ActorInfo = GlobalActorReplicationInfoMap.Get(Character);
-		ActorInfo.DependentActorList.PrepareForWrite();
-
-		ActorInfo.DependentActorList.Remove(OldWeapon);
+        FActorRepListRefView& DependentActorList = const_cast<FActorRepListRefView&>(ActorInfo.GetDependentActorList());
+		DependentActorList.PrepareForWrite();
 	}
 }
 
@@ -633,7 +634,7 @@ void UShooterReplicationGraphNode_AlwaysRelevant_ForConnection::GatherActorLists
 				UE_LOG(LogShooterReplicationGraph, Verbose, TEXT("Setting connection pawn cull distance to 0. %s"), *Pawn->GetName());
 				LastPawn = Pawn;
 				FConnectionReplicationActorInfo& ConnectionActorInfo = Params.ConnectionManager.ActorInfoMap.FindOrAdd( Pawn );
-				ConnectionActorInfo.CullDistanceSquared = 0.f;
+				ConnectionActorInfo.SetCullDistanceSquared(0.f);
 			}
 
 			if (Pawn != Params.Viewer.ViewTarget)
@@ -659,7 +660,7 @@ void UShooterReplicationGraphNode_AlwaysRelevant_ForConnection::GatherActorLists
 				UE_LOG(LogShooterReplicationGraph, Verbose, TEXT("Setting connection view target pawn cull distance to 0. %s"), *ViewTargetPawn->GetName());
 				LastPawn = ViewTargetPawn;
 				FConnectionReplicationActorInfo& ConnectionActorInfo = Params.ConnectionManager.ActorInfoMap.FindOrAdd(ViewTargetPawn);
-				ConnectionActorInfo.CullDistanceSquared = 0.f;
+				ConnectionActorInfo.SetCullDistanceSquared(0.0f);
 			}
 		}
 	}

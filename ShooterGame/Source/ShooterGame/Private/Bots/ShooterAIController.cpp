@@ -20,9 +20,9 @@ AShooterAIController::AShooterAIController(const FObjectInitializer& ObjectIniti
 	bWantsPlayerState = true;
 }
 
-void AShooterAIController::Possess(APawn* InPawn)
+void AShooterAIController::OnPossess(APawn* InPawn)
 {
-	Super::Possess(InPawn);
+	Super::OnPossess(InPawn);
 
 	AShooterBot* Bot = Cast<AShooterBot>(InPawn);
 
@@ -41,9 +41,9 @@ void AShooterAIController::Possess(APawn* InPawn)
 	}
 }
 
-void AShooterAIController::UnPossess()
+void AShooterAIController::OnUnPossess()
 {
-	Super::UnPossess();
+	Super::OnUnPossess();
 
 	BehaviorComp->StopTree();
 }
@@ -139,7 +139,10 @@ bool AShooterAIController::HasWeaponLOSToEnemy(AActor* InEnemyActor, const bool 
 	bool bHasLOS = false;
 	// Perform trace to retrieve hit info
 	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(AIWeaponLosTrace), true, GetPawn());
-	TraceParams.bTraceAsyncScene = true;
+
+    // https://forums.unrealengine.com/unreal-engine/announcements-and-releases/1583659-unreal-engine-4-22-preview/page33
+    // Async scene was removed
+	// TraceParams.bTraceAsyncScene = true;
 
 	TraceParams.bReturnPhysicalMaterial = true;	
 	FVector StartLocation = MyBot->GetActorLocation();	

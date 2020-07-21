@@ -728,7 +728,10 @@ FHitResult AShooterWeapon::WeaponTrace(const FVector& StartTrace, const FVector&
 
 	// Perform trace to retrieve hit info
 	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(WeaponTrace), true, Instigator);
-	TraceParams.bTraceAsyncScene = true;
+	
+    // https://forums.unrealengine.com/unreal-engine/announcements-and-releases/1583659-unreal-engine-4-22-preview/page33
+    // Async scene was removed    
+    // TraceParams.bTraceAsyncScene = true;
 	TraceParams.bReturnPhysicalMaterial = true;
 
 	FHitResult Hit(ForceInit);
