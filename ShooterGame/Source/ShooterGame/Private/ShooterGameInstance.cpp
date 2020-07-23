@@ -1194,28 +1194,11 @@ void UShooterGameInstance::BeginMainMenuState()
 void UShooterGameInstance::GetQos()
 {
 	FRegistry::Qos.GetServerLatencies(THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result){
-#ifdef FORCE_PROVIDER_AWS
-		TArray<TPair<FString, float>> aws_only;
-		for(TPair<FString, float> region : Result)
-		{
-			UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] GetQos region : %s"), *region.Key);
-			const FString sg_str = "ap-southeast-1";
-			const FString us_str = "us-west-2";
-			if (region.Key == sg_str || region.Key == us_str)
-			{
-				UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] GetQos add aws : %s"));
-				aws_only.Add(region);
-			}
-		}
-		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] GetQos set aws_only"));
-		ShooterGameConfig::Get().SetServerLatencies(aws_only);
-#else
 		ShooterGameConfig::Get().SetServerLatencies(Result);
-#endif // FORCE_PROVIDER_AWS
-		}),
-		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
-			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
-		}));
+	}),
+	AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
+		UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
+	}));
 }
 
 // Setup my statistic code, server can not update our stats if we don't have any.
@@ -2630,7 +2613,6 @@ void UShooterGameInstance::SetupUser()
 
 	UserProfileInfo.UserId = AccelByte::FRegistry::Credentials.GetUserId();
 
-	//ConnectToLobby();
 	SetupStatistic();
 
 	GotoState(ShooterGameInstanceState::MainMenu);
