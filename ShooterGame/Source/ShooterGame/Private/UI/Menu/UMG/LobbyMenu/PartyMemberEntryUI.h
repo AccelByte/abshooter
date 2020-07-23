@@ -35,6 +35,8 @@ public:
 	/** Party member data. */
 	FPartyMemberEntry Data;
 
+	void SetKickButtonState(ESlateVisibility InVisibility);
+
 	/** Party invitation counter. */
 	float PartyInvitationCounter = PARTY_INVITATION_COUNTER;
 

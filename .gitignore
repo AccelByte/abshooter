@@ -75,6 +75,10 @@ Saved/*
 # Compiled source files for the engine to use
 Intermediate/*
 
+# Cooked Game Files
+Cooked/*
+ShooterGame/Cooked/*
+
 # Cache files for the editor to use
 DerivedDataCache/*
 ShooterGame/Intermediate/
@@ -83,7 +87,9 @@ ShooterGame/Saved/
 *.pdb
 ShooterGame/Output/
 ShooterGame/Build/
-ShooterGame/Content/
+#ShooterGame/Content/
+ShooterGame/DevelopmentWin64
+ShooterGame/DevelopmentLinux
 ShooterGame/Binaries/
 ShooterGame/Plugins/AccelByteCustomWebBrowserWidget/Intermediate/
 ShooterGame/Plugins/AccelByteUe4Sdk/Intermediate/

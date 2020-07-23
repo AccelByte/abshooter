@@ -43,4 +43,13 @@ public:
 	* @param GameModeName The Game Mode for the matchmaking.
 	*/
 	virtual void ChangeGameMode(FString GameModeName) = 0;
+
+	/** Start Matchmaking. */
+	virtual void StartMatchmaking(FString GameModeDisplayName) = 0;
+
+	/** Cancel Matchmaking. */
+	virtual void CancelMatchmaking() = 0;
+
+	/** Ready matchmaking. */
+	virtual void ReadyMatchmaking() = 0;
 };

@@ -6,6 +6,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/EditableTextBox.h"
+#include "Misc/ConfigCacheini.h"
 
 bool ULoginMenuUI::Initialize()
 {
@@ -21,6 +22,10 @@ bool ULoginMenuUI::Initialize()
 	if (!ensure(UsernameField != nullptr)) return false;
 	if (!ensure(PasswordField != nullptr)) return false;
 	if (!ensure(ErrorField != nullptr)) return false;
+
+	UsernameField->SetText(FText::FromString(SavedUsername));
+
+	PasswordField->SetText(FText::FromString(SavedPassword));
 
 	return true;
 }
@@ -54,6 +59,10 @@ void ULoginMenuUI::LoginWithUsername()
 
 		if (!ensure(PasswordField != nullptr)) return;
 		FString Password = PasswordField->GetText().ToString();
+
+		SavedUsername = Username;
+		SavedPassword = Password;
+		SaveConfig();
 
 		LoginMenuInterface->LoginWithUsername(Username, Password);
 	}

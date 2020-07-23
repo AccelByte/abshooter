@@ -12,7 +12,7 @@
 /**
  * Login menu UI widget.
  */
-UCLASS()
+UCLASS(config = game)
 class ULoginMenuUI : public UBaseMenuUI
 {
 	GENERATED_BODY()
@@ -36,7 +36,15 @@ private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
-	/** Login with username and password. */
+private:
+
+	UPROPERTY(config)
+	FString SavedUsername;
+
+	UPROPERTY(config)
+	FString SavedPassword;
+
+	/** Login with username and password */
 	UFUNCTION()
 	void LoginWithUsername();
 

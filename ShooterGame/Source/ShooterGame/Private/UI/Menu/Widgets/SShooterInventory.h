@@ -7,6 +7,7 @@
 #include "ShooterGame.h"
 #include "Models/ShooterInventory.h"
 #include "Models/AccelByteEcommerceModels.h"
+#include "UI/Menu/UMG/MainMenu/MainMenuUI.h"
 
 //class declare
 class SShooterInventory : public SCompoundWidget
@@ -19,6 +20,7 @@ public:
 
 	SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer >, PlayerOwner)
 	SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
+	SLATE_ARGUMENT(UMainMenuUI*, UOwnerWidget) //TODO remove this argument after Inventory migrated to UMG completely
 	SLATE_ARGUMENT(FSimpleDelegate, OnBuyItemFinished)
 
 	SLATE_END_ARGS()
@@ -53,6 +55,7 @@ protected:
 
 	/** pointer to our parent widget */
 	TSharedPtr<class SWidget> OwnerWidget;
+	UMainMenuUI* UOwnerWidget; //TODO remove this member after Inventory migrated to UMG completely
 
 	FSlateColorBrush ConfirmationBackgroundBrush;
 

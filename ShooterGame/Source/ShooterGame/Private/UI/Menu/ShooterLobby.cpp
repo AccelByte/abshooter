@@ -48,7 +48,14 @@ void ShooterLobby::Connect()
 {
 	LobbyMenuUI->OpenConnectProcessPanel();
 	SetLobbyDelegate();
-	AccelByte::FRegistry::Lobby.Connect();
+	if (AccelByte::FRegistry::Lobby.IsConnected())
+	{
+		OnLobbyConnectSuccess();
+	}
+	else
+	{
+		AccelByte::FRegistry::Lobby.Connect();
+	}
 }
 
 void ShooterLobby::ReloadFriendList()
@@ -60,15 +67,9 @@ void ShooterLobby::ReloadFriendList()
 
 void ShooterLobby::SetLobbyDelegate()
 {
-	AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnectSuccess = AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([this]() {
-		UE_LOG(LogTemp, Log, TEXT("[ShooterLobby] Lobby Login...Connected!"));
-		if (LobbyMenuUI != nullptr)
-		{
-			LobbyMenuUI->OpenConnectSuccessPanel();
-			Initialize();
-		}
-	});
-	AccelByte::FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnectSuccess);
+
+#pragma region Lobby Connection Delegate
+	AccelByte::FRegistry::Lobby.SetConnectSuccessDelegate(FSimpleDelegate::CreateSP(this, &ShooterLobby::OnLobbyConnectSuccess));
 
 	AccelByte::FErrorHandler OnLobbyConnectFailed = AccelByte::FErrorHandler::CreateLambda([this](int32 Code, FString Message) {
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Lobby Connect Failed! Code: %d, Message: %s."), Code, *Message);
@@ -93,6 +94,7 @@ void ShooterLobby::SetLobbyDelegate()
 	});
 	AccelByte::FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
 
+#pragma region Lobby Friend List Delegate
 	AccelByte::FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(AccelByte::Api::Lobby::FGetAllFriendsStatusResponse::CreateSP(this, &ShooterLobby::OnGetAllUserPresenceResponse));
 	AccelByte::FRegistry::Lobby.SetLoadFriendListResponseDelegate(AccelByte::Api::Lobby::FLoadFriendListResponse::CreateSP(this, &ShooterLobby::OnLoadFriendListResponse));
 	AccelByte::FRegistry::Lobby.SetListIncomingFriendsResponseDelegate(AccelByte::Api::Lobby::FListIncomingFriendsResponse::CreateSP(this, &ShooterLobby::OnListIncomingFriendsResponse));
@@ -101,7 +103,8 @@ void ShooterLobby::SetLobbyDelegate()
 	AccelByte::FRegistry::Lobby.SetOnIncomingRequestFriendsNotifDelegate(AccelByte::Api::Lobby::FRequestFriendsNotif::CreateSP(this, &ShooterLobby::OnIncomingRequestFriendsNotification));
 	AccelByte::FRegistry::Lobby.SetUserPresenceNotifDelegate(AccelByte::Api::Lobby::FFriendStatusNotif::CreateSP(this, &ShooterLobby::OnUserPresenceNotification));
 	AccelByte::FRegistry::Lobby.SetRequestFriendsResponseDelegate(AccelByte::Api::Lobby::FRequestFriendsResponse::CreateSP(this, &ShooterLobby::OnRequestFriendsResponse));
-
+#pragma endregion
+#pragma region Party Delegate
 	AccelByte::FRegistry::Lobby.SetCreatePartyResponseDelegate(AccelByte::Api::Lobby::FPartyCreateResponse::CreateSP(this, &ShooterLobby::OnCreatePartyResponse));
 	AccelByte::FRegistry::Lobby.SetInfoPartyResponseDelegate(AccelByte::Api::Lobby::FPartyInfoResponse::CreateSP(this, &ShooterLobby::OnInfoPartyResponse));
 	AccelByte::FRegistry::Lobby.SetPartyLeaveNotifDelegate(AccelByte::Api::Lobby::FPartyLeaveNotif::CreateSP(this, &ShooterLobby::OnPartyLeaveNotification));
@@ -112,6 +115,27 @@ void ShooterLobby::SetLobbyDelegate()
 	AccelByte::FRegistry::Lobby.SetLeavePartyResponseDelegate(AccelByte::Api::Lobby::FPartyLeaveResponse::CreateSP(this, &ShooterLobby::OnLeavePartyResponse));
 	AccelByte::FRegistry::Lobby.SetPartyGetInvitedNotifDelegate(AccelByte::Api::Lobby::FPartyGetInvitedNotif::CreateSP(this, &ShooterLobby::OnPartyGetInvitedNotification));
 	AccelByte::FRegistry::Lobby.SetInvitePartyJoinResponseDelegate(AccelByte::Api::Lobby::FPartyJoinResponse::CreateSP(this, &ShooterLobby::OnInvitePartyJoinResponse));
+
+#pragma endregion
+
+#pragma region Matchmaking Delegate
+	AccelByte::FRegistry::Lobby.SetMatchmakingNotifDelegate(AccelByte::Api::Lobby::FMatchmakingNotif::CreateSP(this, &ShooterLobby::OnMatchmakingNotification));
+	AccelByte::FRegistry::Lobby.SetRematchmakingNotifDelegate(AccelByte::Api::Lobby::FRematchmakingNotif::CreateSP(this, &ShooterLobby::OnRematchmakingNotification));
+	AccelByte::FRegistry::Lobby.SetStartMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateSP(this, &ShooterLobby::OnStartMatchmakingResponse));
+	AccelByte::FRegistry::Lobby.SetCancelMatchmakingResponseDelegate(AccelByte::Api::Lobby::FMatchmakingResponse::CreateSP(this, &ShooterLobby::OnCancelMatchmakingResponse));
+	AccelByte::FRegistry::Lobby.SetDsNotifDelegate(AccelByte::Api::Lobby::FDsNotif::CreateSP(this, &ShooterLobby::OnDsNotification));
+#pragma endregion
+
+}
+
+void ShooterLobby::OnLobbyConnectSuccess()
+{
+	UE_LOG(LogTemp, Log, TEXT("[ShooterLobby] Lobby Login...Connected!"));
+	if (LobbyMenuUI != nullptr)
+	{
+		LobbyMenuUI->OpenConnectSuccessPanel();
+		Initialize();
+	}
 }
 
 void ShooterLobby::OnGetAllUserPresenceResponse(const FAccelByteModelsGetOnlineUsersResponse& Response)
@@ -353,9 +377,17 @@ void ShooterLobby::UpdateFriendList()
 		{
 			if (FriendEntry->Data.Presence == EFriendPresence::ONLINE)
 			{
-				FriendEntry->Data.onParty = PartyMembers.ContainsByPredicate([FriendEntry](UPartyMemberEntryUI* Entry) {
-					return Entry->Data.UserId == FriendEntry->Data.UserId;
-				});
+				// If Matchmaking is started, collapse the Invite Party Member functionality
+				if (bMatchmakingStarted == true)
+				{
+					FriendEntry->Data.onParty = true;
+				}
+				else 
+				{
+					FriendEntry->Data.onParty = PartyMembers.ContainsByPredicate([FriendEntry](UPartyMemberEntryUI* Entry) {
+						return Entry->Data.UserId == FriendEntry->Data.UserId;
+					});
+				}
 			}
 			else
 			{
@@ -495,16 +527,17 @@ void ShooterLobby::LoadGameModes()
 
 	// TODO: Read from game config. Below is just a hardcoded-mock up.
 	GameModes.Add({ "FFA", "10ffa", 1 });
-	GameModes.Add({ "3 vs 3", "3v3", 3 });
-	GameModes.Add({ "4 vs 4", "4v4", 4 });
-	GameModes.Add({ "5 vs 5", "5v5", 5 });
+	GameModes.Add({ "1 vs 1", "1vs1", 1 });
+	GameModes.Add({ "2 vs 2", "2vs2", 2 });
+	GameModes.Add({ "3 vs 3", "3vs3", 3 });
+	GameModes.Add({ "4 vs 4", "4vs4", 4 });
+	GameModes.Add({ "5 vs 5", "5vs5", 5 });
 
 	if (GameModes.Num() > 0)
 	{
-		TArray<FString> GameModeNames;
-		for (FGameModeEntry GameMode : GameModes)
+		for (auto& GameMode : GameModes)
 		{
-			GameModeNames.Add(GameMode.Name);
+			GameModeNames.Add(GameMode.DisplayName);
 		}
 		CurrenGameMode = GameModes[0];
 		LobbyMenuUI->SetGameModes(GameModeNames);
@@ -659,6 +692,28 @@ void ShooterLobby::UpdatePartyMemberList()
 	}
 }
 
+void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted)
+{
+	if (!CurrentPartyId.IsEmpty())
+	{
+		if (PartyMembers.Num() > 0)
+		{
+			for (auto& Members : PartyMembers)
+			{
+				if (bMatchmakingStarted == true)
+				{
+					Members->Data.isKickable = false;
+				}
+				else 
+				{
+					Members->Data.isKickable = true;
+				}
+			}
+		}
+		LobbyMenuUI->UpdatePartyMemberList(PartyMembers);
+	}
+}
+
 void ShooterLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyResponse& PartyInfo)
 {
 	if (PartyInfo.Code == TEXT("0"))
@@ -751,7 +806,9 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 
 	UpdatePartyMemberList();
 
-	// TODO: Show leave notification
+	TWeakObjectPtr<UGeneralNotificationPopupUI> NotificationPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+	NotificationPopup->Show(ENotificationType::NOTIFICATION, FString("You have left the Party."));
 }
 
 void ShooterLobby::OnInvitePartyResponse(const FAccelByteModelsPartyInviteResponse& Response)
@@ -787,6 +844,7 @@ void ShooterLobby::OnInvitePartyKickMemberResponse(const FAccelByteModelsKickPar
 	}
 }
 
+// Other people Joined User's Party (Current User as Party Leader)
 void ShooterLobby::OnPartyJoinNotification(const FAccelByteModelsPartyJoinNotice& Notification)
 {
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
@@ -822,6 +880,9 @@ void ShooterLobby::OnPartyKickNotification(const FAccelByteModelsGotKickedFromPa
 		UpdateFriendList();
 
 		// TODO: show "you has been kicked" popup
+		TWeakObjectPtr<UGeneralNotificationPopupUI> NotificationPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+		NotificationPopup->Show(ENotificationType::NOTIFICATION, FString("You have been kicked from the Party."));
 	}
 	else
 	{
@@ -832,7 +893,9 @@ void ShooterLobby::OnPartyKickNotification(const FAccelByteModelsGotKickedFromPa
 			return Entry->Data.UserId == UserId;
 		});
 
-		// TODO: show "a user has been kicked" popup
+		TWeakObjectPtr<UGeneralNotificationPopupUI> NotificationPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+		// TODO: Show "user name has been kicked from the party."
+		NotificationPopup->Show(ENotificationType::NOTIFICATION, FString::Printf(TEXT("%s have been kicked from the Party."), *KickInfo.UserId));
 	}
 }
 
@@ -903,6 +966,7 @@ void ShooterLobby::OnPartyGetInvitedNotification(const FAccelByteModelsPartyGetI
 	}
 }
 
+// Invited as Party Member (Current User as Party member)
 void ShooterLobby::OnInvitePartyJoinResponse(const FAccelByteModelsPartyJoinReponse& Response)
 {
 	if (Response.Code == TEXT("0"))
@@ -911,6 +975,13 @@ void ShooterLobby::OnInvitePartyJoinResponse(const FAccelByteModelsPartyJoinRepo
 
 		// Add party leader
 		AddPartyMember(Response.LeaderId, true);
+
+		// Disable Matchmaking if Current User is not a leader
+		FString CurrentUserId = GameInstance.Get()->UserToken.User_id;
+		if (CurrentUserId != Response.LeaderId)
+		{
+			LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::DISABLED);
+		}
 
 		// Add member
 		for (FString Member : Response.Members)
@@ -936,6 +1007,7 @@ void ShooterLobby::OnInvitePartyJoinResponse(const FAccelByteModelsPartyJoinRepo
 			}
 			else if(Member != Response.LeaderId)
 			{
+				// If member not a party leader.
 				AddPartyMember(Member);
 			}
 		}
@@ -943,6 +1015,210 @@ void ShooterLobby::OnInvitePartyJoinResponse(const FAccelByteModelsPartyJoinRepo
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] Invited member failed to join party! Code: %s."), *Response.Code);
+	}
+}
+
+
+void ShooterLobby::OnMatchmakingNotification(const FAccelByteModelsMatchmakingNotice & Response)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] OnMatchmakingNotification..."));
+
+	if (Response.Status == EAccelByteMatchmakingStatus::Done)
+	{
+		// ShooterGameTelemetry::Get().StartMatch(Response.MatchId, this->GameMode);
+
+		FString MatchId = Response.MatchId;
+
+		CurrentMatchId = MatchId;
+
+		// Start Matchmaking Countdown Timer
+		LobbyMenuUI->SetMatchmakingCountdown(MatchmakingCountdown);
+		TSharedPtr<FTimerHandle> ReadyTimerHandle = MakeShared<FTimerHandle>();
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*ReadyTimerHandle, FTimerDelegate::CreateLambda([this, ReadyTimerHandle]() {
+			// I didn't use FPlatformTime::Seconds because this doesn't need to be that accurate;
+			MatchmakingCountdown -= 1;
+			LobbyMenuUI->SetMatchmakingCountdown(MatchmakingCountdown);
+			if (MatchmakingCountdown == 0)
+			{
+				MatchmakingCountdown = READY_CONSENT_TIMEOUT;
+				// TO DO : Timeout, so we need to disable Matchmaking. currently just go back to PRESTART.
+				LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::PRESTART);
+				GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*ReadyTimerHandle);
+			}
+			else if (bReadyConsent == true)
+			{
+				MatchmakingCountdown = READY_CONSENT_TIMEOUT;
+				GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*ReadyTimerHandle);
+			}
+
+			}), 1.0f, true);
+
+		TWeakObjectPtr<UGeneralNotificationPopupUI> ReadyConsentPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+		FOnNotificationButtonClicked NotificationDelegate = FOnNotificationButtonClicked::CreateLambda([ReadyConsentPopup, MatchId, this]()
+		{
+			AccelByte::FRegistry::Lobby.SendReadyConsentRequest(MatchId);
+			bReadyConsent = true;
+			LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::READY);
+			ReadyConsentPopup->ClosePopup();
+		});
+
+		FOnNotificationCloseButtonClicked OnCloseButtonClickedDelegate = FOnNotificationCloseButtonClicked::CreateLambda([this]() {
+			LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::FOUND);
+			});
+
+		// Disable Ready Consent popup because of a bug in timer for now
+		// TODO : Check for the crash related to the timer.
+		//ReadyConsentPopup->Show(ENotificationType::BUTTON, FString("READY"), NotificationDelegate, OnCloseButtonClickedDelegate);
+		LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::FOUND);
+	}
+	// show loading for non leader party member
+	else if (Response.Status == EAccelByteMatchmakingStatus::Start)
+	{
+		bMatchmakingStarted = true;
+		LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::INPROGRESS);
+		// Start Matchmaking Duration Timer, i think we can refactor this into function.
+		double MatchmakingStartTime = FPlatformTime::Seconds();
+		double MatchmakingDurationTime;
+		int32 TimeSeconds;
+		TSharedPtr<FTimerHandle> MatchmakingTimerHandle = MakeShared<FTimerHandle>();
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*MatchmakingTimerHandle, FTimerDelegate::CreateLambda([&, this, MatchmakingTimerHandle, MatchmakingStartTime]() 
+		{
+			MatchmakingDurationTime = FPlatformTime::Seconds() - MatchmakingStartTime;
+			TimeSeconds = floor(MatchmakingDurationTime);
+
+			LobbyMenuUI->SetMatchmakingDuration(TimeSeconds);
+
+			// Lobby Disconnected
+			if (!AccelByte::FRegistry::Lobby.IsConnected())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Disconnected From Lobby, Canceling Matchmaking"));
+				bMatchmakingStarted = false;
+				if (GEngine->GameViewport != nullptr)
+				{
+					GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*MatchmakingTimerHandle);
+				}
+			}
+			// Matchmaking cancelled via Cancel Button
+			else if (bMatchmakingStarted == false)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Stopped Finding match, Cancelling Matchmaking"));
+				if (GEngine->GameViewport != nullptr)
+				{
+					GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*MatchmakingTimerHandle);
+				}
+			}
+			else if (bAlreadyEnteringLevel)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Found a Match, Entering a level, disabling Matchmake Heartbeat"));
+				if (GEngine->GameViewport != nullptr)
+				{
+					GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*MatchmakingTimerHandle);
+				}
+			}
+			else {
+				UE_LOG(LogTemp, Warning, TEXT("Finding Match..."));
+			}
+		}), 1.0f, true);
+	}
+	else
+	{
+		FString FailMatchmakingReason = "UNKNOWN";
+		switch (Response.Status)
+		{
+		case EAccelByteMatchmakingStatus::Cancel:
+			FailMatchmakingReason = "Matchmaking canceled by party leader";
+			break;
+		case EAccelByteMatchmakingStatus::Timeout:
+			FailMatchmakingReason = "Timeout";
+			break;
+		case EAccelByteMatchmakingStatus::Unavailable:
+			FailMatchmakingReason = "Dedicated server unavailable";
+			break;
+		default:
+			FailMatchmakingReason = FString::Printf(TEXT("Code: %d"), (int32)Response.Status);
+			break;
+		}
+
+		TWeakObjectPtr<UGeneralNotificationPopupUI> FailedMatchmakingPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+		FOnNotificationCloseButtonClicked OnCloseButtonClickedDelegate = FOnNotificationCloseButtonClicked::CreateLambda([this]() {
+			LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::PRESTART);
+		});
+
+		FailedMatchmakingPopup->Show(ENotificationType::NOTIFICATION, FailMatchmakingReason, NULL, OnCloseButtonClickedDelegate);
+
+		bMatchmakingStarted = false;
+	}
+}
+
+void ShooterLobby::OnRematchmakingNotification(const FAccelByteModelsRematchmakingNotice & Response)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] OnRematchmakingNotification..."));
+	bReadyConsent = false;
+	if (Response.BanDuration == 0)
+	{
+		TWeakObjectPtr<UGeneralNotificationPopupUI> RematchmakingPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+		FOnNotificationCloseButtonClicked CloseButtonDelegate = FOnNotificationCloseButtonClicked::CreateLambda([RematchmakingPopup, this]()
+			{
+				bMatchmakingStarted = true;
+				UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+			});
+
+		RematchmakingPopup->Show(ENotificationType::NOTIFICATION, FString("Your Opponent's Party Have been Banned Because of Long Term Inactivity. We'll Rematch You with Another Party."), NULL , CloseButtonDelegate);
+	}
+	else
+	{
+
+		TWeakObjectPtr<UGeneralNotificationPopupUI> RematchmakingPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+		FOnNotificationCloseButtonClicked CloseButtonDelegate = FOnNotificationCloseButtonClicked::CreateLambda([RematchmakingPopup, this]()
+			{
+				bMatchmakingStarted = false;
+				UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+			});
+
+		RematchmakingPopup->Show(ENotificationType::NOTIFICATION, FString::Printf(TEXT("You're Banned for %d sec Because of Long Term Inactivity. You Can Search for A Match Again After the Ban is Lifted."), Response.BanDuration), NULL, CloseButtonDelegate);
+	}
+}
+
+void ShooterLobby::OnStartMatchmakingResponse(const FAccelByteModelsMatchmakingResponse & Response)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] OnStartMatchmakingResponse, Respone Code = %s"), *Response.Code);
+	if (Response.Code != "0")
+	{
+		bMatchmakingStarted = false;
+		UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+	}
+}
+
+void ShooterLobby::OnCancelMatchmakingResponse(const FAccelByteModelsMatchmakingResponse & Response)
+{
+	UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] OnCancelMatchmakingResponse..."));
+}
+
+void ShooterLobby::OnDsNotification(const FAccelByteModelsDsNotice& Notice)
+{
+	UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
+
+	if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
+	{
+		FString ServerAddress;
+		if (ShooterGameConfig::Get().IsLocalMode_)
+		{
+			ServerAddress = FString::Printf(TEXT("%s:%i"), *ShooterGameConfig::Get().LocalServerIP_, ShooterGameConfig::Get().ServerPort_);
+		}
+		else
+		{
+			ServerAddress = FString::Printf(TEXT("%s:%i"), *Notice.Ip, Notice.Port);
+		}
+		UE_LOG(LogOnlineGame, Log, TEXT("StartMatch: %s"), *ServerAddress);
+		StartMatch(Notice.MatchId, CurrentPartyId, ServerAddress);
+	}
+	else if (Notice.Status.Compare(TEXT("CREATING")) == 0)
+	{
+		bAlreadyEnteringLevel = false;
 	}
 }
 
@@ -997,6 +1273,133 @@ void ShooterLobby::RefreshFriendList()
 	ReloadFriendList();
 }
 
+void ShooterLobby::StartMatchmaking(FString GameModeDisplayName)
+{
+	if (GEngine->GameViewport == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Can't find Game Viewport, this shouldn't happen!"));
+		return;
+	}
+
+	CurrentGameMode = *GameModes.FindByPredicate([GameModeDisplayName](FGameModeEntry Entry)
+		{
+			return Entry.DisplayName == GameModeDisplayName;
+		});
+	FString GameModeName = CurrentGameMode.GameMode;
+	if (PartyMembers.Num() > CurrentGameMode.MaxMembers)
+	{
+		TWeakObjectPtr<UGeneralNotificationPopupUI> MatchmakingPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+
+		MatchmakingPopup->Show(ENotificationType::NOTIFICATION, FString::Printf(TEXT("Your Party has too much member, please remove some of your party member.")));
+
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Start Match Called, Game Mode Name : %s"), *GameModeName);
+
+	TSharedPtr<FTimerHandle> MatchmakingTimerHandle = MakeShared<FTimerHandle>();
+
+	// Heartbeat to make sure Lobby is still connected into the Lobby Server
+	if (bMatchmakingStarted == false)
+	{
+		bMatchmakingStarted = true;
+
+		// Set the Widget Status into MatchmakingInProgress
+		LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::INPROGRESS);
+		UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+
+		// Update Friend List state once Matchmaking starts, need to do it to disable Invite Party while in matchmaking
+		UpdateFriendList();
+
+		double MatchmakingStartTime = FPlatformTime::Seconds();
+		double MatchmakingDurationTime;
+		int32 TimeSeconds;
+
+		// we don't have access to GetWorld natively so we have to Access the Game ViewPort to get TimerManager
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(*MatchmakingTimerHandle, TFunction<void(void)>([&, MatchmakingTimerHandle, MatchmakingStartTime]()
+			{
+				MatchmakingDurationTime = FPlatformTime::Seconds() - MatchmakingStartTime;
+				TimeSeconds = floor(MatchmakingDurationTime);
+
+				LobbyMenuUI->SetMatchmakingDuration(TimeSeconds);
+
+				// Lobby Disconnected
+				if (!AccelByte::FRegistry::Lobby.IsConnected())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Disconnected From Lobby, Canceling Matchmaking"));
+					bMatchmakingStarted = false;
+					if (GEngine->GameViewport != nullptr)
+					{
+						GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*MatchmakingTimerHandle);
+					}
+				}
+				// Matchmaking cancelled via Cancel Button
+				else if (bMatchmakingStarted == false)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Stopped Finding match, Cancelling Matchmaking"));
+					if (GEngine->GameViewport != nullptr)
+					{
+						GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*MatchmakingTimerHandle);
+					}
+				}
+				else if (bAlreadyEnteringLevel)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Found a Match, Entering a level, disabling Matchmake Heartbeat"));
+					if (GEngine->GameViewport != nullptr)
+					{
+						GEngine->GameViewport->GetWorld()->GetTimerManager().ClearTimer(*MatchmakingTimerHandle);
+					}
+				}
+				else {
+					UE_LOG(LogTemp, Warning, TEXT("Finding Match..."));
+				}
+			}), 1.0f, true, 0.f);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Matchmaking Already Started"));
+	}
+	if (ShooterGameConfig::Get().IsLocalMode_)
+	{
+		AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+			*GameModeName,
+			ShooterGameConfig::Get().LocalServerName_
+		);
+	}
+	else
+	{
+		TArray<TPair<FString, float>> SelectionRegions = ShooterGameConfig::Get().SelectedRegion_;
+		AccelByte::FRegistry::Lobby.SendStartMatchmaking(
+			*GameModeName,
+			TEXT(""),
+			ShooterGameConfig::Get().ServerImageVersion_,
+			ShooterGameConfig::Get().SelectedRegion_
+		);
+	}
+}
+
+void ShooterLobby::CancelMatchmaking()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Cancelling Matchmaking"));
+
+	// I think we should bundle setting bMatchmakingStarted with UpdateFriendlist, or make a worker to continously update FriendList in the background
+	bMatchmakingStarted = false;
+	// Update Friend List state once Matchmaking is cancelled, need to do it to enable Invite Party
+	UpdateFriendList();
+	UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+	LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::PRESTART);
+
+	AccelByte::FRegistry::Lobby.SendCancelMatchmaking(*CurrentGameMode.GameMode);
+}
+
+void ShooterLobby::ReadyMatchmaking()
+{
+	AccelByte::FRegistry::Lobby.SendReadyConsentRequest(CurrentMatchId);
+	bReadyConsent = true;
+	LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::READY);
+}
+
+
 void ShooterLobby::CreateParty()
 {
 	AccelByte::FRegistry::Lobby.SendCreatePartyRequest();
@@ -1011,7 +1414,7 @@ void ShooterLobby::ChangeGameMode(FString GameModeName)
 	}
 
 	int32 Index = GameModes.IndexOfByPredicate([GameModeName](FGameModeEntry Entry) {
-		return Entry.Name == GameModeName;
+		return Entry.DisplayName == GameModeName;
 	});
 	if (Index != INDEX_NONE)
 	{
@@ -1025,6 +1428,26 @@ void ShooterLobby::ChangeGameMode(FString GameModeName)
 
 	UpdatePartyMemberList();
 }
+
+void ShooterLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FString& DedicatedServerAddress)
+{
+	if (this->bAlreadyEnteringLevel == false)
+	{
+		this->bAlreadyEnteringLevel = true;
+		UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
+
+		// Add delay to ensure the server has received a heartbeat response contains matchmaking result
+		// Player only entering level once
+		FTimerHandle dummyHandle;
+		FString UserID = GameInstance->UserProfileInfo.UserId;
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(dummyHandle, TFunction<void(void)>([this, DedicatedServerAddress, PartyId, MatchId, UserID]()
+		{
+			GameInstance->GotoState(ShooterGameInstanceState::Playing);
+			UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *UserID));
+		}), 1.0f, false, ShooterGameConfig::Get().PlayerEnteringServerDelay_);
+	}
+}
+
 #pragma endregion Override Lobby Menu Interface
 
 #pragma region Override Friend Search Result Entry Interface

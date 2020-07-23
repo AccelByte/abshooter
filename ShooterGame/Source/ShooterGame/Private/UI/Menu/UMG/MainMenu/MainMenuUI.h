@@ -40,6 +40,10 @@ public:
 	/** Get Gallery sub-menu widget. */
 	class UGalleryMenuUI* GetGalleryMenu();
 
+	// TODO remove this, menu switcher should not be available to public
+	UFUNCTION(BlueprintCallable)
+	class UWidgetSwitcher* GetMenuSwitcher() { return MenuSwitcher; }
+
 protected:
 	/** Handle on key pressed. */
 	FReply NativeOnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
@@ -52,13 +56,18 @@ private:
 	/** Initialize widget. */
 	virtual bool Initialize();
 
+public: //TODO remove this public specifier. OpenMainMenu() should not be available to public (slate)
 	/** Open main menu. */
 	UFUNCTION()
 	void OpenMainMenu();
 
+private:
 	/** Open Game Profile sub-menu. */
 	UFUNCTION()
 	void OpenGameProfileMenu();
+
+	UFUNCTION()
+	void OpenSelectMatchMenu();
 
 	/** Open Lobby sub-menu. */
 	UFUNCTION()
@@ -82,6 +91,10 @@ private:
 	/** Game Profile button. */
 	UPROPERTY(meta = (BindWidget))
 	class UButton* GameProfileButton;
+
+	/** Lobby button. */
+	UPROPERTY(meta = (BindWidget))
+	class UButton* SelectMatchButton;
 
 	/** Lobby button. */
 	UPROPERTY(meta = (BindWidget))
@@ -113,6 +126,10 @@ private:
 
 	/** Lobby sub-menu widget. */
 	UPROPERTY(meta = (BindWidget))
+	class UWidget* SelectMatchMenu;
+
+	/** Lobby sub-menu widget. */
+	UPROPERTY(meta = (BindWidget))
 	class UWidget* LobbyMenu;
 
 	/** Gallery sub-menu widget. */
@@ -134,4 +151,8 @@ private:
 	/** Gallery sub-menu widget. */
 	UPROPERTY(meta = (BindWidget))
 	class UGalleryMenuUI* WB_GalleryMenu;
+
+	// TODO : Rename to Select Match Menu
+	UPROPERTY(meta = (BindWidget))
+	class USelectGameModeMenuUI* WB_GameModeMenu;
 };

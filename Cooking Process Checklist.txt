@@ -1,0 +1,13 @@
+Cooking Process Checklist
+- Make sure you add the Newly Added Game mode into the DefaultEditor.ini [AllMaps]
+- Check DefaultGame.ini, if you need to enable cook all in the content enable the bCookAll = true
+this has the information about cooking maps
+- To Enable Cooking only the maps, enable the bCookMapsOnly, this can only be used if bCookAll is enabled
+https://forums.unrealengine.com/development-discussion/c-gameplay-programming/72687-list-of-maps-to-cook
+
+- For Game Maps under Content, there's few Maps with Suffix _Lightning, _Gameplay, etc, those are used to separate the level to not make it a massive blob.
+- example usage, Lightning Engineer can develop on the map using _Lightning, Gameplay engineer on _Gameplay, without them conflicting with each other.
+- To set these map and see what level is inside the map, you can use Window->Levels, to add a map, you can use the top left of Levels icon and use ..add existing
+
+- Disabling -pak options in Cooking might help to debug if asset is missing, -pak will package the Assets into one file (with smaller size), usually used for Shipping releases.
+- If you built a Server/Game with pak previously, remove the Pak folder afterwards, otherwise it will still be read by the game (creates duplicates issues)

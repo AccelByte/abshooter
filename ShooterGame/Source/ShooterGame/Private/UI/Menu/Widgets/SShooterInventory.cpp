@@ -37,6 +37,7 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
 	OnBuyItemFinished = InArgs._OnBuyItemFinished;
+	UOwnerWidget = InArgs._UOwnerWidget; //TODO remove this argument after Inventory migrated to UMG completely
 
 	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
@@ -141,7 +142,14 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Bottom)
 				.OnClicked(FOnClicked::CreateLambda([&]()
 				{
-					static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+					if (OwnerWidget.IsValid())
+					{
+						static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+					}
+					else if (UOwnerWidget != nullptr) //TODO remove this implementatio after Inventory migrated to UMG completely
+					{
+						static_cast<UMainMenuUI*>(UOwnerWidget)->OpenMainMenu();
+					}
 					return FReply::Handled();
 				}))
 			]

@@ -87,6 +87,9 @@ void FShooterMainMenu::Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner)
 	// Load main menu widget
 	if (!ensure(GameInstance->MainMenuClass.IsValid())) return;
 
+	PopulateRegionLatencies(ShooterGameConfig::Get().ServerLatencies_);
+	auto ServerList = ShooterGameConfig::Get().ServerLatencies_;
+	ShooterGameConfig::Get().SelectRegion(ServerList[0]);
 
 	MainMenuUI = MakeWeakObjectPtr<UMainMenuUI>(CreateWidget<UMainMenuUI>(GameInstance.Get(), *GameInstance->MainMenuClass.Get()));
 	if (!ensure(MainMenuUI != nullptr))
