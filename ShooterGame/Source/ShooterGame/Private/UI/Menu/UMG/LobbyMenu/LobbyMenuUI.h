@@ -11,6 +11,17 @@
 #include "PartyMemberEntryUI.h"
 #include "LobbyMenuUI.generated.h"
 
+
+UENUM()
+enum class EMatchmakingState : int32
+{
+	PRESTART	UMETA(DisplayName = "PreStart"),
+	INPROGRESS	UMETA(DisplayName = "InProgress"),
+	DISABLED	UMETA(DisplayName = "Disabled"),
+	FOUND		UMETA(DisplayName = "Found"),
+	READY		UMETA(DisplayName = "Ready")
+};
+
 /**
  * Lobby menu UI widget.
  */
@@ -20,6 +31,7 @@ class ULobbyMenuUI : public UUserWidget
 	GENERATED_BODY()
 
 public:
+
 	/** Open connect success panel (lobby panel). */
 	void OpenConnectSuccessPanel();
 
@@ -84,9 +96,39 @@ public:
 	*/
 	void SetOverPartyMember(int32 OverPartyMember);
 
+	/*
+	*
+	* @brief Set Index of Start Match widget UWidgetSwitcher.
+	* 
+	* @param WidgetIndex The index of the widgets
+	*
+	*/
+	void SetMatchmakingWidgetStatus(EMatchmakingState MatchmakingState);
+
+
+	/*
+	*
+	* @brief Set Current Matchmaking Countdown when player is presented with Ready Action.
+	*
+	* @param Countdown Current Time left for ready acceptance
+	*
+	*/
+	void SetMatchmakingCountdown(int Countdown);
+	
+	/*
+	*
+	* @brief Set Current Matchmaking Duration when player is finding a match.
+	*
+	* @param Duration Duration of player looking for a match.
+	*
+	*/
+	void SetMatchmakingDuration(int Duration);
+
 private:
 	/** Initialize widget. */
 	virtual bool Initialize();
+
+private:
 
 	/** Search friend. */
 	UFUNCTION()
@@ -95,6 +137,22 @@ private:
 	/** Refresh friend list. */
 	UFUNCTION()
 	void RefreshFriendList();
+
+	/** Start Matchmaking */
+	UFUNCTION()
+	void StartMatch();
+
+	/** Cancel Matchmaking */
+	UFUNCTION()
+	void CancelMatch();
+
+	/** Cancel Matchmaking */
+	UFUNCTION()
+	void ReadyMatch();
+
+	/** Game Mode combo box. */
+	UPROPERTY(meta = (BindWidget))
+	class UComboBoxString* GameModesComboBox;
 
 	/** Create a party. */
 	UFUNCTION()
@@ -139,7 +197,41 @@ private:
 	/** Refresh friend list button. */
 	UPROPERTY(meta = (BindWidget))
 	class UButton* RefreshButton;
+
+	UPROPERTY(meta = (BindWidget))
+	class UWidgetSwitcher* MatchmakingStatusSwitcher;
+
+	UPROPERTY(meta = (BindWidget))
+	class UHorizontalBox* MatchmakingPreStart;
+
+	UPROPERTY(meta = (BindWidget))
+	class UButton* StartMatchButton;
+
+	UPROPERTY(meta = (BindWidget))
+	class UHorizontalBox* MatchmakingInProgress;
+
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* MatchmakingDurationText;
+
+	UPROPERTY(meta = (BindWidget))
+	class UButton* CancelMatchButton;
+
+	UPROPERTY(meta = (BindWidget))
+	class UHorizontalBox* MatchmakingDisabled;
+
+	// TODO : Simplify this by combining it with PreStart, then adding BanDuration as collapsible Text
+	UPROPERTY(meta = (BindWidget))
+	class UButton* DisabledMatchButton;
 	
+	UPROPERTY(meta = (BindWidget))
+	class UHorizontalBox* MatchmakingFound;
+
+	UPROPERTY(meta = (BindWidget))
+	class UTextBlock* MatchCountdownText;
+
+	UPROPERTY(meta = (BindWidget))
+	class UButton* MatchReadyButton;
+
 	/** Create a party button. */
 	UPROPERTY(meta = (BindWidget))
 	class UButton* CreatePartyButton;
@@ -163,10 +255,6 @@ private:
 	/** Kick member message text. */
 	UPROPERTY(meta = (BindWidget))
 	class UTextBlock* KickMemberText;
-
-	/** Game Mode combo box. */
-	UPROPERTY(meta = (BindWidget))
-	class UComboBoxString* GameModesComboBox;
 
 	/** Party setup box. */
 	UPROPERTY(meta = (BindWidget))

@@ -15,6 +15,9 @@
 
 FCriticalSection LobbyMenuUIMutex;
 
+
+
+
 bool ULobbyMenuUI::Initialize()
 {
 	bool Success = Super::Initialize();
@@ -31,6 +34,15 @@ bool ULobbyMenuUI::Initialize()
 
 	if (!ensure(GameModesComboBox != nullptr)) return false;
 	GameModesComboBox->OnSelectionChanged.AddDynamic(this, &ULobbyMenuUI::ChangeGameMode);
+
+	if (!ensure(StartMatchButton != nullptr)) return false;
+	StartMatchButton->OnClicked.AddDynamic(this, &ULobbyMenuUI::StartMatch);
+
+	if (!ensure(CancelMatchButton != nullptr)) return false;
+	CancelMatchButton->OnClicked.AddDynamic(this, &ULobbyMenuUI::CancelMatch);
+
+	if (!ensure(MatchReadyButton != nullptr)) return false;
+	MatchReadyButton->OnClicked.AddDynamic(this, &ULobbyMenuUI::ReadyMatch);
 
 	if (!ensure(LobbySwitcher != nullptr)) return false;
 	if (!ensure(ConnectSuccess != nullptr)) return false;
@@ -64,6 +76,20 @@ void ULobbyMenuUI::OpenConnectFailedPanel(FString Message)
 {
 	LobbyErrorText->SetText(FText::FromString(Message));
 	LobbySwitcher->SetActiveWidget(ConnectFailed);
+}
+
+void ULobbyMenuUI::SetMatchmakingCountdown(int Countdown)
+{
+	FText TextItem = FText::FromString(FString::Printf(TEXT("%d s"), Countdown));
+	MatchCountdownText->SetText(TextItem);
+}
+
+void ULobbyMenuUI::SetMatchmakingDuration(int Duration)
+{
+	int Minutes = Duration /60;
+	int Seconds = Duration %60;
+	FText TextItem = FText::FromString(FString::Printf(TEXT("%02d:%02d"), Minutes, Seconds));
+	MatchmakingDurationText->SetText(TextItem);
 }
 
 void ULobbyMenuUI::SetInterface(ILobbyMenuInterface* MenuInterface)
@@ -160,6 +186,11 @@ void ULobbyMenuUI::SetOverPartyMember(int32 OverPartyMember)
 	}
 }
 
+void ULobbyMenuUI::SetMatchmakingWidgetStatus(EMatchmakingState MatchmakingState)
+{
+	MatchmakingStatusSwitcher->SetActiveWidgetIndex((int)MatchmakingState);
+}
+
 #pragma region Button Callback
 void ULobbyMenuUI::AddFriend()
 {
@@ -189,6 +220,39 @@ void ULobbyMenuUI::RefreshFriendList()
 	}
 	LobbyMenuInterface->RefreshFriendList();
 }
+
+void ULobbyMenuUI::StartMatch()
+{
+	if (LobbyMenuInterface == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ULobbyMenuUI] LobbyMenuInterface is null"));
+		return;
+	}
+	// Game Mode Name for Backend References, not UI
+	FString GameModeDisplayName = GameModesComboBox->GetSelectedOption();
+	LobbyMenuInterface->StartMatchmaking(GameModeDisplayName);
+}
+
+void ULobbyMenuUI::CancelMatch()
+{
+	if (LobbyMenuInterface == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ULobbyMenuUI] LobbyMenuInterface is null"));
+		return;
+	}
+	LobbyMenuInterface->CancelMatchmaking();
+}
+
+void ULobbyMenuUI::ReadyMatch()
+{
+	if (LobbyMenuInterface == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[ULobbyMenuUI] LobbyMenuInterface is null"));
+		return;
+	}
+	LobbyMenuInterface->ReadyMatchmaking();
+}
+
 
 void ULobbyMenuUI::CreateParty()
 {

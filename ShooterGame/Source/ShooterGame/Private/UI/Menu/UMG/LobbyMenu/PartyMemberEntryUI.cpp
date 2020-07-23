@@ -10,6 +10,11 @@
 #include "Components/HorizontalBox.h"
 #include "Utils/CacheUtils.h"
 
+void UPartyMemberEntryUI::SetKickButtonState(ESlateVisibility InVisibility)
+{
+	this->KickButton->SetVisibility(InVisibility);
+}
+
 bool UPartyMemberEntryUI::Initialize()
 {
 	bool Success = Super::Initialize();

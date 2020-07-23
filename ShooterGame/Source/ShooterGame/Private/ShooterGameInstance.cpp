@@ -27,6 +27,8 @@
 #include "Misc/CommandLine.h"
 #include "ShooterGameConfig.h"
 #include "ShooterGame_TeamDeathMatch.h"
+// Temporary Solution
+#include "ShooterGame_FreeForAll.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -367,10 +369,13 @@ void UShooterGameInstance::GameServerLogin()
 				UWorld* World = GameEngine->GetGameWorld();
 				if (World)
 				{
+					// Chandra : Temporary Solution, i don't really think this is a good design as adding subsequent Game Mode will be a pain
+					AShooterGame_FreeForAll* FFAGameMode = Cast<AShooterGame_FreeForAll>(World->GetAuthGameMode());
 					AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
 					if (GameMode)
 					{
 						if (matchRequest.Session_id.IsEmpty()) { return; }
+						// Prevent Session to be created when match hasn't begun
 						if (!GameMode->IsMatchStarted())
 						{
 							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
@@ -388,6 +393,30 @@ void UShooterGameInstance::GameServerLogin()
 								MatchmakingInfo.matching_parties.Add(tmp);
 							}
 							GameMode->SetupMatch(MatchmakingInfo);
+							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
+						}
+					}
+					else if (FFAGameMode)
+					{
+						if (matchRequest.Session_id.IsEmpty()) { return; }
+						// Prevent Session to be created when match hasn't begun
+						if (!FFAGameMode->IsMatchStarted())
+						{
+							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+							MatchmakingInfo.channel = matchRequest.Game_mode;
+							MatchmakingInfo.match_id = matchRequest.Session_id;
+							for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
+							{
+								FAccelByteModelsMatchmakingParty tmp;
+								tmp.party_id = partyMember.Matching_parties[0].Party_id;
+								tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
+								for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
+								{
+									tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
+								}
+								MatchmakingInfo.matching_parties.Add(tmp);
+							}
+							FFAGameMode->SetupMatch(MatchmakingInfo);
 							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
 						}
 					}

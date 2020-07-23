@@ -6,6 +6,7 @@
 #include "SlateExtras.h"
 #include "ShooterGame.h"
 #include "Models/ShooterInventory.h"
+#include "UI/Menu/UMG/MainMenu/MainMenuUI.h"
 #include "Runtime/Networking/Public/Common/TcpListener.h"
 
 //class declare
@@ -19,6 +20,7 @@ public:
 
 	SLATE_ARGUMENT(TWeakObjectPtr<ULocalPlayer >, PlayerOwner)
 	SLATE_ARGUMENT(TSharedPtr<SWidget>, OwnerWidget)
+	SLATE_ARGUMENT(UMainMenuUI*, UOwnerWidget) //TODO remove this argument after Store migrated to UMG completely
 	SLATE_ARGUMENT(FSimpleDelegate, OnBuyItemFinished)
 	SLATE_ARGUMENT(TWeakPtr<class SShooterCoinsWidget>, CoinsWidget)
 
@@ -62,6 +64,7 @@ protected:
 
 	/** pointer to our parent widget */
 	TSharedPtr<class SWidget> OwnerWidget;
+	UMainMenuUI* UOwnerWidget; //TODO remove this member after Store migrated to UMG completely
 
 	TWeakPtr<const class SShooterCoinsWidget> CoinsWidget;
 

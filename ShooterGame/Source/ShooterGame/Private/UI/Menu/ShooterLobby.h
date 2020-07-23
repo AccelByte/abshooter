@@ -17,6 +17,10 @@
 #include "Models/AccelByteUserModels.h"
 #include "Models/AccelByteLobbyModels.h"
 
+#include "ShooterGameConfig.h"
+
+#define READY_CONSENT_TIMEOUT 25
+
 /** Handle Lobby stuffs. */
 class ShooterLobby : public TSharedFromThis<ShooterLobby>, public ILobbyMenuInterface, public IFriendSearchResultEntryInterface, public IFriendEntryInterface, public IIncomingFriendRequstPopupInterface,
 	public IPartyMemberEntryInterface, public IPartyInvitationPopupInterface
@@ -30,6 +34,9 @@ public:
 	*/
 	ShooterLobby(TWeakObjectPtr<class UShooterGameInstance> _GameInstance, TWeakObjectPtr<class ULobbyMenuUI> _LobbyMenuUI);
 
+	/** Start Match Delegate */
+	DECLARE_DELEGATE(FOnStartMatch);
+
 	/** Initialize menu. */
 	void Initialize();
 
@@ -37,6 +44,7 @@ public:
 	void Connect();
 
 private:
+
 	/** Reload friend list. */
 	void ReloadFriendList();
 
@@ -44,6 +52,8 @@ private:
 	void SetLobbyDelegate();
 
 	// AccelByte's Lobby Delegate
+	void OnLobbyConnectSuccess();
+
 	#pragma region FRIENDS_SERVICE
 	void OnGetAllUserPresenceResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
 	void OnLoadFriendListResponse(const FAccelByteModelsLoadFriendListResponse& Response);
@@ -67,6 +77,15 @@ private:
 	void OnPartyGetInvitedNotification(const FAccelByteModelsPartyGetInvitedNotice& Notification);
 	void OnInvitePartyJoinResponse(const FAccelByteModelsPartyJoinReponse& Response);
 	#pragma endregion PARTY_SERVICE
+
+#pragma region MATCHMAKING_SERVICE
+	void OnMatchmakingNotification(const FAccelByteModelsMatchmakingNotice& Response);
+	void OnRematchmakingNotification(const FAccelByteModelsRematchmakingNotice& Response);
+	void OnStartMatchmakingResponse(const FAccelByteModelsMatchmakingResponse& Response);
+	void OnCancelMatchmakingResponse(const FAccelByteModelsMatchmakingResponse& Response);
+	void OnDsNotification(const FAccelByteModelsDsNotice& Notice);
+#pragma endregion
+
 	/**
 	* @brief Add friend search result entry.
 	*
@@ -141,6 +160,9 @@ private:
 	/** Update party member list. */
 	void UpdatePartyMemberList();
 
+	/** Update party member list based on matchmaking status. */
+	void UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted);
+
 	#pragma region Override Lobby Menu Interface
 	/**
 	* @brief Add friend based on the its username.
@@ -162,6 +184,67 @@ private:
 	*/
 	void ChangeGameMode(FString GameModeName) override;
 	#pragma endregion Override Lobby Menu Interface
+
+	#pragma region Override Matchmaking Interface
+
+	/**
+	* @brief Start the Matchmaking.
+	*
+	* @param GameModeDisplayName The Game Mode DisplayName for the matchmaking (Name that appears on the UI).
+	*/
+	void StartMatchmaking(FString GameModeDisplayName) override;
+
+	/**
+	* @brief Cancel Matchmaking.
+	*
+	*/
+	void CancelMatchmaking() override;
+
+	/**
+	* @brief Readies Matchmaking.
+	*
+	*/
+	void ReadyMatchmaking() override;
+
+	/* MatchId returned by MatchmakingNotification. */
+	FString CurrentMatchId;
+	
+	/* Countdown for Matchmaking until timeout, currently hardcoded based on Server. */
+	int32 MatchmakingCountdown = READY_CONSENT_TIMEOUT;
+
+	/**
+	* @brief Start the Match, called in DSNotif to signify the game is ready to begin.
+	*
+	* @param MatchId Current MatchId, received from DsNotif.
+	* @param PartyId Current PartyId.
+	* @param DedicatedServerAddress IP Address of the server, received from DsNotif when the DS is ready.
+	*/
+	void StartMatch(const FString& MatchId, const FString& PartyId, const FString& DedicatedServerAddress);
+
+	/** Matchmaking Helper Function & Variable */
+
+	/* TODO: Temporary solution, currently setup on StartMatchmaking,
+	Solution :
+	- should be setup when GameMode is changed from lobbyMenuUI
+	- take from ComboBox LobbyMenuUI Variable
+	- in case we're using the Select Match -> Lobby flow, this should be setup when entering the lobby
+	*/
+	/** Currently Selected Game Mode. */
+	FGameModeEntry CurrentGameMode;
+
+	/** Whether Matchmaking is started already or not */
+	bool bMatchmakingStarted = false;
+
+	/** Whether Game is Connected to Lobby Server or not */
+	bool bIsLobbyConnected = true;
+
+	/** Whether Game is entering Level or not, this means the Game managed to Join a Server already*/
+	bool bAlreadyEnteringLevel = false;
+
+	/** Whether Client is ready to start the match or not. */
+	bool bReadyConsent = false;
+
+	#pragma endregion
 
 	#pragma region Override Friend Search Result Entry Interface
 	/**
@@ -273,6 +356,9 @@ private:
 
 	/** Game Mode options. */
 	TArray<FGameModeEntry> GameModes;
+
+	/** Game Mode Names. */
+	TArray<FString> GameModeNames;
 
 	/** Array of party members. */
 	TArray<class UPartyMemberEntryUI*> PartyMembers;

@@ -53,9 +53,11 @@ struct FGameModeEntry
 {
 	GENERATED_BODY()
 
+	/* Need to rename it to DisplayName for more clarity. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
-		FString Name;
+		FString DisplayName;
 
+	/* GameModeName that will be accepted by backend e.g 10ffa, 3v3, 5v5, br. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lobby | Models")
 		FString GameMode;
 

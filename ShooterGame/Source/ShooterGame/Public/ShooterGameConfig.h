@@ -2,6 +2,13 @@
 #include "CoreGlobals.h"
 #include "Models/AccelByteQosModels.h"
 
+struct GameModeData
+{
+	FString Name;
+	FString GameModeName;
+	int32 MaxPlayer;
+};
+
 struct ShooterGameTelemetryEvents
 {
 	FString LoggedIn;
@@ -57,11 +64,16 @@ private:
 	bool FindArgFromCommandLine(FString Arg);
 
 public:
+
+	TArray<GameModeData> AvailableGameMode;
+
 	ShooterGameConfig(ShooterGameConfig const&) = delete;
 	void operator=(ShooterGameConfig const&) = delete;
 
 	void SetServerLatencies(TArray<TPair<FString, float>> value);
 	void SelectRegion(TPair<FString, float> value);
+
+	void PopulateGameMode();
 
 	const int32 &ServerPort_;
 	const FString &LocalServerIP_;

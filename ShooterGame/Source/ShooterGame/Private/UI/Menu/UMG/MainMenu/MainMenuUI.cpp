@@ -19,6 +19,9 @@ bool UMainMenuUI::Initialize()
 	if (!ensure(GameProfileButton != nullptr)) return false;
 	GameProfileButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenGameProfileMenu);
 
+	if (!ensure(SelectMatchButton != nullptr)) return false;
+	SelectMatchButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenSelectMatchMenu);
+
 	if (!ensure(LobbyButton != nullptr)) return false;
 	LobbyButton->OnClicked.AddDynamic(this, &UMainMenuUI::OpenLobbyMenu);
 
@@ -107,6 +110,12 @@ void UMainMenuUI::OpenMainMenu()
 void UMainMenuUI::OpenGameProfileMenu()
 {
 	MenuSwitcher->SetActiveWidget(GameProfileMenu);
+	BackToMainMenuBox->SetVisibility(ESlateVisibility::Visible);
+}
+
+void UMainMenuUI::OpenSelectMatchMenu()
+{
+	MenuSwitcher->SetActiveWidget(SelectMatchMenu);
 	BackToMainMenuBox->SetVisibility(ESlateVisibility::Visible);
 }
 
