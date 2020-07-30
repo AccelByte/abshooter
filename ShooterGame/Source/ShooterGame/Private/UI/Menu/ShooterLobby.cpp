@@ -909,6 +909,8 @@ void ShooterLobby::OnLeavePartyResponse(const FAccelByteModelsLeavePartyResponse
 		CurrentPartyId = TEXT("");
 
 		UpdateFriendList();
+
+		LobbyMenuUI->SetMatchmakingWidgetStatus(EMatchmakingState::PRESTART);
 	}
 	else if (Response.Code != TEXT("0"))
 	{
