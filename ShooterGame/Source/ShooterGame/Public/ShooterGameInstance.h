@@ -7,7 +7,7 @@
 #include "OnlineSessionInterface.h"
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
-#include "UMG/MenuInterface.h"
+#include "Utils/ImageUtils.h"
 #include "Api/AccelByteUserProfileApi.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Models/AccelByteGeneralModels.h"
@@ -99,11 +99,12 @@ enum class EOnlineMode : uint8
 };
 
 UCLASS(config=Game)
-class UShooterGameInstance : public UGameInstance, public IMenuInterface
+class UShooterGameInstance : public UGameInstance
 {
 	GENERATED_UCLASS_BODY()
 
 public:
+	/** Tick game instance. */
 	bool Tick(float DeltaSeconds);
 
 	AShooterGameSession* GetGameSession() const;
@@ -114,16 +115,7 @@ public:
 	virtual void ReceivedNetworkEncryptionToken(const FString& EncryptionToken, const FOnEncryptionKeyResponse& Delegate) override;
 	virtual void ReceivedNetworkEncryptionAck(const FOnEncryptionKeyResponse& Delegate) override;
 
-	/** Make main menu callable from blueprint */
-	UFUNCTION(BlueprintCallable, Category = "AB Shooter")
-	void ForceGotoMainMenu();
-
-	/** After login game client will connect to lobby*/
-	UFUNCTION(BlueprintCallable, Category = "AB Shooter")
-	void ConnectToLobby();
-
-	/** Handle disconnect from lobby*/
-	UFUNCTION(BlueprintCallable, Category = "AB Shooter")
+	/** Handle disconnect from lobby. */
 	void DisconnectFromLobby();
 
 	bool HostGame(ULocalPlayer* LocalPlayer, const FString& GameType, const FString& InTravelURL);
@@ -133,13 +125,13 @@ public:
 
 	bool PlayDemo(ULocalPlayer* LocalPlayer, const FString& DemoName);
 	
-	/** Travel directly to the named session */
+	/** Travel directly to the named session. */
 	void TravelToSession(const FName& SessionName);
 
-	/** Get the Travel URL for a quick match */
+	/** Get the Travel URL for a quick match. */
 	static FString GetQuickMatchUrl();
 
-	/** Begin a hosted quick match */
+	/** Begin a hosted quick match. */
 	void BeginHostingQuickMatch();
 
 	/** Initiates the session searching */
@@ -148,10 +140,10 @@ public:
 	/** Sends the game to the specified state. */
 	void GotoState(FName NewState);
 
-	/** Obtains the initial welcome state, which can be different based on platform */
+	/** Obtains the initial welcome state, which can be different based on platform. */
 	FName GetInitialState();
 
-	/** Sends the game to the initial startup/frontend state  */
+	/** Sends the game to the initial startup/frontend state. */
 	void GotoInitialState();
 
 	/**
@@ -176,28 +168,28 @@ public:
 	/** Sets the online mode of the game */
 	void SetOnlineMode(EOnlineMode InOnlineMode);
 
-	/** Updates the status of using multiplayer features */
+	/** Updates the status of using multiplayer features. */
 	void UpdateUsingMultiplayerFeatures(bool bIsUsingMultiplayerFeatures);
 
 	/** Sets the controller to ignore for pairing changes. Useful when we are showing external UI for manual profile switching. */
 	void SetIgnorePairingChangeForControllerId( const int32 ControllerId );
 
-	/** Returns true if the passed in local player is signed in and online */
+	/** Returns true if the passed in local player is signed in and online. */
 	bool IsLocalPlayerOnline(ULocalPlayer* LocalPlayer);
 
-	/** Returns true if the passed in local player is signed in*/
+	/** Returns true if the passed in local player is signed in. */
 	bool IsLocalPlayerSignedIn(ULocalPlayer* LocalPlayer);
 
-	/** Returns true if owning player is online. Displays proper messaging if the user can't play */
+	/** Returns true if owning player is online. Displays proper messaging if the user can't play. */
 	bool ValidatePlayerForOnlinePlay(ULocalPlayer* LocalPlayer);
 
-	/** Returns true if owning player is signed in. Displays proper messaging if the user can't play */
+	/** Returns true if owning player is signed in. Displays proper messaging if the user can't play. */
 	bool ValidatePlayerIsSignedIn(ULocalPlayer* LocalPlayer);
 
-	/** Shuts down the session, and frees any net driver */
+	/** Shuts down the session, and frees any net driver. */
 	void CleanupSessionOnReturnToMenu();
 
-	/** Flag the local player when they quit the game */
+	/** Flag the local player when they quit the game. */
 	void LabelPlayerAsQuitter(ULocalPlayer* LocalPlayer) const;
 
 	// Generic confirmation handling (just hide the dialog)
@@ -207,31 +199,76 @@ public:
 	/** Start task to get user privileges. */
 	void StartOnlinePrivilegeTask(const IOnlineIdentity::FOnGetUserPrivilegeCompleteDelegate& Delegate, EUserPrivileges::Type Privilege, TSharedPtr< const FUniqueNetId > UserId);
 
-	/** Common cleanup code for any Privilege task delegate */
+	/** Common cleanup code for any Privilege task delegate. */
 	void CleanupOnlinePrivilegeTask();
 
-	/** Show approved dialogs for various privileges failures */
+	/** Show approved dialogs for various privileges failures. */
 	void DisplayOnlinePrivilegeFailureDialogs(const FUniqueNetId& UserId, EUserPrivileges::Type Privilege, uint32 PrivilegeResults);
 
-	/** @return OnlineSession class to use for this player */
+	/** @return OnlineSession class to use for this player. */
 	TSubclassOf<class UOnlineSession> GetOnlineSessionClass() override;
 
-	/** Create a session with the default map and game-type with the selected online settings */
+	/** Create a session with the default map and game-type with the selected online settings. */
 	bool HostQuickSession(ULocalPlayer& LocalPlayer, const FOnlineSessionSettings& SessionSettings);
 
-	/** Called when we receive a Play Together system event on PS4 */
+	/** Called when we receive a Play Together system event on PS4. */
 	void OnPlayTogetherEventReceived(const int32 UserIndex, const TArray<TSharedPtr<const FUniqueNetId>>& UserIdList);
 
 	/** Resets Play Together PS4 system event info after it's been handled */
 	void ResetPlayTogetherInfo() { PlayTogetherInfo = FShooterPlayTogetherInfo(); }
 
-	#pragma region Override Menu Interface
-	/** Login with username and password */
-	void LoginWithUsername(FString Username, FString Password) override;
-	#pragma endregion Override Menu Interface
-
 	FAccelByteModelsUserProfileInfo UserProfileInfo;
 	FOauth2Token UserToken;
+
+	/** Setup user setting after succesfully logins. */
+	void SetupUser();
+
+	#pragma region UMG menu class
+	/** Hold login menu from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> LoginMenuClass;
+
+	/** Hold main menu from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> MainMenuClass;
+
+	/** Hold achievement entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> AchievementEntryClass;
+
+	/** Hold statistic entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> StatisticEntryClass;
+
+	/** Hold gallery entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEntryClass;
+
+	/** Hold gallery preview widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryPreviewPopupClass;
+
+	/** Hold gallery edit widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GalleryEditPopupClass;
+
+	/** Hold friend search result entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> FriendSearchResultEntryClass;
+
+	/** Hold friend search result popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> FriendSearchResultPopupClass;
+
+	/** Hold friend entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> FriendEntryClass;
+
+	/** Hold incoming friend request popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> IncomingFriendRequestPopupClass;
+
+	/** Hold general notification popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> GeneralNotificationPopupClass;
+
+	/** Hold party member entry widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> PartyMemberEntryClass;
+
+	/** Hold party invitation popup widget from UMG. */
+	TSharedPtr<TSubclassOf<class UUserWidget>> PartyInvitationPopupClass;
+	#pragma endregion UMG menu class
+
+	/** Player's avatar slate image. */
+	FCacheBrush PlayerAvatar;
 
 private:
 	UPROPERTY(config)
@@ -240,7 +277,10 @@ private:
 	UPROPERTY(config)
 	FString MainMenuMap;
 
+	/** Current game state. */
 	FName CurrentState;
+
+	/** Pending game state. */
 	FName PendingState;
 
 	FShooterPendingMessage PendingMessage;
@@ -264,8 +304,11 @@ private:
 	/** Whether the mainmenu triggered from PIE*/
 	bool bIsActiveFromPIE;
 
-	/** Main menu UI */
-	TSharedPtr<FShooterMainMenu> MainMenuUI;
+	/** Login menu UI */
+	TSharedPtr<class FShooterLoginMenu> LoginMenuUI;
+
+	/** Main menu UI. */
+	TSharedPtr<class FShooterMainMenu> MainMenuUI;
 
 	/** Message menu (Shown in the even of errors - unable to connect etc) */
 	TSharedPtr<FShooterMessageMenu> MessageMenuUI;
@@ -279,13 +322,13 @@ private:
 	/** Controller to ignore for pairing changes. -1 to skip ignore. */
 	int32 IgnorePairingChangeForControllerId;
 
-	/** Last connection status that was passed into the HandleNetworkConnectionStatusChanged hander */
+	/** Last connection status that was passed into the HandleNetworkConnectionStatusChanged hander. */
 	EOnlineServerConnectionStatus::Type	CurrentConnectionStatus;
 
-	/** Delegate for callbacks to Tick */
+	/** Delegate for callbacks to Tick. */
 	FTickerDelegate TickDelegate;
 
-	/** Handle to various registered delegates */
+	/** Handle to various registered delegates. */
 	FDelegateHandle TickDelegateHandle;
 	FDelegateHandle TravelLocalSessionFailureDelegateHandle;
 	FDelegateHandle OnJoinSessionCompleteDelegateHandle;
@@ -312,13 +355,13 @@ private:
 	void OnPostLoadMap(UWorld*);
 	void OnPostDemoPlay();
 
-	/** Do setup delegates on init*/
+	/** Do setup delegates on init. */
 	void SetupCallbacks();
 
-	/** Game client login with launcher on init*/
+	/** Game client login with launcher on init. */
 	void GameClientLogin();
 
-	/** Game server login with credentials on init*/
+	/** Game server login with credentials on init. */
 	void GameServerLogin();
 
 	virtual void HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString ) override;
@@ -334,52 +377,57 @@ private:
 
 	void OnEndSessionComplete( FName SessionName, bool bWasSuccessful );
 
+	/** Check the state should be changed or not. */
 	void MaybeChangeState();
+
+	/** End current state. */
 	void EndCurrentState(FName NextState);
+
+	/** Begin new state. */
 	void BeginNewState(FName NewState, FName PrevState);
 
 	/** Begin State */
 	void BeginPendingInviteState();
 	void BeginWelcomeScreenState();
+	void BeginLoginMenuState();
 	void BeginMainMenuState();
 	void BeginMessageMenuState();
 	void BeginPlayingState();
-	void BeginLoginMenuState();
 
 	/** End State */
 	void EndPendingInviteState();
 	void EndWelcomeScreenState();
+	void EndLoginMenuState();
 	void EndMainMenuState();
 	void EndMessageMenuState();
 	void EndPlayingState();
-	void EndLoginMenuState();
 
 	void ShowLoadingScreen();
 	void AddNetworkFailureHandlers();
 	void RemoveNetworkFailureHandlers();
 
-	/** Called when there is an error trying to travel to a local session */
+	/** Called when there is an error trying to travel to a local session. */
 	void TravelLocalSessionFailure(UWorld *World, ETravelFailure::Type FailureType, const FString& ErrorString);
 
-	/** Callback which is intended to be called upon joining session */
+	/** Callback which is intended to be called upon joining session. */
 	void OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Result);
 
 	/** Callback which is intended to be called upon session creation */
 	void OnCreatePresenceSessionComplete(FName SessionName, bool bWasSuccessful);
 
-	/** Callback which is called after adding local users to a session */
+	/** Callback which is called after adding local users to a session. */
 	void OnRegisterLocalPlayerComplete(const FUniqueNetId& PlayerId, EOnJoinSessionCompleteResult::Type Result);
 
-	/** Called after all the local players are registered */
+	/** Called after all the local players are registered. */
 	void FinishSessionCreation(EOnJoinSessionCompleteResult::Type Result);
 
-	/** Callback which is called after adding local users to a session we're joining */
+	/** Callback which is called after adding local users to a session we're joining. */
 	void OnRegisterJoiningLocalPlayerComplete(const FUniqueNetId& PlayerId, EOnJoinSessionCompleteResult::Type Result);
 
-	/** Called after all the local players are registered in a session we're joining */
+	/** Called after all the local players are registered in a session we're joining. */
 	void FinishJoinSession(EOnJoinSessionCompleteResult::Type Result);
 
-	/** Send all invites for the current game session if we've created it because Play Together on PS4 was initiated*/
+	/** Send all invites for the current game session if we've created it because Play Together on PS4 was initiated. */
 	void SendPlayTogetherInvites();
 
 	/**
@@ -391,7 +439,7 @@ private:
 	*/
 	void ShowMessageThenGoMain(const FText& Message, const FText& OKButtonString, const FText& CancelButtonString);
 
-	/** Callback which is intended to be called upon finding sessions */
+	/** Callback which is intended to be called upon finding sessions. */
 	void OnSearchSessionsComplete(bool bWasSuccessful);
 
 	bool LoadFrontEndMap(const FString& MapName);
@@ -399,64 +447,50 @@ private:
 	/** Sets a rich presence string for all local players. */
 	void SetPresenceForLocalPlayers(const FString& StatusStr, const FVariantData& PresenceData);
 
-	/** Travel directly to the named session */
+	/** Travel directly to the named session. */
 	void InternalTravelToSession(const FName& SessionName);
 
-	/** Show messaging and punt to welcome screen */
+	/** Show messaging and punt to welcome screen. */
 	void HandleSignInChangeMessaging();
 
-	// OSS delegates to handle
+	/** OSS delegates to handle. */
 	void HandleUserLoginChanged(int32 GameUserIndex, ELoginStatus::Type PreviousLoginStatus, ELoginStatus::Type LoginStatus, const FUniqueNetId& UserId);
 
-	// Callback to pause the game when the OS has constrained our app.
+	/** Callback to pause the game when the OS has constrained our app. */
 	void HandleAppWillDeactivate();
 
-	// Callback occurs when game being suspended
+	/** Callback occurs when game being suspended. */
 	void HandleAppSuspend();
 
-	// Callback occurs when game resuming
+	/** Callback occurs when game resuming. */
 	void HandleAppResume();
 
-	// Callback to process game licensing change notifications.
+	/** Callback to process game licensing change notifications.. */
 	void HandleAppLicenseUpdate();
 
-	// Callback to handle safe frame size changes.
+	/** Callback to handle safe frame size changes. */
 	void HandleSafeFrameChanged();
 
-	// Callback to handle controller connection changes.
+	/** Callback to handle controller connection changes. */
 	void HandleControllerConnectionChange(bool bIsConnection, int32 Unused, int32 GameUserIndex);
 
-	// Callback to handle controller pairing changes.
+	/** Callback to handle controller pairing changes. */
 	FReply OnPairingUsePreviousProfile();
 
-	// Callback to handle controller pairing changes.
+	/** Callback to handle controller pairing changes. */
 	FReply OnPairingUseNewProfile();
 
-	// Callback to handle controller pairing changes.
+	/** Callback to handle controller pairing changes. */
 	void HandleControllerPairingChanged(int GameUserIndex, const FUniqueNetId& PreviousUser, const FUniqueNetId& NewUser);
 
-	// Handle confirming the controller disconnected dialog.
+	/** Handle confirming the controller disconnected dialog. */
 	FReply OnControllerReconnectConfirm();	
 
-	AccelByte::Api::Lobby::FGetAllFriendsStatusResponse OnGetOnlineUsersResponse;
-	void OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse& Response);
-
-	void GetStatItems();
-
+	/** Get QoS. */
 	void GetQos();
 
-	void InitStatistic();
-
-	/** Setup user setting after succesfully logins */
-	void SetupUser();
-
-	#pragma region UMG menu
-	/** Hold login menu from UMG */
-	TSubclassOf<class UUserWidget> LoginMenuClass;
-
-	/** Login Menu UI widget */
-	class ULoginMenuUI* LoginMenuUI;
-	#pragma endregion UMG menu
+	/** Setup Statistic. */
+	void SetupStatistic();
 
 protected:
 	bool HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld);

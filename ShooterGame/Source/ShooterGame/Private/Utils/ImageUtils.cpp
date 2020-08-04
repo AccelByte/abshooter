@@ -2,20 +2,21 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Http.h"
+#include "CacheUtils.h"
 
 TLruCache<FString, FCacheBrush> ImageCache(100);
 TMap<FString, TSharedPtr<TQueue<FOnImageReceived>>> ImageReceivedQueue;
-FCriticalSection Mutex;
+FCriticalSection ShooterImageUtilsMutex;
 
-void FShooterImageUtils::GetImage(const FString & Url, const FOnImageReceived & OnReceived)
+void FShooterImageUtils::GetImage(const FString &Url, const FOnImageReceived& OnReceived, const FString& Filename)
 {
-	Mutex.Lock();
+	ShooterImageUtilsMutex.Lock();
 	auto Ptr = ImageCache.FindAndTouch(Url);
 
 	if (Ptr)
 	{
 		OnReceived.ExecuteIfBound(*Ptr);
-		Mutex.Unlock();
+		ShooterImageUtilsMutex.Unlock();
 	}
 	else
 	{
@@ -26,14 +27,14 @@ void FShooterImageUtils::GetImage(const FString & Url, const FOnImageReceived & 
 		}
 		bool QueueEmpty = (*QueuePtr)->IsEmpty();
 		(*QueuePtr)->Enqueue(OnReceived); // queue request for same url
-		Mutex.Unlock();
-		
+		ShooterImageUtilsMutex.Unlock();
+
 		if (QueueEmpty)
 		{
 			TSharedRef<IHttpRequest> ThumbRequest = FHttpModule::Get().CreateRequest();
 			ThumbRequest->SetVerb("GET");
 			ThumbRequest->SetURL(Url);
-			ThumbRequest->OnProcessRequestComplete().BindLambda([](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
+			ThumbRequest->OnProcessRequestComplete().BindLambda([Filename](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful)
 			{
 				FCacheBrush ImageBrush = nullptr;
 				if (bWasSuccessful && Response.IsValid())
@@ -57,17 +58,25 @@ void FShooterImageUtils::GetImage(const FString & Url, const FOnImageReceived & 
 					if (ImageFormat != EImageFormat::Invalid)
 					{
 						TArray<uint8> ImageData = Response->GetContent();
-						UE_LOG(LogTemp, Display, TEXT("URL: %s"), *Request->GetURL());
-						ImageBrush = MakeShareable(CreateBrush(FName(*Request->GetURL()), ImageData, ImageFormat));
+						UE_LOG(LogTemp, Display, TEXT("[FShooterImageUtils] GetImage URL: %s"), *Request->GetURL());
+
+						FString ResourceName = Request->GetURL();
+						if (!Filename.IsEmpty()) ResourceName = Filename;
+
+						ImageBrush = MakeShareable(CreateBrush(FName(*ResourceName), ImageData, ImageFormat));
 						{
-							FScopeLock Lock(&Mutex);
+							FScopeLock Lock(&ShooterImageUtilsMutex);
 							ImageCache.Add(Request->GetURL(), ImageBrush);
+						}
+						if (!Filename.IsEmpty() && ImageBrush.IsValid())
+						{
+							FShooterCacheUtils::SaveUserAvatarCache(Filename, ImageData);
 						}
 					}
 				}
 
 				{
-					FScopeLock Lock(&Mutex);
+					FScopeLock Lock(&ShooterImageUtilsMutex);
 					auto QueueRef = ImageReceivedQueue.FindRef(Request->GetURL());
 					if (QueueRef.IsValid())
 					{
@@ -84,7 +93,7 @@ void FShooterImageUtils::GetImage(const FString & Url, const FOnImageReceived & 
 	}
 }
 
-FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName & ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat)
+FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName& ResourceName, const TArray<uint8>& ImageData, const EImageFormat InFormat)
 {
 	FSlateDynamicImageBrush* Brush = nullptr;
 
@@ -123,4 +132,73 @@ FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName & ResourceN
 	}
 
 	return Brush;
+}
+
+TSharedPtr<FSlateDynamicImageBrush> FShooterImageUtils::CreateBrush(FString ContentType, FName ResourceName, TArray<uint8> ImageData)
+{
+	TSharedPtr<FSlateDynamicImageBrush> Brush;
+
+	uint32 BytesPerPixel = 4;
+	int32 Width = 0;
+	int32 Height = 0;
+
+	bool bSucceeded = false;
+	TArray<uint8> DecodedImage;
+	IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
+
+	int BitDepth = 8;
+	//jpg
+	EImageFormat ImageFormat = EImageFormat::JPEG;
+	ERGBFormat RgbFormat = ERGBFormat::BGRA;
+	//png
+	if (ContentType.Contains(TEXT("png")))
+	{
+		ImageFormat = EImageFormat::PNG;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+	//bmp
+	else if (ContentType.Contains(TEXT("bmp")))
+	{
+		ImageFormat = EImageFormat::BMP;
+		RgbFormat = ERGBFormat::BGRA;
+	}
+
+	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
+	{
+		Width = ImageWrapper->GetWidth();
+		Height = ImageWrapper->GetHeight();
+
+		const TArray<uint8>* RawData = NULL;
+
+		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+		{
+			DecodedImage = *RawData;
+			bSucceeded = true;
+		}
+	}
+
+	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
+	{
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+	}
+
+	return Brush;
+}
+
+FString FShooterImageUtils::MD5HashArray(const TArray<uint8>& Array)
+{
+	uint8 Digest[16];
+
+	FMD5 Md5Gen;
+
+	Md5Gen.Update(Array.GetData(), Array.Num());
+	Md5Gen.Final(Digest);
+
+	FString MD5;
+	for (int32 i = 0; i < 16; i++)
+	{
+		MD5 += FString::Printf(TEXT("%02x"), Digest[i]);
+	}
+	return MD5;
 }

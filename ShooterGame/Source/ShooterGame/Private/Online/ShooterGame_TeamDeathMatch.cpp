@@ -13,7 +13,6 @@
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerStatisticApi.h"
 
-#define MOCK_MATCHMAKING 0
 
 template<typename CharType = TCHAR, template<typename> class PrintPolicy = TPrettyJsonPrintPolicy, typename InStructType>
 static bool TArrayUStructToJsonString(const TArray<InStructType>& InArray, FString& OutJsonString, int64 CheckFlags = 0, int64 SkipFlags = 0, int32 Indent = 0)
@@ -60,51 +59,6 @@ FString AShooterGame_TeamDeathMatch::InitNewPlayer(APlayerController * NewPlayer
 	FString MatchIdOpt = UGameplayStatics::ParseOption(Options, TEXT("MatchId"));
 	FString UserIdOpt = UGameplayStatics::ParseOption(Options, TEXT("UserId"));
 
-#if MOCK_MATCHMAKING
-	//temporary set matchmaking info from joined user
-	if (MatchmakingInfo.match_id.IsEmpty())
-	{
-		MatchmakingInfo.match_id = MatchIdOpt;
-		UE_LOG(LogTemp, Display, TEXT("[MATCH] Set current matchId: %s"), *MatchIdOpt);
-	}
-	else if (MatchmakingInfo.match_id != MatchIdOpt)
-	{
-		UE_LOG(LogTemp, Display, TEXT("[ERROR] Incorrect matchId"));
-		return "";
-	}
-
-
-	if (!PartyIdOpt.IsEmpty())
-	{
-		bool Found = false;
-		for (int32 i = 0; i < MatchmakingInfo.matching_parties.Num(); i++)
-		{
-			if (MatchmakingInfo.matching_parties[i].party_id == PartyIdOpt)
-			{
-				MatchmakingInfo.matching_parties[i].party_members.Add({ UserIdOpt });
-				Found = true;
-				break;
-			}
-		}
-
-		if (!Found)
-		{
-			if (MatchmakingInfo.matching_parties.Num() >= NumTeams)
-			{
-				UE_LOG(LogTemp, Display, TEXT("[ERROR] Max number of parties reached !!!!!!"));
-				return "";
-			}
-			else
-			{
-				FAccelByteModelsMatchmakingParty Party;
-				Party.party_id = PartyIdOpt;
-				//Party.leader_id = UserIdOpt;
-				Party.party_members.Add({ UserIdOpt });
-				MatchmakingInfo.matching_parties.Add(Party);
-			}
-		}
-	}
-#else
 	bool AllJoined = true;
 	for (auto& Party : MatchmakingInfo.matching_parties)
 	{
@@ -123,7 +77,7 @@ FString AShooterGame_TeamDeathMatch::InitNewPlayer(APlayerController * NewPlayer
 			}
 		}
 	}
-#endif
+
 
 	AShooterPlayerState* NewPlayerState = CastChecked<AShooterPlayerState>(NewPlayerController->PlayerState);
 	NewPlayerState->SetPartyId(PartyIdOpt);
@@ -140,50 +94,7 @@ void AShooterGame_TeamDeathMatch::PreLogin(const FString& Options, const FString
 	FString MatchIdOpt = UGameplayStatics::ParseOption(Options, TEXT("MatchId"));
 	FString UserIdOpt = UGameplayStatics::ParseOption(Options, TEXT("UserId"));
 
-#if MOCK_MATCHMAKING
-	if (MatchIdOpt.IsEmpty())
-	{
-		ErrorMessage = TEXT("[ERROR] MatchId required");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
-		return;
-	}
 
-	if (PartyIdOpt.IsEmpty())
-	{
-		ErrorMessage = TEXT("[ERROR] PartyId required");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
-		return;
-	}
-
-	if (UserIdOpt.IsEmpty())
-	{
-		ErrorMessage = TEXT("[ERROR] UserId required");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
-		return;
-	}
-
-	if (!this->MatchmakingInfo.match_id.IsEmpty() && this->MatchmakingInfo.match_id != MatchIdOpt)
-	{
-		AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
-		if (MyGameState)
-		{
-			ErrorMessage = FString::Printf(TEXT("No dedicated server are available at a moment,\nplease try again in %d seconds"), MyGameState->RemainingTime);
-		}
-		else
-		{
-			ErrorMessage = TEXT("No dedicated server are available at a moment,\nplease try again later");
-		}
-		UE_LOG(LogOnlineGame, Display, TEXT("[ERROR] %s"), *ErrorMessage);
-		return;
-	}
-
-	if (this->MatchmakingInfo.matching_parties.Num() >= NumTeams)
-	{
-		ErrorMessage = TEXT("[ERROR] Max number of party reached");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
-		return;
-	}
-#else
 	if (this->MatchmakingInfo.match_id.IsEmpty())
 	{
 		ErrorMessage = TEXT("[ERROR] Match is not initialized");
@@ -234,7 +145,6 @@ void AShooterGame_TeamDeathMatch::PreLogin(const FString& Options, const FString
 		return;
 	}
 
-#endif
 
 	// GameSession can be NULL if the match is over
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
@@ -244,27 +154,7 @@ void AShooterGame_TeamDeathMatch::PostLogin(APlayerController* NewPlayer)
 {
 	// Place player on a team before Super (VoIP team based init, findplayerstart, etc)
 	AShooterPlayerState* NewPlayerState = CastChecked<AShooterPlayerState>(NewPlayer->PlayerState);
-#if MOCK_MATCHMAKING
-	if (NewPlayerState->GetPartyId().IsEmpty())
-	{
-		const int32 TeamNum = ChooseTeam(NewPlayerState);
-		NewPlayerState->SetTeamNum(TeamNum);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Display, TEXT("[MATCH] GetTeam by PartyId: %s"), *NewPlayerState->GetPartyId());
-		int32 Index = -1;
-		for (int32 i = 0; i < MatchmakingInfo.matching_parties.Num(); i++)
-		{
-			if (MatchmakingInfo.matching_parties[i].party_id == NewPlayerState->GetPartyId())
-			{
-				Index = i;
-				break;
-			}
-		}
-		NewPlayerState->SetTeamNum(Index);
-	}
-#else
+
 	int32 Index = -1;
 	for (int32 i = 0; i < MatchmakingInfo.matching_parties.Num(); i++)
 	{
@@ -275,7 +165,7 @@ void AShooterGame_TeamDeathMatch::PostLogin(APlayerController* NewPlayer)
 		}
 	}
 	NewPlayerState->SetTeamNum(Index);
-#endif
+
 	UE_LOG(LogTemp, Display, TEXT("[MATCH] PostLogin %s Team: %d"), *NewPlayerState->GetUserId(),  NewPlayerState->GetTeamNum());
 	Super::PostLogin(NewPlayer);
 }
@@ -304,10 +194,10 @@ int32 AShooterGame_TeamDeathMatch::ChooseTeam(AShooterPlayerState* ForPlayerStat
 	// get current team balance
 	for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
 	{
-		AShooterPlayerState const* const TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
-		if (TestPlayerState && TestPlayerState != ForPlayerState && TeamBalance.IsValidIndex(TestPlayerState->GetTeamNum()))
+		AShooterPlayerState const* const PlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
+		if (PlayerState && PlayerState != ForPlayerState && TeamBalance.IsValidIndex(PlayerState->GetTeamNum()))
 		{
-			TeamBalance[TestPlayerState->GetTeamNum()]++;
+			TeamBalance[PlayerState->GetTeamNum()]++;
 		}
 	}
 
@@ -418,27 +308,27 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 			// Find player
 			for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
 			{
-				AShooterPlayerState* TestPlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
-				if (TestPlayerState->GetUserId() == member.user_id)
+				AShooterPlayerState* PlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
+				if (PlayerState->GetUserId() == member.user_id)
 				{
 					member.match = 1;
-					member.kill = TestPlayerState->GetKills();
-					member.death = TestPlayerState->GetDeaths();
+					member.kill = PlayerState->GetKills();
+					member.death = PlayerState->GetDeaths();
 
-					if (TestPlayerState->GetScore() > 0)
+					if (PlayerState->GetScore() > 0)
 					{
 						if (MVP == nullptr)
 						{
-							MVP = TestPlayerState;
-						} else if (MVP->GetScore() < TestPlayerState->GetScore())
+							MVP = PlayerState;
+						} else if (MVP->GetScore() < PlayerState->GetScore())
 						{
-							MVP = TestPlayerState;
+							MVP = PlayerState;
 						}
 					}
 
-					if (TestPlayerState)
+					if (PlayerState)
 					{
-						if (TestPlayerState->GetTeamNum() == WinnerTeam)
+						if (PlayerState->GetTeamNum() == WinnerTeam)
 						{
 							Rank = 1;
 						}
@@ -462,18 +352,53 @@ void AShooterGame_TeamDeathMatch::EndMatch()
 		THandler<TArray<FAccelByteModelsBulkStatItemOperationResult>>::CreateLambda([](const TArray<FAccelByteModelsBulkStatItemOperationResult>& submittedResult) {}),
 		AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { UE_LOG(LogTemp, Log, TEXT("Failed to submit player's match statistic result.")); }));
 
-	// Shutdown game server
+	//Shutdown The match once it's done, this means match is only valid for 1 session, if we need to add multiple match in session we need to disable this/restart match afterwards until it passed the intended match count.
 	if (ShooterGameConfig::Get().IsLocalMode_)
 	{
-		FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ShooterGameConfig::Get().LocalServerName_, 
-			FVoidHandler::CreateLambda([]() { FGenericPlatformMisc::RequestExitWithStatus(false, 0); }),
-			AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); }));
-	}
+		// Temporary Solution to fix Server Exited right after Match Ended.
+		FRegistry::ServerDSM.DeregisterLocalServerFromDSM(ShooterGameConfig::Get().LocalServerName_,
+			FVoidHandler::CreateLambda([this]()
+				{
+					FTimerHandle EndMatchTimerHandle;
+					GetWorldTimerManager().SetTimer(EndMatchTimerHandle, FTimerDelegate::CreateLambda([=]()
+						{
+							UE_LOG(LogTemp, Log, TEXT("Requesting Exit Game From timer, Deregister Success"));
+							FGenericPlatformMisc::RequestExitWithStatus(false, 0);
+						}), 10, false);
+				}),
+			AccelByte::FErrorHandler::CreateLambda([this](int32 ErrorCode, const FString& ErrorMessage)
+				{
+					FTimerHandle EndMatchTimerHandle;
+					GetWorldTimerManager().SetTimer(EndMatchTimerHandle, FTimerDelegate::CreateLambda([=]()
+						{
+							UE_LOG(LogTemp, Log, TEXT("Requesting Exit Game From timer, Deregister Failed"));
+							FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode);
+						}), 10, false);
+				}));
+}
 	else
 	{
-		FRegistry::ServerDSM.SendShutdownToDSM(true, MatchmakingInfo.match_id, 
-			FVoidHandler::CreateLambda([]() { FGenericPlatformMisc::RequestExitWithStatus(false, 0); }),
-			AccelByte::FErrorHandler::CreateLambda([](int32 ErrorCode, const FString& ErrorMessage) { FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode); }));
+		// Temporary Solution to fix Server Exited right after Match Ended.
+
+		FRegistry::ServerDSM.SendShutdownToDSM(true, MatchmakingInfo.match_id,
+			FVoidHandler::CreateLambda([this]()
+				{
+					FTimerHandle EndMatchTimerHandle;
+					GetWorldTimerManager().SetTimer(EndMatchTimerHandle, FTimerDelegate::CreateLambda([=]()
+						{
+							UE_LOG(LogTemp, Log, TEXT("Requesting Exit Game From timer, Deregister Success"));
+							FGenericPlatformMisc::RequestExitWithStatus(false, 0);
+						}), 10, false);
+				}),
+			AccelByte::FErrorHandler::CreateLambda([this](int32 ErrorCode, const FString& ErrorMessage)
+				{
+					FTimerHandle EndMatchTimerHandle;
+					GetWorldTimerManager().SetTimer(EndMatchTimerHandle, FTimerDelegate::CreateLambda([=]()
+						{
+							UE_LOG(LogTemp, Log, TEXT("Requesting Exit Game From timer, Deregister Failed"));
+							FGenericPlatformMisc::RequestExitWithStatus(false, ErrorCode);
+						}), 10, false);
+				}));
 	}
 	}
 #endif

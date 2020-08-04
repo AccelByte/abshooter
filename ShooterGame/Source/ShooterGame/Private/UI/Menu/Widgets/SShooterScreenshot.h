@@ -1,3 +1,7 @@
+// Copyright (c) 2018 - 2020 AccelByte Inc. All Rights Reserved.
+// This is licensed software from AccelByte Inc, for limitations
+// and restrictions contact your company contract manager.
+
 #pragma once
 
 #include "SlateBasics.h"
@@ -25,7 +29,7 @@ struct FScreenshotEntry
 	FString Title;
 	TSharedPtr< FSlateBrush > Image = nullptr;
 	FString Path;
-    FString SlotID;
+	FString SlotID;
 	FString Checksum;
 	EScreenshotState State = NONE;
 };
@@ -75,16 +79,16 @@ public:
 
 	FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
 
-    void MainMenuMode() { bMainMenuMode = true; }
+	void MainMenuMode() { bMainMenuMode = true; }
 
-    TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, const TArray<uint8>& ImageData);
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrush(FString ContentType, FName ResourceName, const TArray<uint8>& ImageData);
 
-    void LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 SlotIndex);
+	void LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 SlotIndex);
 
-    void RefreshFromCloud();
+	void RefreshFromCloud();
 
-    void OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex);
-    void OnDeleteSlot(const FString& SlotID);
+	void OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex);
+	void OnDeleteSlot(const FString& SlotID);
 	void OnResolveSlot(int32 SlotIndex);
 
 	void RemoveErrorSlots();
@@ -140,7 +144,7 @@ protected:
 
 	TSharedPtr<FScreenshotComboBoxGroup> ComboBoxGroup;
 
-    bool bMainMenuMode;
+	bool bMainMenuMode;
 
 	TArray<FAccelByteModelsSlot> LocalSlots;
 

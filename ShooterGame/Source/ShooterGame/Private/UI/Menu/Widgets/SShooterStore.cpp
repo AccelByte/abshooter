@@ -85,6 +85,7 @@ void SShooterStore::Construct(const FArguments& InArgs)
 {
 	PlayerOwner = InArgs._PlayerOwner;
 	OwnerWidget = InArgs._OwnerWidget;
+	UOwnerWidget = InArgs._UOwnerWidget;//TODO remove this argument after Store migrated to UMG completely
 	OnBuyItemFinished = InArgs._OnBuyItemFinished;
 	CoinsWidget = InArgs._CoinsWidget;
 
@@ -217,7 +218,14 @@ void SShooterStore::Construct(const FArguments& InArgs)
 						.VAlign(VAlign_Bottom)
 						.OnClicked(FOnClicked::CreateLambda([&]()
 						{
-							static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+							if (OwnerWidget.IsValid())
+							{
+								static_cast<SShooterMenuWidget*>(OwnerWidget.Get())->MenuGoBack();
+							}
+							else if (UOwnerWidget != nullptr) //TODO remove this implementation to open main menu
+							{
+								static_cast<UMainMenuUI*>(UOwnerWidget)->OpenMainMenu();
+							}
 							return FReply::Handled();
 						}))
 					]

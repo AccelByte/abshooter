@@ -8,7 +8,6 @@
 #include "SShooterMenuItem.h"
 #include "ShooterStyle.h"
 #include "ShooterMenuWidgetStyle.h"
-#include "SShooterUserProfileWidget.h"
 #include "ShooterUIHelpers.h"
 #include "ShooterGameInstance.h"
 #include "Player/ShooterLocalPlayer.h"
@@ -34,7 +33,6 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 	SelectedIndex = 0;
 	PlayerOwner = InArgs._PlayerOwner;
 	bGameMenu = InArgs._IsGameMenu;
-	UserProfileWidget = InArgs._UserProfileWidget;
 	ControllerHideMenuKey = EKeys::Gamepad_Special_Right;
 	Visibility.Bind(this, &SShooterMenuWidget::GetSlateVisibility);
 	FLinearColor MenuTitleTextColor =  FLinearColor(FColor(0,0,0, 51));
@@ -97,14 +95,6 @@ void SShooterMenuWidget::Construct(const FArguments& InArgs)
 				]
 			]
 		]
-			+ SOverlay::Slot()
-			.HAlign(HAlign_Right)
-			.VAlign(VAlign_Top)
-			.Padding(0,65)
-			[
-				SAssignNew(UserProfileWidgetContainer,SWeakWidget)
-				.PossiblyNullContent(UserProfileWidget)
-			]
 	];
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998 - 2020 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShooterGameInstance.cpp
@@ -9,6 +9,7 @@
 // shootergame
 #include "ShooterGame.h"
 #include "ShooterGameInstance.h"
+#include "ShooterLoginMenu.h"
 #include "ShooterMainMenu.h"
 #include "ShooterWelcomeMenu.h"
 #include "ShooterMessageMenu.h"
@@ -24,6 +25,8 @@
 #include "Misc/CommandLine.h"
 #include "ShooterGameConfig.h"
 #include "ShooterGame_TeamDeathMatch.h"
+// Temporary Solution
+#include "ShooterGame_FreeForAll.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -38,7 +41,6 @@
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
-#include "UMG/LoginMenuUI.h"
 #include "ShooterGameTelemetry.h"
 #include "ShooterGameSteamUtility.h"
 
@@ -109,28 +111,114 @@ UShooterGameInstance::UShooterGameInstance(const FObjectInitializer& ObjectIniti
 	: Super(ObjectInitializer)
 	, OnlineMode(EOnlineMode::Online) // Default to online
 	, bIsLicensed(true) // Default to licensed (should have been checked by OS on boot)
-	, bIsInitialized(false)
 	, bIsActiveFromPIE(false)
 {
-	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] UShooterGameInstance() Constructor!"));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] UShooterGameInstance() Constructor!"));
 
 	CurrentState = ShooterGameInstanceState::None;
 
+	// LoginMenu
 	static ConstructorHelpers::FClassFinder<UUserWidget> LoginMenuBPClass(TEXT("/Game/UMG/LoginMenu/WB_LoginMenu"));
-	if (!ensure(LoginMenuBPClass.Class != nullptr))
-	{
-		return;
-	}
+	if (!ensure(LoginMenuBPClass.Class != nullptr)) return;
 
-	// place off the reference to the menu variable
-	LoginMenuClass = LoginMenuBPClass.Class;
+	LoginMenuClass = MakeShareable(new TSubclassOf<UUserWidget>(LoginMenuBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *LoginMenuClass->Get()->GetName());
 
-	UE_LOG(LogTemp, Warning, TEXT("[ShooterGameInstance] Contructor Found Class : %s !"), *LoginMenuClass->GetName());
+	// MainMenu
+	static ConstructorHelpers::FClassFinder<UUserWidget> MainMenuBPClass(TEXT("/Game/UMG/MainMenu/WB_MainMenu"));
+	if (!ensure(MainMenuBPClass.Class != nullptr)) return;
+
+	MainMenuClass = MakeShareable(new TSubclassOf<UUserWidget>(MainMenuBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *MainMenuClass->Get()->GetName());
+
+	// AchievementEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> AchievementEntryBPClass(TEXT("/Game/UMG/GameProfileMenu/WB_AchievementEntry"));
+	if (!ensure(AchievementEntryBPClass.Class != nullptr)) return;
+
+	AchievementEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(AchievementEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *AchievementEntryClass->Get()->GetName());
+
+	// StatisticEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> StatisticEntryBPClass(TEXT("/Game/UMG/GameProfileMenu/WB_StatisticEntry"));
+	if (!ensure(StatisticEntryBPClass.Class != nullptr)) return;
+
+	StatisticEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(StatisticEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *StatisticEntryClass->Get()->GetName());
+
+	// GalleryEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> GalleryEntryBPClass(TEXT("/Game/UMG/GalleryMenu/WB_GalleryEntry"));
+	if (!ensure(GalleryEntryBPClass.Class != nullptr)) return;
+
+	GalleryEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(GalleryEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *GalleryEntryClass->Get()->GetName());
+
+	// GalleryPreviewPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> GalleryPreviewPopupBPClass(TEXT("/Game/UMG/GalleryMenu/WB_GalleryPreviewPopup"));
+	if (!ensure(GalleryPreviewPopupBPClass.Class != nullptr)) return;
+
+	GalleryPreviewPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(GalleryPreviewPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *GalleryPreviewPopupClass->Get()->GetName());
+
+	// GalleryEditPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> GalleryEditPopupBPClass(TEXT("/Game/UMG/GalleryMenu/WB_GalleryEditPopup"));
+	if (!ensure(GalleryEditPopupBPClass.Class != nullptr)) return;
+
+	GalleryEditPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(GalleryEditPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *GalleryEditPopupClass->Get()->GetName());
+
+	// FriendSearchResultEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> FriendSearchResultEntryBPClass(TEXT("/Game/UMG/LobbyMenu/WB_FriendSearchResultEntry"));
+	if (!ensure(FriendSearchResultEntryBPClass.Class != nullptr)) return;
+
+	FriendSearchResultEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(FriendSearchResultEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *FriendSearchResultEntryClass->Get()->GetName());
+
+	// FriendSearchResultPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> FriendSearchResultPopupBPClass(TEXT("/Game/UMG/LobbyMenu/WB_FriendSearchResultPopup"));
+	if (!ensure(FriendSearchResultPopupBPClass.Class != nullptr)) return;
+
+	FriendSearchResultPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(FriendSearchResultPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *FriendSearchResultPopupClass->Get()->GetName());
+
+	// FriendEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> FriendEntryBPClass(TEXT("/Game/UMG/LobbyMenu/WB_FriendEntry"));
+	if (!ensure(FriendEntryBPClass.Class != nullptr)) return;
+
+	FriendEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(FriendEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *FriendEntryClass->Get()->GetName());
+
+	// IncomingFriendRequestPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> IncomingFriendRequestPopupBPClass(TEXT("/Game/UMG/LobbyMenu/WB_IncomingFriendRequestPopup"));
+	if (!ensure(IncomingFriendRequestPopupBPClass.Class != nullptr)) return;
+
+	IncomingFriendRequestPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(IncomingFriendRequestPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *IncomingFriendRequestPopupClass->Get()->GetName());
+
+	// GeneralNotificationPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> GeneralNotificationPopupBPClass(TEXT("/Game/UMG/BaseWidget/WB_GeneralNotificationPopup"));
+	if (!ensure(GeneralNotificationPopupBPClass.Class != nullptr)) return;
+
+	GeneralNotificationPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(GeneralNotificationPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *GeneralNotificationPopupClass->Get()->GetName());
+
+	// PartyMemberEntry
+	static ConstructorHelpers::FClassFinder<UUserWidget> PartyMemberEntryBPClass(TEXT("/Game/UMG/LobbyMenu/WB_PartyMemberEntry"));
+	if (!ensure(PartyMemberEntryBPClass.Class != nullptr)) return;
+
+	PartyMemberEntryClass = MakeShareable(new TSubclassOf<UUserWidget>(PartyMemberEntryBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *PartyMemberEntryClass->Get()->GetName());
+
+	// PartyInvitationPopup
+	static ConstructorHelpers::FClassFinder<UUserWidget> PartyInvitationPopupBPClass(TEXT("/Game/UMG/LobbyMenu/WB_PartyInvitationPopup"));
+	if (!ensure(PartyInvitationPopupBPClass.Class != nullptr)) return;
+
+	PartyInvitationPopupClass = MakeShareable(new TSubclassOf<UUserWidget>(PartyInvitationPopupBPClass.Class));
+	UE_LOG(LogTemp, Warning, TEXT("[UShooterGameInstance] Contructor Found Class : %s !"), *PartyInvitationPopupClass->Get()->GetName());
 }
 
 void UShooterGameInstance::Init() 
 {
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Init"));
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] Init"));
 
 	Super::Init();
 	IgnorePairingChangeForControllerId = -1;
@@ -148,8 +236,6 @@ void UShooterGameInstance::Init()
 	{
 		GameServerLogin();
 	}
-
-	bIsInitialized = true;
 }
 
 void UShooterGameInstance::SetupCallbacks()
@@ -195,7 +281,6 @@ void UShooterGameInstance::SetupCallbacks()
 	}
 
 	OnEndSessionCompleteDelegate = FOnEndSessionCompleteDelegate::CreateUObject(this, &UShooterGameInstance::OnEndSessionComplete);
-
 	TickDelegate = FTickerDelegate::CreateUObject(this, &UShooterGameInstance::Tick);
 	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
 
@@ -206,33 +291,8 @@ void UShooterGameInstance::SetupCallbacks()
 		DebugTestEncryptionKey[i] = uint8(i);
 	}
 
-	OnGetOnlineUsersResponse = Api::Lobby::FGetAllFriendsStatusResponse::CreateUObject(this, &UShooterGameInstance::OnFriendOnlineResponse);
-	FRegistry::Lobby.SetGetAllUserPresenceResponseDelegate(OnGetOnlineUsersResponse);
-
-	AccelByte::Api::Lobby::FConnectSuccess OnLobbyConnected = AccelByte::Api::Lobby::FConnectSuccess::CreateLambda([&]() {
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login...Connected!"));
-		AccelByte::FRegistry::Lobby.SendSetPresenceStatus(Availability::Availabe, TEXT("Shooter Game"));
-		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
-		// Force to load friend list to obtain UserID & displayname list
-		AccelByte::FRegistry::Lobby.LoadFriendsList();
-	});
-
-
-	AccelByte::FErrorHandler OnLobbyErrorConnect = AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Login Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-	});
-	AccelByte::FErrorHandler OnLobbyParsingError = AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Parsing Error. ErrorCode :%d. ErrorMessage:%s"), ErrorCode, *ErrorString);
-	});
-
-	AccelByte::Api::Lobby::FConnectionClosed OnLobbyConnectionClosed = AccelByte::Api::Lobby::FConnectionClosed::CreateLambda([&](int32 StatusCode, const FString& Reason, bool WasClean) {
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Lobby Disconnected. Code :%d. Message:%s. WasClean:%d"), StatusCode, *Reason, WasClean);
-	});
-
-	FRegistry::Lobby.SetConnectSuccessDelegate(OnLobbyConnected);
-	FRegistry::Lobby.SetConnectFailedDelegate(OnLobbyErrorConnect);
-	FRegistry::Lobby.SetConnectionClosedDelegate(OnLobbyConnectionClosed);
-	FRegistry::Lobby.SetParsingErrorDelegate(OnLobbyParsingError);
+	auto AuthorizationCode = FPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
+	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get Auth Code from Env Variable: %s"), *AuthorizationCode);
 }
 
 void UShooterGameInstance::GameClientLogin()
@@ -304,10 +364,13 @@ void UShooterGameInstance::GameServerLogin()
 				UWorld* World = GameEngine->GetGameWorld();
 				if (World)
 				{
+					// Chandra : Temporary Solution, i don't really think this is a good design as adding subsequent Game Mode will be a pain
+					AShooterGame_FreeForAll* FFAGameMode = Cast<AShooterGame_FreeForAll>(World->GetAuthGameMode());
 					AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
 					if (GameMode)
 					{
 						if (matchRequest.Session_id.IsEmpty()) { return; }
+						// Prevent Session to be created when match hasn't begun
 						if (!GameMode->IsMatchStarted())
 						{
 							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
@@ -325,6 +388,30 @@ void UShooterGameInstance::GameServerLogin()
 								MatchmakingInfo.matching_parties.Add(tmp);
 							}
 							GameMode->SetupMatch(MatchmakingInfo);
+							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
+						}
+					}
+					else if (FFAGameMode)
+					{
+						if (matchRequest.Session_id.IsEmpty()) { return; }
+						// Prevent Session to be created when match hasn't begun
+						if (!FFAGameMode->IsMatchStarted())
+						{
+							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+							MatchmakingInfo.channel = matchRequest.Game_mode;
+							MatchmakingInfo.match_id = matchRequest.Session_id;
+							for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
+							{
+								FAccelByteModelsMatchmakingParty tmp;
+								tmp.party_id = partyMember.Matching_parties[0].Party_id;
+								tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
+								for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
+								{
+									tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
+								}
+								MatchmakingInfo.matching_parties.Add(tmp);
+							}
+							FFAGameMode->SetupMatch(MatchmakingInfo);
 							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
 						}
 					}
@@ -408,35 +495,55 @@ void UShooterGameInstance::GameServerLogin()
 	}
 }
 
-void UShooterGameInstance::ConnectToLobby()
-{
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Connecting to Lobby..."));
-	AccelByte::FRegistry::Lobby.Connect();
-}
-
 void UShooterGameInstance::DisconnectFromLobby()
 {
 	if (AccelByte::FRegistry::Lobby.IsConnected())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Disconnect from Lobby..."));
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] Disconnect from Lobby..."));
+
+		AccelByte::FRegistry::Lobby.SendLeavePartyRequest();
+		AccelByte::FRegistry::Lobby.UnbindEvent();
 		AccelByte::FRegistry::Lobby.Disconnect();
 	}
 }
 
 void UShooterGameInstance::Shutdown()
 {
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] Shutdown ..."));
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] Shutdown ..."));
+
+	DisconnectFromLobby();
+	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 
 	// TODO: All widget must be removed
-	//EndLoginMenuState();
-	if (ensure(LoginMenuClass != nullptr))
+	if (ensure(LoginMenuClass.IsValid())) LoginMenuClass.Reset();
+	if (ensure(MainMenuClass.IsValid())) MainMenuClass.Reset();
+	if (ensure(AchievementEntryClass.IsValid())) AchievementEntryClass.Reset();
+	if (ensure(StatisticEntryClass.IsValid())) StatisticEntryClass.Reset();
+	if (ensure(GalleryEntryClass.IsValid())) GalleryEntryClass.Reset();
+	if (ensure(GalleryPreviewPopupClass.IsValid())) GalleryPreviewPopupClass.Reset();
+	if (ensure(GalleryEditPopupClass.IsValid())) GalleryEditPopupClass.Reset();
+	if (ensure(FriendSearchResultEntryClass.IsValid())) FriendSearchResultEntryClass.Reset();
+	if (ensure(FriendSearchResultPopupClass.IsValid())) FriendSearchResultPopupClass.Reset();
+	if (ensure(FriendEntryClass.IsValid())) FriendEntryClass.Reset();
+	if (ensure(IncomingFriendRequestPopupClass.IsValid())) IncomingFriendRequestPopupClass.Reset();
+	if (ensure(GeneralNotificationPopupClass.IsValid())) GeneralNotificationPopupClass.Reset();
+	if (ensure(PartyMemberEntryClass.IsValid())) PartyMemberEntryClass.Reset();
+	if (ensure(PartyInvitationPopupClass.IsValid())) PartyInvitationPopupClass.Reset();
+
+	if (LoginMenuUI.IsValid())
 	{
-		LoginMenuClass = nullptr;
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] Teardown LoginMenuUI"));
+		LoginMenuUI->Teardown();
+		LoginMenuUI.Reset();
+	}
+	if (MainMenuUI.IsValid())
+	{
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] Teardown MainMenuUI"));
+		MainMenuUI->Teardown();
+		MainMenuUI.Reset();
 	}
 
-	ShooterGameTelemetry::Get().Logout();
 	Super::Shutdown();
-	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
 
 void UShooterGameInstance::HandleNetworkConnectionStatusChanged( const FString& ServiceName, EOnlineServerConnectionStatus::Type LastConnectionStatus, EOnlineServerConnectionStatus::Type ConnectionStatus )
@@ -584,7 +691,7 @@ void UShooterGameInstance::HandleDemoPlaybackFailure( EDemoPlayFailure::Type Fai
 
 void UShooterGameInstance::StartGameInstance()
 {
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] StartGameInstance"));
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] StartGameInstance"));
 #if PLATFORM_PS4 == 0
 	TCHAR Parm[4096] = TEXT("");
 
@@ -630,27 +737,6 @@ void UShooterGameInstance::StartGameInstance()
 #endif
 	// Commented this, go to login menu first (after login with launcher failed) instead of main menu
 	//GotoInitialState();
-}
-
-void UShooterGameInstance::ForceGotoMainMenu()
-{
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu"));
-	if (bIsInitialized)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu bIsInitialized = true"));
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu Pendingstate : %s & Currentstate : %s"), *PendingState.ToString(), *CurrentState.ToString());
-		if (PendingState == CurrentState || PendingState == ShooterGameInstanceState::None)
-		{
-			// Go ahead and go into loading state now
-			// If we fail, the delegate will handle showing the proper messaging and move to the correct state
-			bIsActiveFromPIE = true;
-			GotoState(ShooterGameInstanceState::MainMenu);
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] ForceGotoMainMenu bIsInitialized = false"));
-	}
 }
 
 FName UShooterGameInstance::GetInitialState()
@@ -749,7 +835,6 @@ void UShooterGameInstance::ShowLoadingScreen()
 bool UShooterGameInstance::LoadFrontEndMap(const FString& MapName)
 {
 	bool bSuccess = true;
-
 	// if already loaded, do nothing
 	UWorld* const World = GetWorld();
 	if (World)
@@ -857,6 +942,10 @@ void UShooterGameInstance::EndCurrentState(FName NextState)
 	{
 		EndWelcomeScreenState();
 	}
+	else if (CurrentState == ShooterGameInstanceState::LoginMenu)
+	{
+		EndLoginMenuState();
+	}
 	else if (CurrentState == ShooterGameInstanceState::MainMenu)
 	{
 		EndMainMenuState();
@@ -869,10 +958,6 @@ void UShooterGameInstance::EndCurrentState(FName NextState)
 	{
 		EndPlayingState();
 	}
-	else if (CurrentState == ShooterGameInstanceState::LoginMenu)
-	{
-		EndLoginMenuState();
-	}
 
 	CurrentState = ShooterGameInstanceState::None;
 }
@@ -880,7 +965,6 @@ void UShooterGameInstance::EndCurrentState(FName NextState)
 void UShooterGameInstance::BeginNewState(FName NewState, FName PrevState)
 {
 	// per-state custom starting code here
-
 	if (NewState == ShooterGameInstanceState::PendingInvite)
 	{
 		BeginPendingInviteState();
@@ -888,6 +972,10 @@ void UShooterGameInstance::BeginNewState(FName NewState, FName PrevState)
 	else if (NewState == ShooterGameInstanceState::WelcomeScreen)
 	{
 		BeginWelcomeScreenState();
+	}
+	else if (NewState == ShooterGameInstanceState::LoginMenu)
+	{
+		BeginLoginMenuState();
 	}
 	else if (NewState == ShooterGameInstanceState::MainMenu)
 	{
@@ -900,10 +988,6 @@ void UShooterGameInstance::BeginNewState(FName NewState, FName PrevState)
 	else if (NewState == ShooterGameInstanceState::Playing)
 	{
 		BeginPlayingState();
-	}
-	else if (NewState == ShooterGameInstanceState::LoginMenu)
-	{
-		BeginLoginMenuState();
 	}
 
 	CurrentState = NewState;
@@ -929,6 +1013,8 @@ void UShooterGameInstance::EndPendingInviteState()
 
 void UShooterGameInstance::BeginWelcomeScreenState()
 {
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginWelcomeScreenState"));
+
 	//this must come before split screen player removal so that the OSS sets all players to not using online features.
 	SetOnlineMode(EOnlineMode::Offline);
 
@@ -980,6 +1066,8 @@ void UShooterGameInstance::SetPresenceForLocalPlayers(const FString& StatusStr, 
 
 void UShooterGameInstance::BeginLoginMenuState()
 {
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginLoginMenuState"));
+
 	// Make sure we're not showing the loadscreen
 	UShooterGameViewportClient * ShooterViewport = Cast<UShooterGameViewportClient>(GetGameViewportClient());
 
@@ -1004,55 +1092,39 @@ void UShooterGameInstance::BeginLoginMenuState()
 	// Set presence to menu state for the owning player
 	SetPresenceForLocalPlayers(FString(TEXT("In Menu")), FVariantData(FString(TEXT("OnMenu"))));
 
-	// load startup map
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState Loading startup map"));
+	// Load startup map
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginLoginMenuState Loading startup map"));
 	UWorld* const World = GetWorld();
 	if (World->IsPlayInEditor())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is PIE the mainmenu map is already loaded"));
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginLoginMenuState is PIE the mainmenu map is already loaded"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is NOT PIE start loading the mainmenu map"));
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginLoginMenuState is NOT PIE start loading the mainmenu map"));
 		LoadFrontEndMap(MainMenuMap);
 	}
 
-	if (!ensure(LoginMenuClass != nullptr))
-	{
-		return;
-	}
-
-	LoginMenuUI = CreateWidget<ULoginMenuUI>(this, LoginMenuClass);
-
-	if (!ensure(LoginMenuUI != nullptr))
-	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState LoginMenuUI is null"));
-		return;
-	}
-
-	// add the widget to viewport
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState setup LoginMenuUI to viewport"));
-	LoginMenuUI->Setup();
-
-	LoginMenuUI->SetMenuInterface(this);
-
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState END"));
+	// Construct login menu
+	LoginMenuUI = MakeShareable(new FShooterLoginMenu(this));
+	LoginMenuUI->Construct();
 }
 
 void UShooterGameInstance::EndLoginMenuState()
 {
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] EndLoginMenuState"));
-
-	if (LoginMenuUI != nullptr)
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] EndLoginMenuState"));
+	if (LoginMenuUI.IsValid())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] EndLoginMenuState teardon LoginMenuUI"));
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] EndLoginMenuState teardown LoginMenuUI"));
 		LoginMenuUI->Teardown();
-		LoginMenuUI = nullptr;
+		LoginMenuUI.Reset();
 	}
 }
 
 void UShooterGameInstance::BeginMainMenuState()
 {
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginMainMenuState"));
+
 	// Make sure we're not showing the loadscreen
 	UShooterGameViewportClient * ShooterViewport = Cast<UShooterGameViewportClient>(GetGameViewportClient());
 
@@ -1077,32 +1149,33 @@ void UShooterGameInstance::BeginMainMenuState()
 	// Set presence to menu state for the owning player
 	SetPresenceForLocalPlayers(FString(TEXT("In Menu")), FVariantData(FString(TEXT("OnMenu"))));
 
-	// load startup map
-	UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginMainMenuState Loading startup map"));
+	// Load startup map
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginMainMenuState Loading startup map"));
 	UWorld* const World = GetWorld();
 	if (World->IsPlayInEditor())
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is PIE the mainmenu map is already loaded"));
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginMainMenuState is PIE the mainmenu map is already loaded"));
 	}
 	else
 	{
-		UE_LOG(LogTemp, Log, TEXT("[ShooterGameInstance] BeginLoginMenuState is NOT PIE start loading the mainmenu map"));
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] BeginMainMenuState is NOT PIE start loading the mainmenu map"));
 		LoadFrontEndMap(MainMenuMap);
 	}
 
+	// TODO: Migrate from SlateUI into UMG
 	// player 0 gets to own the UI
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
-	MainMenuUI = MakeShareable(new FShooterMainMenu());
-	MainMenuUI->Construct(this, Player);
-	MainMenuUI->AddMenuToGameViewport();
+	// Construct main menu
+	MainMenuUI = MakeShareable(new FShooterMainMenu(this));
+	MainMenuUI->Construct(Player);
 
 	// It's possible that a play together event was sent by the system while the player was in-game or didn't
 	// have the application launched. The game will automatically go directly to the main menu state in those cases
 	// so this will handle Play Together if that is why we transitioned here.
 	if (PlayTogetherInfo.UserIndex != -1)
 	{
-		MainMenuUI->OnPlayTogetherEventReceived();
+		//MainMenuUI->OnPlayTogetherEventReceived();
 	}
 
 #if !SHOOTER_CONSOLE_UI
@@ -1115,164 +1188,21 @@ void UShooterGameInstance::BeginMainMenuState()
 	}
 #endif
 
-
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Started"));
-	
-	// check cache first
-	FString CurrentUserID = UserProfileInfo.UserId = UserToken.User_id;
-	IFileManager& FileManager = IFileManager::Get();
-	FString CacheTextDir = FString::Printf(TEXT("%s\\Cache\\%s.txt"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *CurrentUserID);
-	if (FileManager.FileExists(*CacheTextDir))
-	{
-		UE_LOG(LogTemp, Log, TEXT("cache meta found"));
-		FString FileToLoad;
-		if (FFileHelper::LoadFileToString(FileToLoad, *CacheTextDir))
-		{
-			TArray<FString> Raw;
-			FileToLoad.ParseIntoArray(Raw, TEXT("\n"), true);
-			if (Raw.Num() > 0)
-			{
-				FString ImagePath = Raw[0];
-				FString CachedDisplayName = Raw.Last();
-
-				FString ImageCache = FString::Printf(TEXT("%s\\Cache\\%s"), *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), *ImagePath);
-
-				if (UserToken.Display_name.IsEmpty())
-				{
-					UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
-				}
-
-				MainMenuUI->UpdateUserProfileFromCache(CachedDisplayName, CurrentUserID, ImageCache);
-				GetStatItems();
-			}
-			UE_LOG(LogTemp, Log, TEXT("File to load:%s"), *FileToLoad);
-		}
-	}
-	else
-	{
-		THandler<FAccelByteModelsUserProfileInfo> OnUserProfileObtained = THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([this](const FAccelByteModelsUserProfileInfo& UserProfileInfo){
-			MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, UserProfileInfo.AvatarUrl);
-			GetStatItems();
-			});
-
-		FRegistry::UserProfile.GetUserProfile(AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda(
-			[this, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& UserProfileInfo)
-		{
-			FAccelByteModelsUserProfileInfo ResultGetUserProfile = UserProfileInfo;
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultGetUserProfile.UserId);
-			if (UserToken.Display_name.IsEmpty())
-			{
-				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
-			}
-
-			OnUserProfileObtained.ExecuteIfBound(UserProfileInfo);
-			this->UserProfileInfo = ResultGetUserProfile; // save our own
-
-		}),
-			AccelByte::FErrorHandler::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](int32 Code, FString Message) {
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User Profile Error: %s"), *Message);
-
-			UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile..."));
-
-			if (UserToken.Display_name.IsEmpty())
-			{
-				UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
-			}
-
-			FAccelByteModelsUserProfileCreateRequest defaultCreateProfileRequest;
-			defaultCreateProfileRequest.AvatarUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-			defaultCreateProfileRequest.AvatarLargeUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-			defaultCreateProfileRequest.AvatarSmallUrl = "https://s3-us-west-2.amazonaws.com/justice-platform-service/avatar.jpg";
-			defaultCreateProfileRequest.Language = "en";
-			defaultCreateProfileRequest.Timezone = "Etc/UTC";
-			defaultCreateProfileRequest.DateOfBirth = "1991-01-01";
-			defaultCreateProfileRequest.FirstName = UserToken.Display_name;
-			defaultCreateProfileRequest.LastName = UserToken.Display_name;
-
-			FRegistry::UserProfile.CreateUserProfile(defaultCreateProfileRequest, AccelByte::THandler<FAccelByteModelsUserProfileInfo>::CreateLambda([&, OnUserProfileObtained = OnUserProfileObtained](const FAccelByteModelsUserProfileInfo& Result) {
-				FAccelByteModelsUserProfileInfo ResultCreateUserProfile = Result;
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Attempt to create default user Profile...SUCCESS"));
-
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Get User ID: %s"), *ResultCreateUserProfile.UserId);
-				OnUserProfileObtained.ExecuteIfBound(Result);
-				this->UserProfileInfo = ResultCreateUserProfile; // save our own
-
-			}), AccelByte::FErrorHandler::CreateLambda([&, defaultCreateProfileRequest = defaultCreateProfileRequest](int32 Code, FString Message) {
-				MainMenuUI->UpdateUserProfile(UserToken.Display_name, UserToken.User_id, defaultCreateProfileRequest.AvatarUrl);
-				UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK]  Attempt to create default user Profile...Error: %s"), *Message);
-			}));
-
-		}));
-	}
-
 	RemoveNetworkFailureHandlers();
-}
-
-void UShooterGameInstance::GetStatItems()
-{
-	FNumberFormattingOptions format;
-	format.RoundingMode = HalfToZero;
-	TArray<FString> StatCodes =
-	{
-		ShooterGameConfig::Get().StatisticCodeMVP_,
-		ShooterGameConfig::Get().StatisticCodeMatch_,
-		ShooterGameConfig::Get().StatisticCodeDeath_,
-		ShooterGameConfig::Get().StatisticCodeKill_
-	};
-	AccelByte::FRegistry::Statistic.GetUserStatItems(StatCodes, {}, THandler<FAccelByteModelsUserStatItemPagingSlicedResult>::CreateLambda([this, StatCodes, format](const FAccelByteModelsUserStatItemPagingSlicedResult& Result)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Get StatItems Success!"));
-		if (Result.Data.Num() != 0)
-		{
-			TArray<float> StatValue;
-			for (int i = 0; i < 4; i++)
-			{
-				StatValue.Add(0);
-			}
-			for (FAccelByteModelsUserStatItemInfo item : Result.Data)
-			{
-				if (item.StatCode == StatCodes[0])
-				{
-					StatValue[0] = item.Value;
-				}
-				else if (item.StatCode == StatCodes[1])
-				{
-					StatValue[1] = item.Value;
-				}
-				else if (item.StatCode == StatCodes[2])
-				{
-					StatValue[2] = item.Value;
-				}
-				else if (item.StatCode == StatCodes[3])
-				{
-					StatValue[3] = item.Value;
-				}
-			}
-			MainMenuUI->UpdateProfileStatItem(FText::AsNumber(StatValue[0], &format), FText::AsNumber(StatValue[1], &format), FText::AsNumber(StatValue[2], &format), FText::AsNumber(StatValue[3], &format));
-		}
-		else
-		{
-			MainMenuUI->UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
-		}
-	}), FErrorHandler::CreateLambda([this](int32 Code, FString Message)
-	{
-		UE_LOG(LogTemp, Log, TEXT("Get StatItems Failed! Code: %d | Message: %s"), Code, *Message);
-		MainMenuUI->UpdateProfileStatItem(FText::FromString("0"), FText::FromString("0"), FText::FromString("0"), FText::FromString("0"));
-	}));
 }
 
 void UShooterGameInstance::GetQos()
 {
 	FRegistry::Qos.GetServerLatencies(THandler<TArray<TPair<FString, float>>>::CreateLambda([&](TArray<TPair<FString, float>> Result){
-	ShooterGameConfig::Get().SetServerLatencies(Result);
-		}),
-		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
-			UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
-		}));
+		ShooterGameConfig::Get().SetServerLatencies(Result);
+	}),
+	AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString){
+		UE_LOG(LogTemp, Log, TEXT("Could not obtain server latencies from QoS endpoint. ErrorCode: %d\nMessage:%s"), ErrorCode, *ErrorString);
+	}));
 }
 
 // Setup my statistic code, server can not update our stats if we don't have any.
-void UShooterGameInstance::InitStatistic()
+void UShooterGameInstance::SetupStatistic()
 {
 	TArray<FString> statCodes = { 
 		ShooterGameConfig::Get().StatisticCodeMatch_, 
@@ -1298,10 +1228,12 @@ void UShooterGameInstance::InitStatistic()
 
 void UShooterGameInstance::EndMainMenuState()
 {
+	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] EndMainMenuState"));
 	if (MainMenuUI.IsValid())
 	{
-		MainMenuUI->RemoveMenuFromGameViewport();
-		MainMenuUI = nullptr;
+		UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance] EndMainMenuState teardown MainMenuUI"));
+		MainMenuUI->Teardown();
+		MainMenuUI.Reset();
 	}
 }
 
@@ -1640,7 +1572,7 @@ bool UShooterGameInstance::PlayDemo(ULocalPlayer* LocalPlayer, const FString& De
 	return true;
 }
 
-/** Callback which is intended to be called upon finding sessions */
+/** Callback which is intended to be called upon finding sessions. */
 void UShooterGameInstance::OnJoinSessionComplete(EOnJoinSessionCompleteResult::Type Result)
 {
 	// unhook the delegate
@@ -1747,7 +1679,7 @@ void UShooterGameInstance::InternalTravelToSession(const FName& SessionName)
 	PlayerController->ClientTravel(URL, TRAVEL_Absolute);
 }
 
-/** Callback which is intended to be called upon session creation */
+/** Callback which is intended to be called upon session creation. */
 void UShooterGameInstance::OnCreatePresenceSessionComplete(FName SessionName, bool bWasSuccessful)
 {
 	AShooterGameSession* const GameSession = GetGameSession();
@@ -1773,7 +1705,7 @@ void UShooterGameInstance::OnCreatePresenceSessionComplete(FName SessionName, bo
 	}
 }
 
-/** Initiates the session searching */
+/** Initiates the session searching. */
 bool UShooterGameInstance::FindSessions(ULocalPlayer* PlayerOwner, bool bIsDedicatedServer, bool bFindLAN)
 {
 	bool bResult = false;
@@ -1796,7 +1728,7 @@ bool UShooterGameInstance::FindSessions(ULocalPlayer* PlayerOwner, bool bIsDedic
 	return bResult;
 }
 
-/** Callback which is intended to be called upon finding sessions */
+/** Callback which is intended to be called upon finding sessions. */
 void UShooterGameInstance::OnSearchSessionsComplete(bool bWasSuccessful)
 {
 	AShooterGameSession* const Session = GetGameSession();
@@ -1896,11 +1828,6 @@ bool UShooterGameInstance::Tick(float DeltaSeconds)
 	return true;
 }
 
-void UShooterGameInstance::OnFriendOnlineResponse(const FAccelByteModelsGetOnlineUsersResponse & Response)
-{
-	UE_LOG(LogTemp, Log, TEXT("[UShooterGameInstance::OnFriendOnlineResponse] Found Online friends: "));
-}
-
 bool UShooterGameInstance::HandleOpenCommand(const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld)
 {
 	bool const bOpenSuccessful = Super::HandleOpenCommand(Cmd, Ar, InWorld);
@@ -1931,7 +1858,7 @@ void UShooterGameInstance::HandleSignInChangeMessaging()
 
 void UShooterGameInstance::HandleUserLoginChanged(int32 GameUserIndex, ELoginStatus::Type PreviousLoginStatus, ELoginStatus::Type LoginStatus, const FUniqueNetId& UserId)
 {
-	// On Switch, accounts can play in LAN games whether they are signed in online or not. 
+	// On Switch, accounts can play in LAN games whether they are signed in online or not.
 #if PLATFORM_SWITCH
 	const bool bDowngraded = LoginStatus == ELoginStatus::NotLoggedIn || (GetOnlineMode() == EOnlineMode::Online && LoginStatus == ELoginStatus::UsingLocalProfile);
 #else
@@ -2675,48 +2602,18 @@ void UShooterGameInstance::ReceivedNetworkEncryptionAck(const FOnEncryptionKeyRe
 	Delegate.ExecuteIfBound(Response);
 }
 
-#pragma region Override Menu Interface
-void UShooterGameInstance::LoginWithUsername(FString Username, FString Password)
-{
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username"));
-	bool bHasDone = false;
-	FVoidHandler OnLoginSuccess = FVoidHandler::CreateLambda([&]()
-	{
-		ShooterGameTelemetry::Get().Login(ShooterGameTelemetry::ELoginType::USERNAME, FRegistry::Credentials.GetUserId());
-		ShooterGameTelemetry::Get().EnableHeartbeat();
-
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username success"));
-		SetupUser();
-		bHasDone = true;
-	});
-	AccelByte::FErrorHandler OnLoginError = AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login with username error: %s"), *Message);
-		LoginMenuUI->SetErrorLoginMessage(TEXT("Failed to Login"));
-		bHasDone = true;
-	});
-	FRegistry::User.LoginWithUsername(Username, Password, OnLoginSuccess, OnLoginError);
-
-	// Blocking here
-	double LastTime = FPlatformTime::Seconds();
-	while (!bHasDone)
-	{
-		const double AppTime = FPlatformTime::Seconds();
-		FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
-		FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
-		LastTime = AppTime;
-		FPlatformProcess::Sleep(0.5f);
-	}
-}
-#pragma endregion Override Menu Interface
-
 void UShooterGameInstance::SetupUser()
 {
 	UserToken.User_id = AccelByte::FRegistry::Credentials.GetUserId();
 	UserToken.Display_name = AccelByte::FRegistry::Credentials.GetUserDisplayName();
+	if (UserToken.Display_name.IsEmpty())
+	{
+		UserToken.Display_name = FGenericPlatformMisc::GetDeviceId();
+	}
 
-	ConnectToLobby();
-	InitStatistic();
+	UserProfileInfo.UserId = AccelByte::FRegistry::Credentials.GetUserId();
+
+	SetupStatistic();
 
 	GotoState(ShooterGameInstanceState::MainMenu);
 }

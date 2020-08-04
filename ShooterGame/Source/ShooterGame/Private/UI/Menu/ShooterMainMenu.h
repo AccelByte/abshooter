@@ -1,40 +1,48 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
+
+#include "Utils/ImageUtils.h"
+
+// TODO: Refactor into UMG
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "Widgets/ShooterMenuItem.h"
 #include "Widgets/SShooterMenuWidget.h"
-#include "Widgets/SShooterUserProfileWidget.h"
 #include "Widgets/SShooterCoinsWidget.h"
 #include "Widgets/SShooterServerList.h"
 #include "Widgets/SShooterDemoList.h"
 #include "Widgets/SShooterInventory.h"
 #include "Widgets/SShooterStore.h"
-#include "Widgets/SShooterGameProfile.h"
 #include "Widgets/SShooterLeaderboard.h"
-#include "Widgets/SLobby.h"
-#include "Widgets/SShooterSplitScreenLobbyWidget.h"
-#include "Widgets/SShooterScreenshot.h"
+//#include "Widgets/SLobby.h"
+//#include "Widgets/SShooterSplitScreenLobbyWidget.h"
 #include "ShooterOptions.h"
 
 #include "Api/AccelByteWalletApi.h"
 
 class FShooterMainMenu : public TSharedFromThis<FShooterMainMenu>, public FTickableGameObject
 {
-public:	
+public:
+	/**
+	* @brief Default Constructor.
+	*
+	* @param _GameInstance The instance of the game.
+	*/
+	FShooterMainMenu(TWeakObjectPtr<class UShooterGameInstance> _GameInstance);
 
 	virtual ~FShooterMainMenu();
 
-	/** build menu */
-	void Construct(TWeakObjectPtr<UShooterGameInstance> _GameInstance, TWeakObjectPtr<ULocalPlayer> _PlayerOwner);
+	/** Construct menu.	*/
+	void Construct(TWeakObjectPtr<ULocalPlayer> _PlayerOwner);
+
+	/** Teardown menu. */
+	void Teardown();
+
+	// TODO: Refactor into UMG
 
 	/** Add the menu to the gameviewport so it becomes visible */
 	void AddMenuToGameViewport();
-
-	void UpdateUserProfile(FString ProfileName, FString UserID, FString AvatarURL);
-    void UpdateUserProfileFromCache(FString ProfileName, FString UserId, FString AvatarPath);
-
-	void UpdateProfileStatItem(FText MVPScore, FText TotalMatch, FText TotalDeathsScore, FText TotalKillsScore);
 
 	/** Remove from the gameviewport. */
 	void RemoveMenuFromGameViewport();	
@@ -73,9 +81,6 @@ protected:
 		Quick
 	};
 	
-	/** Owning game instance */
-	TWeakObjectPtr<UShooterGameInstance> GameInstance;
-
 	/** Owning player */
 	TWeakObjectPtr<ULocalPlayer> PlayerOwner;
 
@@ -85,10 +90,6 @@ protected:
 	/** menu widget */
 	TSharedPtr<class SShooterMenuWidget> MenuWidget;
 
-
-	/** menu widget */
-	TSharedPtr<class SShooterUserProfileWidget> UserProfileWidget;
-
 	/** menu widget */
 	TSharedPtr<class SShooterCoinsWidget> CoinsWidgetContainer;
 
@@ -97,18 +98,18 @@ protected:
 	TSharedPtr<class SWeakWidget> UserProfileWidgetContainer;
 
 	/** SplitScreen Lobby Widget */
-	TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;
+	//TSharedPtr<class SShooterSplitScreenLobby> SplitScreenLobbyWidget;
 
 	/* used for removing the SplitScreenLobby */
-	TSharedPtr<class SWeakWidget> SplitScreenLobbyWidgetContainer;
+	//TSharedPtr<class SWeakWidget> SplitScreenLobbyWidgetContainer;
 
 	/** server list widget */
 	TSharedPtr<class SShooterServerList> ServerListWidget;
 
 	/** lobby friend list widget */
-	TSharedPtr<class SLobby> LobbyWidget;
+	//TSharedPtr<class SLobby> LobbyWidget;
 	/** yet another custom menu */
-	TSharedPtr<class FShooterMenuItem> LobbyMenuItem;
+	//TSharedPtr<class FShooterMenuItem> LobbyMenuItem;
 
 	/** dedicated server region selection */
 	TSharedPtr<FShooterMenuItem> DsRegionOption;
@@ -127,12 +128,8 @@ protected:
 	/** store widget */
 	TSharedPtr<class SShooterStore> StoreWidget;
 
-	TSharedPtr<class SShooterGameProfile> GameProfileWidget;
-
-    /** Screenshot widget */
-    TSharedPtr<class SShooterScreenshot> ScreenshotWidget;
-    /** yet another custom menu */
-    TSharedPtr<class FShooterMenuItem> ScreenshotItem;
+	/** yet another custom menu */
+	TSharedPtr<class FShooterMenuItem> ScreenshotItem;
 
 	/** leaderboard widget */
 	TSharedPtr<class SShooterLeaderboard> LeaderboardWidget;
@@ -270,7 +267,7 @@ protected:
 	/** Join server */
 	void OnJoinServer();
 
-	void OnShowLobby();
+	//void OnShowLobby();
 
 	void OnShowOption();
 
@@ -282,13 +279,6 @@ protected:
 
 	/** Show store */
 	void OnShowStore();
-
-	void OnShowGameProfile();
-
-	void GetStatItems();
-
-    /** Show screenshot */
-    void OnShowScreenshot();
 
 	void ChangeBackground(UMaterialInterface* Material);
 
@@ -321,8 +311,6 @@ protected:
 
 	/** Display the loading screen. */
 	void DisplayTestMessage();
-
-
 
 	/** Get the persistence user associated with PCOwner*/
 	UShooterPersistentUser* GetPersistentUser() const;
@@ -375,8 +363,8 @@ protected:
 	float QuickMAnimTimer;
 
 	/** This is kind of hacky, but it's the simplest solution since we're out of time.
-	    JoinSession was moved to an async event in the PS4 OSS and isn't called immediately
-	    so we need to wait till it's triggered and then remove it */
+		JoinSession was moved to an async event in the PS4 OSS and isn't called immediately
+		so we need to wait till it's triggered and then remove it */
 	bool bRemoveSessionThatWeJustJoined;
 
 	/** Custom animation var that is used to determine whether or not to inc or dec the alpha value of the quickmatch UI*/
@@ -403,11 +391,9 @@ protected:
 	/** used for displaying the quickmatch confirmation dialog when a quickmatch to join is not found */
 	TSharedPtr<class SShooterConfirmationDialog> QuickMatchFailureWidget;
 
-
 	/** used for displaying the quickmatch confirmation dialog when a quickmatch to join is not found */
 	// buat message box
 	TSharedPtr<class SShooterConfirmationDialog> TestMessageWidget;
-
 
 	/** used for managing the QuickMatchFailureWidget */
 	TSharedPtr<class SWeakWidget> QuickMatchFailureWidgetContainer;
@@ -435,4 +421,33 @@ protected:
 	FDelegateHandle OnMatchmakingCompleteDelegateHandle;
 	FDelegateHandle OnCancelMatchmakingCompleteDelegateHandle;
 	FDelegateHandle OnLoginCompleteDelegateHandle;
+
+private:
+	/**
+	* @brief Update user profile.
+	*
+	* @param AvatarURL Player's avatar url.
+	*/
+	void UpdateUserProfile(FString AvatarURL);
+
+	/** Handle when getting player's avatar image. */
+	void OnThumbImageReceived(FCacheBrush Image);
+
+	/** Update user profile from cache. */
+	void UpdateUserProfileFromCache();
+
+	/** Owning game instance. */
+	TWeakObjectPtr<UShooterGameInstance> GameInstance;
+
+	/** Main Menu UI widget. */
+	TWeakObjectPtr<class UMainMenuUI> MainMenuUI;
+
+	/** Game profile sub-menu widget. */
+	TSharedPtr<class ShooterGameProfile> GameProfile;
+
+	/** Lobby sub-menu widget. */
+	TSharedPtr<class ShooterLobby> Lobby;
+
+	/** Gallery sub-menu widget */
+	TSharedPtr<class ShooterGallery> Gallery;
 };

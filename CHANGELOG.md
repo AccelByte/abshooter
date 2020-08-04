@@ -1,4 +1,28 @@
 # Changelog
+## 2.0.0 (2020-07-23)
+## Added
+- Moved UI from Slate to Partial UMG
+- Converted Lobby UI from Slate to UMG
+- Converted Achievment UI from Slate to UMG
+- Converted Leaderboard UI from Slate to UMG
+- Converted Matchmaking functionality to UMG
+- Modified FFA Game Mode to work with AccelByte System
+- FFA Game Mode version of Highrise named FFA_Highrise
+- Save Credentials Functionality to Login
+- Game Mode Selection on the Lobby
+- Region Selection on the Lobby
+- Counter for Finding Matchmaking
+- Countdown for when Matchmaking has been Found
+- Created Packaging and Build Script for Client and Server
+
+## Fixed
+- Server closing instantly after Match ended
+- Returning to Main Menu after match ended did not work
+- Clean up operation for the main game classes
+
+## Removed
+- Old Highrise Map, now renamed to TDM_Highrise
+
 ## 1.8.1 (2020-07-13)
 ## Fixed
 - Clean up operation for the main game classes

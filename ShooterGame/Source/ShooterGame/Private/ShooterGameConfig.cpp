@@ -27,6 +27,7 @@ ShooterGameConfig::ShooterGameConfig()
 	TelemetryEvents_(TelemetryEvents),
 	TelemetryHeartbeatInterval_(TelemetryHeartbeatInterval)
 {
+	PopulateGameMode();
 	FString ACCELBYTE_CONFIG_SERVER_SECTION = "/Script/ShooterGame.AccelByteConfig.Server";
 
 	GConfig->GetInt(*ACCELBYTE_CONFIG_SERVER_SECTION, TEXT("ServerPort"), ServerPort, GGameIni);
@@ -99,4 +100,12 @@ void ShooterGameConfig::SetServerLatencies(TArray<TPair<FString, float>> value)
 void ShooterGameConfig::SelectRegion(TPair<FString, float> value)
 {
 	SelectedRegion = TArray<TPair<FString, float>>{ value };
+}
+
+void ShooterGameConfig::PopulateGameMode()
+{
+	AvailableGameMode.Add({ "FFA", "10ffa", 1 });
+	AvailableGameMode.Add({ "5 vs 5", "5v5", 5 });
+	AvailableGameMode.Add({ "4 vs 4", "4v4", 4 });
+	AvailableGameMode.Add({ "3 vs 3", "3v3", 3 });
 }
