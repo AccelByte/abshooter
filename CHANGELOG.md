@@ -1,4 +1,9 @@
 # Changelog
+## 2.0.1 (Unreleased)
+## Added
+- AccelByte Justice SDK 2.18.3
+- Agones SDK
+
 ## 2.0.0 (2020-07-23)
 ## Added
 - Moved UI from Slate to Partial UMG
@@ -26,6 +31,11 @@
 ## 1.8.1 (2020-07-13)
 ## Fixed
 - Clean up operation for the main game classes
+
+## 1.8.1 (Unreleased)
+## Added
+- AccelByte Justice SDK 2.18.3
+- Agones SDK
 
 ## 1.8.0 (2020-06-15)
 ## Added

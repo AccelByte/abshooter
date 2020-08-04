@@ -10,7 +10,7 @@ public class ShooterGameTarget : TargetRules
         Type = TargetType.Game;
         bUsesSteam = true;
 
-		ExtraModuleNames.AddRange(new string[] { "ShooterGame", "AccelByteUe4Sdk", "AccelByteCustomWebBrowserWidget" });
+		ExtraModuleNames.AddRange(new string[] { "ShooterGame", "AccelByteUe4Sdk", "AccelByteCustomWebBrowserWidget", "Agones" });
 
 		if (Target.Platform == UnrealTargetPlatform.PS4)
         {

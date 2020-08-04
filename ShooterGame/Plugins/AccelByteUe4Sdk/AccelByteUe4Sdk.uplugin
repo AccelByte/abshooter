@@ -6,23 +6,21 @@
 	"Description": "Official AccelByte SDK for Unreal Engine 4",
 	"Category": "Online Platform",
 	"CreatedBy": "Accelbyte Inc",
-	"CreatedByURL": "https://www.accelbyte.net/",
-	"DocsURL": "https://docs.accelbyte.net/sdk/ue4/index.html",
-	"MarketplaceURL": "",
-	"SupportURL": "",
-	"EngineVersion": "4.21.0",
+	"CreatedByUrl": "https://www.accelbyte.net/",
+	"DocsUrl": "https://docs.accelbyte.net/sdk/ue4/index.html",
+	"MarketplaceUrl": "",
+	"SupportUrl": "",
 	"CanContainContent": false,
-	"Installed": true,
+	"IsBetaVersion": false,
+	"Installed": false,
 	"Modules": [
 		{
 			"Name": "AccelByteUe4Sdk",
 			"Type": "Runtime",
 			"LoadingPhase": "PreDefault",
-			"WhitelistPlatforms": [
-				"Win32",
-				"Win64",
-				"Linux"
-			]
+			"WhitelistPlatforms": [ "Win32", "Win64", "Linux" ]
 		}
+	],
+	"Plugins": [
 	]
 }

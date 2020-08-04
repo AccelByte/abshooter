@@ -79,6 +79,10 @@
 		{
 			"Name": "AccelByteCustomWebBrowserWidget",
 			"Enabled": true
+		},
+		{
+			"Name": "Agones",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [

@@ -18,8 +18,9 @@ public:
 	FString ClientSecret;
 	FString Namespace;
 	FString PublisherNamespace;
-    FString RedirectURI;
-    FString BaseUrl;
+	FString RedirectURI;
+	FString BaseUrl;
+	FString NonApiBaseUrl;
 	FString IamServerUrl;
 	FString PlatformServerUrl;
 	FString LobbyServerUrl;
@@ -29,7 +30,9 @@ public:
 	FString StatisticServerUrl;
 	FString QosManagerServerUrl;
 	FString LeaderboardServerUrl;
+	FString CloudSaveServerUrl;
 	FString GameTelemetryServerUrl;
+	FString AgreementServerUrl;
 };
 
 } // Namespace AccelByte
@@ -63,6 +66,9 @@ public:
     FString BaseUrl;
 
 	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte Client | Settings")
+	FString NonApiBaseUrl;
+
+	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte Client | Settings")
 	FString IamServerUrl;
 
 	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte Client | Settings")
@@ -90,7 +96,13 @@ public:
 	FString LeaderboardServerUrl;
 
 	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte Client | Settings")
+	FString CloudSaveServerUrl;
+
+	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte Client | Settings")
 	FString GameTelemetryServerUrl;
+
+	UPROPERTY(EditAnywhere, GlobalConfig, Category = "AccelByte Client | Settings")
+	FString AgreementServerUrl;
 };
 
 
@@ -142,6 +154,9 @@ public:
 	static FString GetLeaderboardServerUrl();
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte Client | Settings")
+	static FString GetCloudSaveServerUrl();
+
+	UFUNCTION(BlueprintCallable, Category = "AccelByte Client | Settings")
 	static FString GetGameTelemetryServerUrl();
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte Client | Settings")
@@ -182,6 +197,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte Client | Settings")
 	static void SetLeaderboardServerUrl(const FString& LeaderboardServerUrl);
+
+	UFUNCTION(BlueprintCallable, Category = "AccelByte Client | Settings")
+	static void SetCloudSaveServerUrl(const FString& CloudSaveServerUrl);
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte Client | Settings")
 	static void SetGameTelemetryServerUrl(const FString& GameTelemetryServerUrl);

@@ -8,6 +8,9 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Core/AccelByteError.h"
 #include "Models/AccelByteDSMModels.h"
+#if AGONES_PLUGIN_FOUND
+#include "Agones.h"
+#endif
 
 class IWebSocket;
 
@@ -23,6 +26,16 @@ enum class EServerType :uint8
 	NONE,
 	CLOUDSERVER,
 	LOCALSERVER
+};
+
+enum class EProvider : uint8
+{
+	AGONES,
+	AMPD,
+	AWS,
+	BAREMETAL,
+	I3D,
+	DEFAULT
 };
 
 /**
@@ -128,7 +141,7 @@ private:
 	void ParseCommandParam();
 
 	FString ServerName = "";
-	FString Provider = "";
+	EProvider Provider = EProvider::DEFAULT;
 	FString Game_version = "";
 	EServerType ServerType = EServerType::NONE;
 	FHttpRequestCompleteDelegate OnRegisterResponse;
@@ -144,6 +157,23 @@ private:
 	THandler<FAccelByteModelsDSMClient> GetServerUrlDelegate;
 	THandler<FAccelByteModelsPubIp> GetPubIpDelegate;
 	int HeartBeatRetryCount = 0;
+
+	TMap<EProvider, FString> PROVIDER_TABLE;
+
+#if AGONES_PLUGIN_FOUND
+public:
+	/*
+	 * @brief Poll agones heartbeat manually. It will raise OnMatchRequest event if DSM send match request data in heartbeat response
+	*/
+	void PollAgonesHeartBeat();
+
+private:
+	void InitiateAgones(FVoidHandler OnSuccess);
+	void ShutdownAgones(FVoidHandler OnSuccess);
+	FGameServerRequestCompleteDelegate OnAgonesHeartBeatResponse;
+	FGameServerRequestCompleteDelegate OnAgonesHealthCheckResponse;
+	FTickerDelegate OnAgonesHealthCheckTimeup;
+#endif
 };
 
 } // Namespace GameServerApi

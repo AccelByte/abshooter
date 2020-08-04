@@ -13,15 +13,6 @@
 #include "ISettingsSection.h"
 #endif
 
-FString GetDefaultServerUrl(const FString& SpecificServerUrl, const FString& DefaultServerPath)
-{
-	if (SpecificServerUrl.IsEmpty()) 
-	{
-		return FString::Printf(TEXT("%s/%s"), *FRegistry::Settings.BaseUrl, *DefaultServerPath);
-	}
-
-	return SpecificServerUrl;
-}
 
 class FAccelByteUe4SdkModule : public IAccelByteUe4SdkModuleInterface
 {
@@ -114,7 +105,6 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.PublisherNamespace = GetDefault<UAccelByteSettings>()->PublisherNamespace;
 	FRegistry::Settings.RedirectURI = GetDefault<UAccelByteSettings>()->RedirectURI;
 	FRegistry::Settings.BaseUrl = GetDefault<UAccelByteSettings>()->BaseUrl;
-	FRegistry::Settings.NonApiBaseUrl = GetDefault<UAccelByteSettings>()->NonApiBaseUrl;
 	FRegistry::Settings.IamServerUrl = GetDefault<UAccelByteSettings>()->IamServerUrl;
 	FRegistry::Settings.PlatformServerUrl = GetDefault<UAccelByteSettings>()->PlatformServerUrl;
 	FRegistry::Settings.LobbyServerUrl = GetDefault<UAccelByteSettings>()->LobbyServerUrl;
@@ -123,10 +113,12 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.GameProfileServerUrl = GetDefault<UAccelByteSettings>()->GameProfileServerUrl;
 	FRegistry::Settings.StatisticServerUrl = GetDefault<UAccelByteSettings>()->StatisticServerUrl;
 	FRegistry::Settings.QosManagerServerUrl = GetDefault<UAccelByteSettings>()->QosManagerServerUrl;
+<<<<<<< HEAD
 	FRegistry::Settings.LeaderboardServerUrl = GetDefault<UAccelByteSettings>()->LeaderboardServerUrl;
-	FRegistry::Settings.GameTelemetryServerUrl = GetDefault<UAccelByteSettings>()->GameTelemetryServerUrl;
-	FRegistry::Settings.AgreementServerUrl = GetDefaultServerUrl(GetDefault<UAccelByteSettings>()->AgreementServerUrl, TEXT("agreement"));
+=======
 	FRegistry::Settings.CloudSaveServerUrl = GetDefault<UAccelByteSettings>()->CloudSaveServerUrl;
+	FRegistry::Settings.GameTelemetryServerUrl = GetDefault<UAccelByteSettings>()->GameTelemetryServerUrl;
+>>>>>>> 28a2c33... feat(game-telemetry): add support for game telemetry
 	FRegistry::Credentials.SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 	
 	return true;
@@ -144,9 +136,8 @@ bool FAccelByteUe4SdkModule::LoadServerSettingsFromConfigUobject()
 	FRegistry::ServerSettings.DSMControllerServerUrl = GetDefault<UAccelByteServerSettings>()->DSMControllerServerUrl;
 	FRegistry::ServerSettings.StatisticServerUrl = GetDefault<UAccelByteServerSettings>()->StatisticServerUrl;
 	FRegistry::ServerSettings.PlatformServerUrl = GetDefault<UAccelByteServerSettings>()->PlatformServerUrl;
-	FRegistry::ServerSettings.QosManagerServerUrl = GetDefault<UAccelByteServerSettings>()->QosManagerServerUrl;
-	FRegistry::ServerSettings.LeaderboardServerUrl = GetDefault<UAccelByteServerSettings>()->LeaderboardServerUrl;
-	FRegistry::ServerSettings.GameTelemetryServerUrl = GetDefault<UAccelByteServerSettings>()->GameTelemetryServerUrl;
+	FRegistry::ServerSettings.QosManagerServerUrl = GetDefault<UAccelByteSettings>()->QosManagerServerUrl;
+	FRegistry::ServerSettings.LeaderboardServerUrl = GetDefault<UAccelByteSettings>()->LeaderboardServerUrl;
 	FRegistry::ServerCredentials.SetClientCredentials(FRegistry::ServerSettings.ClientId, FRegistry::ServerSettings.ClientSecret);
 #endif
 	return true;
