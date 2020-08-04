@@ -104,3 +104,7 @@ ShooterGame/Content/Internationalization/
 node_modules
 yarn.lock
 package.json
+
+# Agones Directory
+ShooterGame/Plugins/Agones/Intermediate/
+ShooterGame/Plugins/Agones/Binaries/

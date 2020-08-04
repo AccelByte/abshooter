@@ -32,7 +32,9 @@ namespace Api
 	class QosManager;
 	class Qos;
 	class Leaderboard;
+	class CloudSave;
 	class GameTelemetry;
+	class Agreement;
 }
 
 namespace GameServerApi
@@ -67,7 +69,9 @@ public:
 	static Api::QosManager QosManager;
 	static Api::Qos Qos;
 	static Api::Leaderboard Leaderboard;
+	static Api::CloudSave CloudSave;
 	static Api::GameTelemetry GameTelemetry;
+	static Api::Agreement Agreement;
 	static GameServerApi::ServerOauth2 ServerOauth2;
 	static GameServerApi::ServerDSM ServerDSM;
 	static GameServerApi::ServerStatistic ServerStatistic;
