@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Widget.h"
+#include "Components/Widget.h"
 #include "AccelByteCustomWebBrowserWidget.generated.h"
 
 /**

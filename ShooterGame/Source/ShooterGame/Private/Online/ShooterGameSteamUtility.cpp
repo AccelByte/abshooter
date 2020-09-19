@@ -2,7 +2,7 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "ShooterGameSteamUtility.h"
+#include "Online/ShooterGameSteamUtility.h"
 
 // Steam
 #include "OnlineSubsystem.h"
@@ -27,9 +27,9 @@
 */
 
 // AccelByte
-#include "AccelByteOauth2Api.h"
+#include "Api/AccelByteOauth2Api.h"
 #include "Core/AccelByteRegistry.h"
-#include "AccelByteUserApi.h"
+#include "Api/AccelByteUserApi.h"
 #include "ShooterGameConfig.h"
 
 void ExecuteErrorDelegate(const AccelByte::FErrorHandler& OnErrorExt, int Code, FString Reason)

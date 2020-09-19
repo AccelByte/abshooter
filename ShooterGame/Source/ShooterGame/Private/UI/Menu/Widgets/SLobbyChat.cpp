@@ -2,10 +2,10 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#include "SLobbyChat.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "SLobby.h"
-#include "SLobbyChat.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Api/AccelByteOauth2Api.h"
 #include "Core/AccelByteRegistry.h"
@@ -236,41 +236,42 @@ void SLobbyChat::Add(FString Identifier, FString TabName, bool bIsPartyMode)
 void SLobbyChat::SendPrivateChat(FString UserId, FString Message)
 {
 	AccelByte::FRegistry::Lobby.SendPrivateMessage(UserId, Message);
-	AppendMessage(UserId, "ME", Message, false);
+	this->AppendMessage(UserId, "ME", Message, false);
 }
 
 void SLobbyChat::SendPartyChat(FString PartyId, FString Message)
 {
 	AccelByte::FRegistry::Lobby.SendPartyMessage(Message);
-	AppendMessage(PartyId, "ME", Message, true);
+	this->AppendMessage(PartyId, "ME", Message, true);
 }
 
 void SLobbyChat::OnReceivePrivateChat(const FAccelByteModelsPersonalMessageNotice& Response)
 {
 	FString DisplayName = LobbyParent->CheckDisplayName(Response.From) ? LobbyParent->GetDisplayName(Response.From) : Response.From;
-	AppendMessage(Response.From, DisplayName, Response.Payload, false);
+	this->AppendMessage(Response.From, DisplayName, Response.Payload, false);
+    //this->AppendMessage();
 }
 
 void SLobbyChat::OnReceivePartyChat(const FAccelByteModelsPartyMessageNotice& Response)
 {
 	// append to chat box UI
 	FString DisplayName = LobbyParent->CheckDisplayName(Response.From) ? LobbyParent->GetDisplayName(Response.From) : Response.From;
-	for (int32 i = 0; i < LobbyChatPages.Num(); i++)
+	for (int32 i = 0; i < this->LobbyChatPages.Num(); i++)
 	{
-		if (LobbyChatPages[i]->Id.Equals(*CurrentPartyId))
+		if (this->LobbyChatPages[i]->Id.Equals(*CurrentPartyId))
 		{
 			//Get user's name and append it with this function
 
 			// partner display name
-			LobbyChatPages[i]->AppendConversation(DisplayName, Response.Payload);
+			this->LobbyChatPages[i]->AppendConversation(DisplayName, Response.Payload);
 			return;
 		}
 	}
-	int32 iLastNum = LobbyChatPages.Num();
+	int32 iLastNum = this->LobbyChatPages.Num();
 
 	//no chat tab, create new chat
 	AddParty(*CurrentPartyId);
-	LobbyChatPages[iLastNum]->AppendConversation(DisplayName, Response.Payload);
+	this->LobbyChatPages[iLastNum]->AppendConversation(DisplayName, Response.Payload);
 }
 
 void SLobbyChat::AppendMessage(FString Id, FString Sender, FString Message, bool bIsPartyMode)

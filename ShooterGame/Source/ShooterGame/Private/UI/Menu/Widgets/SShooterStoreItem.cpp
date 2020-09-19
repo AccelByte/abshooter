@@ -1,5 +1,5 @@
-#include "ShooterGame.h"
 #include "SShooterStoreItem.h"
+#include "ShooterGame.h"
 #include "ShooterStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "ShooterStoreStyle.h"

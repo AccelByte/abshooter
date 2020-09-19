@@ -6,7 +6,7 @@
 #include "CoreMinimal.h"
 
 // AccelByte
-#include "AccelByteError.h"
+#include "Core/AccelByteError.h"
 
 class ShooterGameSteamUtility
 {

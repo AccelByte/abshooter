@@ -8,7 +8,7 @@
 #include "Serialization/JsonSerializerMacros.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Base64.h"
+#include "Misc/Base64.h"
 
 #define LOCTEXT_NAMESPACE "AccelByteCustomWebBrowserWidget"
 

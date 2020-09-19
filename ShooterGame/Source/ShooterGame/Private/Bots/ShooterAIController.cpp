@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "Bots/ShooterAIController.h"
+#include "ShooterGame.h"
 #include "Bots/ShooterBot.h"
 #include "Online/ShooterPlayerState.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -76,9 +76,9 @@ void AShooterAIController::FindClosestEnemy()
 	float BestDistSq = MAX_FLT;
 	AShooterCharacter* BestPawn = NULL;
 
-	for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+	for (TActorIterator<AShooterCharacter> It = TActorIterator< AShooterCharacter >(GetWorld()); It; ++It)
 	{
-		AShooterCharacter* TestPawn = Cast<AShooterCharacter>(*It);
+		AShooterCharacter* TestPawn = *It;
 		if (TestPawn && TestPawn->IsAlive() && TestPawn->IsEnemyFor(this))
 		{
 			const float DistSq = (TestPawn->GetActorLocation() - MyLoc).SizeSquared();
@@ -106,9 +106,9 @@ bool AShooterAIController::FindClosestEnemyWithLOS(AShooterCharacter* ExcludeEne
 		float BestDistSq = MAX_FLT;
 		AShooterCharacter* BestPawn = NULL;
 
-		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+		for (TActorIterator<AShooterCharacter> It = TActorIterator< AShooterCharacter >(GetWorld()); It; ++It)
 		{
-			AShooterCharacter* TestPawn = Cast<AShooterCharacter>(*It);
+			AShooterCharacter* TestPawn = *It;
 			if (TestPawn && TestPawn != ExcludeEnemy && TestPawn->IsAlive() && TestPawn->IsEnemyFor(this))
 			{
 				if (HasWeaponLOSToEnemy(TestPawn, true) == true)

@@ -1,11 +1,11 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "Online/ShooterGameMode.h"
 #include "ShooterGame.h"
 #include "ShooterGameInstance.h"
 #include "UI/ShooterHUD.h"
 #include "Player/ShooterSpectatorPawn.h"
 #include "Player/ShooterDemoSpectator.h"
-#include "Online/ShooterGameMode.h"
 #include "Online/ShooterPlayerState.h"
 #include "Online/ShooterGameSession.h"
 #include "Bots/ShooterAIController.h"
@@ -192,7 +192,7 @@ void AShooterGameMode::FinishMatch()
 		// lock all pawns
 		// pawns are not marked as keep for seamless travel, so we will create new pawns on the next match rather than
 		// turning these back on.
-		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+		for (TActorIterator<APawn> It = TActorIterator< APawn >(GetWorld()); It; ++It)
 		{
 			(*It)->TurnOff();
 		}
@@ -437,9 +437,9 @@ bool AShooterGameMode::IsSpawnpointPreferred(APlayerStart* SpawnPoint, AControll
 	if (MyPawn)
 	{
 		const FVector SpawnLocation = SpawnPoint->GetActorLocation();
-		for (FConstPawnIterator It = GetWorld()->GetPawnIterator(); It; ++It)
+		for (TActorIterator<ACharacter> It = TActorIterator< ACharacter >(GetWorld()); It; ++It)
 		{
-			ACharacter* OtherPawn = Cast<ACharacter>(*It);
+			ACharacter* OtherPawn = *It;
 			if (OtherPawn && OtherPawn != MyPawn)
 			{
 				const float CombinedHeight = (MyPawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + OtherPawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight()) * 2.0f;

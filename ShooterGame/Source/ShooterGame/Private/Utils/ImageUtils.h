@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Delegate.h"
+#include "Delegates/Delegate.h"
 #include "SlateBasics.h"
 #include "Runtime/Core/Public/Containers/LruCache.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"

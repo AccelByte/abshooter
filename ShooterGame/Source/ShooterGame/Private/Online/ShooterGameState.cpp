@@ -1,5 +1,6 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "Online/ShooterGameState.h"
 #include "ShooterGame.h"
 #include "Online/ShooterPlayerState.h"
 #include "ShooterGameInstance.h"
@@ -33,7 +34,7 @@ void AShooterGameState::GetRankedMap(int32 TeamIndex, RankedPlayerMap& OutRanked
 		AShooterPlayerState* CurPlayerState = Cast<AShooterPlayerState>(PlayerArray[i]);
 		if (CurPlayerState && (CurPlayerState->GetTeamNum() == TeamIndex))
 		{
-			SortedMap.Add(FMath::TruncToInt(CurPlayerState->Score), CurPlayerState);
+			SortedMap.Add(FMath::TruncToInt(CurPlayerState->GetScore()), CurPlayerState);
 		}
 	}
 

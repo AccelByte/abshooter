@@ -87,13 +87,13 @@ public:
 
 	void RefreshFromCloud();
 
-	void OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex);
-	void OnDeleteSlot(const FString& SlotID);
+    void OnReceiveSlotImage(const TArray64<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex);
+    void OnDeleteSlot(const FString& SlotID);
 	void OnResolveSlot(int32 SlotIndex);
 
 	void RemoveErrorSlots();
 
-protected:
+private:
 	/** if menu is currently opened*/
 	bool bIsMenuUp;
 
@@ -129,13 +129,13 @@ protected:
 	bool IsScreenshotMetadataExists();
 	void SaveScreenshotMetadata();
 	void LoadScreenshotMetadata();
-	void SaveLocalScreenshotImage(int32 Index, const TArray<uint8>& Binary);
+	void SaveLocalScreenshotImage(int32 Index, const TArray64<uint8>& Binary);
 	// Temporary save cloud image to disk, would be used to resolve conflict
-	void SaveScreenshotCloudImage(int32 Index, const TArray<uint8>& Binary);
+	void SaveScreenshotCloudImage(int32 Index, const TArray64<uint8>& Binary);
 	// Resolve screenshot: remove local, replace image from cloud
 	void ResolveUseCloudScreenshot(int32 Index);
 	void ResolveUseLocalScreenshot(int32 Index);
-	bool LoadScreenshotImage(int32 Index, TArray<uint8>& Result);
+	bool LoadScreenshotImage(int32 Index, TArray64<uint8>& Result);
 	void DeleteScreenshotImage(int32 Index);
 
 	void SaveToCloud(int32 Index);

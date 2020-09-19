@@ -3,8 +3,7 @@
 #pragma once
 
 #include "ShooterGame.h"
-#include "OnlineIdentityInterface.h"
-#include "OnlineSessionInterface.h"
+#include "Interfaces/OnlineIdentityInterface.h"
 #include "Engine/GameInstance.h"
 #include "Engine/NetworkDelegates.h"
 #include "Utils/ImageUtils.h"
@@ -481,7 +480,7 @@ private:
 	FReply OnPairingUseNewProfile();
 
 	/** Callback to handle controller pairing changes. */
-	void HandleControllerPairingChanged(int GameUserIndex, const FUniqueNetId& PreviousUser, const FUniqueNetId& NewUser);
+	void HandleControllerPairingChanged( int LocalUserNum, FControllerPairingChangedUserInfo PreviousUser, FControllerPairingChangedUserInfo NewUser );
 
 	/** Handle confirming the controller disconnected dialog. */
 	FReply OnControllerReconnectConfirm();	

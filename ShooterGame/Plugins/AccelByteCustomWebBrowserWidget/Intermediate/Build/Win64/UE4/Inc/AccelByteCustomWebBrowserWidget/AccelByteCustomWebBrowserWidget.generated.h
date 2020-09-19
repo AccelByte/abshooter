@@ -1,4 +1,4 @@
-// Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
+// Copyright Epic Games, Inc. All Rights Reserved.
 /*===========================================================================
 	Generated code exported from UnrealHeaderTool.
 	DO NOT modify this manually! Edit the corresponding .h files instead!
@@ -41,134 +41,27 @@ static inline void FOnUrlChanged_DelegateWrapper(const FMulticastScriptDelegate&
 }
 
 
+#define ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_SPARSE_DATA
 #define ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_RPC_WRAPPERS \
  \
-	DECLARE_FUNCTION(execGetUrl) \
-	{ \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		*(FString*)Z_Param__Result=P_THIS->GetUrl(); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execCefQuery) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_value); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		*(FString*)Z_Param__Result=P_THIS->CefQuery(Z_Param_value); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execGetTitleText) \
-	{ \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		*(FText*)Z_Param__Result=P_THIS->GetTitleText(); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execExecuteJavascript) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_ScriptText); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->ExecuteJavascript(Z_Param_ScriptText); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execLoadString) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_Contents); \
-		P_GET_PROPERTY(UStrProperty,Z_Param_DummyUrl); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->LoadString(Z_Param_Contents,Z_Param_DummyUrl); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execSetRedirectSuccessUrl) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_NewUrl); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->SetRedirectSuccessUrl(Z_Param_NewUrl); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execLoadUrl) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_NewUrl); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->LoadUrl(Z_Param_NewUrl); \
-		P_NATIVE_END; \
-	}
+	DECLARE_FUNCTION(execGetUrl); \
+	DECLARE_FUNCTION(execCefQuery); \
+	DECLARE_FUNCTION(execGetTitleText); \
+	DECLARE_FUNCTION(execExecuteJavascript); \
+	DECLARE_FUNCTION(execLoadString); \
+	DECLARE_FUNCTION(execSetRedirectSuccessUrl); \
+	DECLARE_FUNCTION(execLoadUrl);
 
 
 #define ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_RPC_WRAPPERS_NO_PURE_DECLS \
  \
-	DECLARE_FUNCTION(execGetUrl) \
-	{ \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		*(FString*)Z_Param__Result=P_THIS->GetUrl(); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execCefQuery) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_value); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		*(FString*)Z_Param__Result=P_THIS->CefQuery(Z_Param_value); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execGetTitleText) \
-	{ \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		*(FText*)Z_Param__Result=P_THIS->GetTitleText(); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execExecuteJavascript) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_ScriptText); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->ExecuteJavascript(Z_Param_ScriptText); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execLoadString) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_Contents); \
-		P_GET_PROPERTY(UStrProperty,Z_Param_DummyUrl); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->LoadString(Z_Param_Contents,Z_Param_DummyUrl); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execSetRedirectSuccessUrl) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_NewUrl); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->SetRedirectSuccessUrl(Z_Param_NewUrl); \
-		P_NATIVE_END; \
-	} \
- \
-	DECLARE_FUNCTION(execLoadUrl) \
-	{ \
-		P_GET_PROPERTY(UStrProperty,Z_Param_NewUrl); \
-		P_FINISH; \
-		P_NATIVE_BEGIN; \
-		P_THIS->LoadUrl(Z_Param_NewUrl); \
-		P_NATIVE_END; \
-	}
+	DECLARE_FUNCTION(execGetUrl); \
+	DECLARE_FUNCTION(execCefQuery); \
+	DECLARE_FUNCTION(execGetTitleText); \
+	DECLARE_FUNCTION(execExecuteJavascript); \
+	DECLARE_FUNCTION(execLoadString); \
+	DECLARE_FUNCTION(execSetRedirectSuccessUrl); \
+	DECLARE_FUNCTION(execLoadUrl);
 
 
 #define ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_INCLASS_NO_PURE_DECLS \
@@ -226,6 +119,7 @@ DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(UAccelByteCustomWebBrowserWidget); \
 PRAGMA_DISABLE_DEPRECATION_WARNINGS \
 public: \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_PRIVATE_PROPERTY_OFFSET \
+	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_SPARSE_DATA \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_RPC_WRAPPERS \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_INCLASS \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_STANDARD_CONSTRUCTORS \
@@ -237,12 +131,15 @@ PRAGMA_ENABLE_DEPRECATION_WARNINGS
 PRAGMA_DISABLE_DEPRECATION_WARNINGS \
 public: \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_PRIVATE_PROPERTY_OFFSET \
+	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_SPARSE_DATA \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_RPC_WRAPPERS_NO_PURE_DECLS \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_INCLASS_NO_PURE_DECLS \
 	ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h_16_ENHANCED_CONSTRUCTORS \
 static_assert(false, "Unknown access specifier for GENERATED_BODY() macro in class AccelByteCustomWebBrowserWidget."); \
 PRAGMA_ENABLE_DEPRECATION_WARNINGS
 
+
+template<> ACCELBYTECUSTOMWEBBROWSERWIDGET_API UClass* StaticClass<class UAccelByteCustomWebBrowserWidget>();
 
 #undef CURRENT_FILE_ID
 #define CURRENT_FILE_ID ShooterGame_Plugins_AccelByteCustomWebBrowserWidget_Source_AccelByteCustomWebBrowserWidget_Public_AccelByteCustomWebBrowserWidget_h

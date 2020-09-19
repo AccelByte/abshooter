@@ -1,14 +1,15 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "SShooterDemoList.h"
-#include "SHeaderRow.h"
+#include "ShooterGame.h"
+#include "Widgets/Views/SHeaderRow.h"
 #include "ShooterStyle.h"
-#include "CoreStyle.h"
+#include "Styling/CoreStyle.h"
 #include "ShooterGameLoadingScreen.h"
 #include "ShooterGameInstance.h"
 #include "NetworkReplayStreaming.h"
 #include "ShooterGameViewportClient.h"
+#include "Serialization/JsonSerializer.h"
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 
@@ -185,7 +186,8 @@ void SShooterDemoList::BuildDemoList()
 
 	if ( ReplayStreamer.IsValid() )
 	{
-		ReplayStreamer->EnumerateStreams(EnumerateStreamsVersion, FString(), FString(), FEnumerateStreamsCallback::CreateSP(this, &SShooterDemoList::OnEnumerateStreamsComplete));
+        TArray <FString> ExtraParms;
+		ReplayStreamer->EnumerateStreams(EnumerateStreamsVersion,0, FString(), ExtraParms, FEnumerateStreamsCallback::CreateSP(this, &SShooterDemoList::OnEnumerateStreamsComplete));
 	}
 }
 

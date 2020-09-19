@@ -1,5 +1,6 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "ShooterGameDelegates.h"
 #include "ShooterGame.h"
 #include "Online/ShooterPlayerState.h"
 #include "GameDelegates.h"
@@ -7,7 +8,7 @@
 #include "UObject/PackageReload.h"
 #include "Server/Models/AccelByteMatchmakingModels.h"
 #include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
-#include "ShooterGame_TeamDeathMatch.h"
+#include "Online/ShooterGame_TeamDeathMatch.h"
 
 //#include "Runtime/RHI/Public/RHICommandlist.h"
 
@@ -32,7 +33,7 @@ FAutoConsoleCommand CmdPlayGoNext(
 #endif
 
 #endif
-#include "ShooterGameState.h"
+#include "Online/ShooterGameState.h"
 
 TSharedPtr<FWebServer> ServerInstance;
 

@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "Weapons/ShooterProjectile.h"
+#include "ShooterGame.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Effects/ShooterExplosionEffect.h"
 
@@ -36,14 +36,15 @@ AShooterProjectile::AShooterProjectile(const FObjectInitializer& ObjectInitializ
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 	bReplicates = true;
-	bReplicateMovement = true;
+    SetReplicateMovement(true);
+	//bReplicateMovement = true;
 }
 
 void AShooterProjectile::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 	MovementComp->OnProjectileStop.AddDynamic(this, &AShooterProjectile::OnImpact);
-	CollisionComp->MoveIgnoreActors.Add(Instigator);
+	CollisionComp->MoveIgnoreActors.Add(GetInstigator());
 
 	AShooterWeapon_Projectile* OwnerWeapon = Cast<AShooterWeapon_Projectile>(GetOwner());
 	if (OwnerWeapon)
@@ -65,7 +66,7 @@ void AShooterProjectile::InitVelocity(FVector& ShootDirection)
 
 void AShooterProjectile::OnImpact(const FHitResult& HitResult)
 {
-	if (Role == ROLE_Authority && !bExploded)
+	if (this->GetLocalRole() == ROLE_Authority && !bExploded)
 	{
 		Explode(HitResult);
 		DisableAndDestroy();
@@ -124,7 +125,7 @@ void AShooterProjectile::OnRep_Exploded()
 	const FVector EndTrace = GetActorLocation() + ProjDirection * 150;
 	FHitResult Impact;
 	
-	if (!GetWorld()->LineTraceSingleByChannel(Impact, StartTrace, EndTrace, COLLISION_PROJECTILE, FCollisionQueryParams(SCENE_QUERY_STAT(ProjClient), true, Instigator)))
+	if (!GetWorld()->LineTraceSingleByChannel(Impact, StartTrace, EndTrace, COLLISION_PROJECTILE, FCollisionQueryParams(SCENE_QUERY_STAT(ProjClient), true, GetInstigator())))
 	{
 		// failsafe
 		Impact.ImpactPoint = GetActorLocation();

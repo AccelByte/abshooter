@@ -1,11 +1,11 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "ShooterIngameMenu.h"
+#include "ShooterGame.h"
 #include "ShooterStyle.h"
 #include "ShooterMenuSoundsWidgetStyle.h"
 #include "Online.h"
-#include "OnlineExternalUIInterface.h"
+#include "Interfaces/OnlineExternalUIInterface.h"
 #include "ShooterGameInstance.h"
 #include "UI/ShooterHUD.h"
 

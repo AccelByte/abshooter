@@ -1,8 +1,8 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "Online/ShooterGame_FreeForAll.h"
 #include "ShooterGame.h"
-#include "ShooterGame_FreeForAll.h"
-#include "ShooterPlayerState.h"
+#include "Online/ShooterPlayerState.h"
 #include "Bots/ShooterAIController.h"
 #include "Core/AccelByteRegistry.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
@@ -273,7 +273,7 @@ void AShooterGame_FreeForAll::DetermineMatchWinner()
 
 	for (int32 i = 0; i < MyGameState->PlayerArray.Num(); i++)
 	{
-		const float PlayerScore = MyGameState->PlayerArray[i]->Score;
+		const float PlayerScore = MyGameState->PlayerArray[i]->GetScore();
 		if (BestScore < PlayerScore)
 		{
 			BestScore = PlayerScore;

@@ -6,7 +6,7 @@
 
 #include "CoreMinimal.h"
 #include "Styling/SlateWidgetStyle.h"
-#include "SlateWidgetStyleContainerBase.h"
+#include "Styling/SlateWidgetStyleContainerBase.h"
 
 #include "GameProfileWidgetStyle.generated.h"
 

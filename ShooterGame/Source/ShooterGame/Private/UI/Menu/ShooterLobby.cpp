@@ -692,7 +692,7 @@ void ShooterLobby::UpdatePartyMemberList()
 	}
 }
 
-void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted)
+void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted_)
 {
 	if (!CurrentPartyId.IsEmpty())
 	{
@@ -700,7 +700,7 @@ void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted)
 		{
 			for (auto& Members : PartyMembers)
 			{
-				if (bMatchmakingStarted == true)
+				if (bMatchmakingStarted_ == true)
 				{
 					Members->Data.isKickable = false;
 				}

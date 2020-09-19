@@ -27,6 +27,15 @@ bool ULoginMenuUI::Initialize()
 
 	PasswordField->SetText(FText::FromString(SavedPassword));
 
+    // Gamepad friendly, set login as first focus
+	UWorld* World = GetWorld();
+	if (!ensure(World != nullptr)) return true;
+
+	APlayerController* PlayerController = World->GetFirstPlayerController();
+	if (!ensure(PlayerController != nullptr)) return true;
+
+    LoginWithUsernameButton->SetUserFocus(PlayerController);
+    
 	return true;
 }
 

@@ -9,6 +9,7 @@ public class ShooterGameTarget : TargetRules
     {
         Type = TargetType.Game;
         bUsesSteam = true;
+        DefaultBuildSettings = BuildSettingsVersion.V2;
 
 		ExtraModuleNames.AddRange(new string[] { "ShooterGame", "AccelByteUe4Sdk", "AccelByteCustomWebBrowserWidget", "Agones" });
 

@@ -2,6 +2,7 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#include "SLobbyPartyMember.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "LobbyStyle.h"
@@ -124,7 +125,7 @@ void SLobbyPartyMember::Release()
 {
     this->SetVisibility(EVisibility::Hidden);
     bIsOccupied = false;
-    Name->SetText(FString::Printf(TEXT("")));
+    Name->SetText(FText::FromString(TEXT("")));
     MemberImage->SetImage(&LobbyStyle->UnoccupiedPartySlot);
     MemberImage->SetVisibility(EVisibility::Visible);
 }

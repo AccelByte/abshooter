@@ -1,6 +1,6 @@
 
-#include "ShooterGame.h"
 #include "SShooterStore.h"
+#include "ShooterGame.h"
 #include "ShooterStyle.h"
 #include "ShooterMenuWidgetStyle.h"
 #include "SShooterMenuWidget.h"
@@ -9,10 +9,10 @@
 #include "ShooterGameViewportClient.h"
 #include "ShooterGameInstance.h"
 #include "SShooterConfirmationDialog.h"
-#include "AccelByteOrderApi.h"
-#include "AccelByteItemApi.h"
-#include "AccelByteEntitlementApi.h"
-#include "AccelByteError.h"
+#include "Api/AccelByteOrderApi.h"
+#include "Api/AccelByteItemApi.h"
+#include "Api/AccelByteEntitlementApi.h"
+#include "Core/AccelByteError.h"
 #include "Core/AccelByteRegistry.h"
 #include "ShooterStoreStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
@@ -680,7 +680,7 @@ void SShooterStore::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		{
 			Text += ".";
 		}
-		LoadingDialogText->SetText(Text);
+		LoadingDialogText->SetText(FText::FromString(Text));
 	}
 }
 
