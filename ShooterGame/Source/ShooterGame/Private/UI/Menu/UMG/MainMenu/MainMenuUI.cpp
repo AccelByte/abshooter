@@ -105,6 +105,12 @@ void UMainMenuUI::OpenMainMenu()
 {
 	MenuSwitcher->SetActiveWidget(MainMenu);
 	BackToMainMenuBox->SetVisibility(ESlateVisibility::Collapsed);
+
+    // Gamepad friendly, set login button as first focus
+    APlayerController* PlayerController = GetOwningPlayer();
+    LobbyButton->SetUserFocus(PlayerController);
+
+    
 }
 
 void UMainMenuUI::OpenGameProfileMenu()
