@@ -30,6 +30,10 @@
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 #include "Sockets.h"
 
+#if PLATFORM_PS4
+#include "SonyPlatformMisc.h"
+#endif
+
 #define USING_EXTERNAL_BROWSER 0
 
 using namespace AccelByte::Api;
@@ -279,6 +283,8 @@ void SShooterStore::BuildInventoryItem()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_PS4
+    FString Locale = FSonyPlatformMisc::GetDefaultLocale();
 #endif
 
 	if (!bRequestInventoryList)
@@ -419,6 +425,8 @@ FReply SShooterStore::OnBuyConfirm()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_PS4
+    FString Locale = FSonyPlatformMisc::GetDefaultLocale();
 #endif
 
 	FJsonSerializableArray Split;

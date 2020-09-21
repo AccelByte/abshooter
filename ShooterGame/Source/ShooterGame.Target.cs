@@ -8,9 +8,7 @@ public class ShooterGameTarget : TargetRules
     public ShooterGameTarget(TargetInfo Target) : base(Target)
     {
         Type = TargetType.Game;
-        bUsesSteam = true;
         DefaultBuildSettings = BuildSettingsVersion.V2;
-
 		ExtraModuleNames.AddRange(new string[] { "ShooterGame", "AccelByteUe4Sdk", "AccelByteCustomWebBrowserWidget", "Agones" });
 
 		if (Target.Platform == UnrealTargetPlatform.PS4)
@@ -24,6 +22,10 @@ public class ShooterGameTarget : TargetRules
             //for a real game these could be behind a call to a virtual function defined in a partial class in a protected folder also.
             GlobalDefinitions.Add("UE4_PROJECT_NPTITLEID=NPXX51358_00");
             GlobalDefinitions.Add("UE4_PROJECT_NPTITLESECRET=81ae213eafbc64777574955bf921c9be3c60a3bddef70c357d8fe49ad64e0d0402d2249de390174832c5e4098114c93c33705b597cfbe9b1153d58fe9fae1f0de1466daf18ef25d06122cff7c95bde07bc060109e20c865305692dfbf9d7b726460893c4abd86dc9e8fd6b5db7dca4ffd4eefcb1771baccd576109bea862d6d4");
+        }
+        else
+        {
+            bUsesSteam = true;
         }
     }
 }

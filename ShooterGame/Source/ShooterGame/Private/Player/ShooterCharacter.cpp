@@ -352,7 +352,13 @@ void AShooterCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& 
 			UShooterDamageType *DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
 			if (DamageType && DamageType->KilledForceFeedback && PC->IsVibrationEnabled())
 			{
-				PC->ClientPlayForceFeedback(DamageType->KilledForceFeedback, false, false, "Damage");
+                FForceFeedbackParameters params;
+                params.Tag = FName("Damage");
+                params.bIgnoreTimeDilation = false;
+                params.bLooping = false;
+                params.bPlayWhilePaused = false;                
+
+                PC->ClientPlayForceFeedback(DamageType->KilledForceFeedback, params );
 			}
 		}
 	}
@@ -429,7 +435,13 @@ void AShooterCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Da
 			UShooterDamageType *DamageType = Cast<UShooterDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
 			if (DamageType && DamageType->HitForceFeedback && PC->IsVibrationEnabled())
 			{
-				PC->ClientPlayForceFeedback(DamageType->HitForceFeedback, false, false, "Damage");
+                FForceFeedbackParameters params;
+                params.Tag = FName("Damage");
+                params.bIgnoreTimeDilation = false;
+                params.bLooping = false;
+                params.bPlayWhilePaused = false;   
+
+				PC->ClientPlayForceFeedback(DamageType->HitForceFeedback, params);
 			}
 		}
 	}

@@ -128,6 +128,9 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.AgreementServerUrl = GetDefaultServerUrl(GetDefault<UAccelByteSettings>()->AgreementServerUrl, TEXT("agreement"));
 	FRegistry::Settings.CloudSaveServerUrl = GetDefault<UAccelByteSettings>()->CloudSaveServerUrl;
 	FRegistry::Credentials.SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
+
+    UE_LOG(LogTemp, Log, TEXT("Reading Configuration. Base URL:%s"), *FRegistry::Settings.BaseUrl);
+    UE_LOG(LogTemp, Log, TEXT("Reading Configuration. ClientId:%s"), *FRegistry::Settings.ClientId);
 	
 	return true;
 }

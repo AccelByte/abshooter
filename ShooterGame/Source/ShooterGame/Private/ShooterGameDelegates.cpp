@@ -15,7 +15,7 @@
 #if !UE_BUILD_SHIPPING
 
 #if PLATFORM_PS4
-#include "PS4ChunkInstall.h"
+#include "PS4PlatformChunkInstall.h"
 static void PlayGoNext()
 {
 	IPlatformChunkInstall* ChunkInstaller = FPlatformMisc::GetPlatformChunkInstall();

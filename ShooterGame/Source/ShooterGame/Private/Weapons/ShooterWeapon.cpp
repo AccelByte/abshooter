@@ -853,7 +853,13 @@ void AShooterWeapon::SimulateWeaponFire()
 		}
 		if (FireForceFeedback != NULL && PC->IsVibrationEnabled())
 		{
-			PC->ClientPlayForceFeedback(FireForceFeedback, false, false, "Weapon");
+            FForceFeedbackParameters params;
+            params.Tag = FName("Weapon");
+            params.bIgnoreTimeDilation = false;
+            params.bLooping = false;
+            params.bPlayWhilePaused = false;  
+
+			PC->ClientPlayForceFeedback(FireForceFeedback, params);
 		}
 	}
 }

@@ -330,8 +330,10 @@ void UShooterGameInstance::GameClientLogin()
 	}
 	else if (ShooterGameConfig::Get().IsSteamLaunch_)
 	{
+#if !PLATFORM_PS4
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from Steam"));
 		ShooterGameSteamUtility::SteamLogin(OnLoginSuccess, OnLoginError);
+#endif // prevent error on PS4
 	}
 	else
 	{

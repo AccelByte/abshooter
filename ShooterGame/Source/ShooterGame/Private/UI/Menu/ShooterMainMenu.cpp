@@ -1045,7 +1045,7 @@ FReply FShooterMainMenu::OnSplitScreenPlay()
 				//SplitScreenLobbyWidget->EnterSubMenu();
 #endif
 			}
-			else
+			break; // I have no idea
 #endif
 			{
 				if (GEngine && GEngine->GameViewport)

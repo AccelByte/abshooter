@@ -8,9 +8,11 @@
 // AccelByte
 #include "Core/AccelByteError.h"
 
+#if !PLATFORM_PS4
 class ShooterGameSteamUtility
 {
 public:
 	static void SteamLogin(FVoidHandler OnSuccess, FErrorHandler OnError);
 	static void OnIdentityLoginComplete(int32 LocalUserNum, bool bSuccessful, const FUniqueNetId& UserId, const FString& ErrorStr, FVoidHandler OnSuccessExt, FErrorHandler OnErrorExt);
 };
+#endif

@@ -18,6 +18,11 @@
 #include "Core/AccelByteRegistry.h"
 #include "ShooterGameConfig.h"
 
+
+#if PLATFORM_PS4
+#include "SonyPlatformMisc.h"
+#endif
+
 using namespace AccelByte::Api;
 
 SShooterInventory::SShooterInventory()
@@ -209,6 +214,8 @@ void SShooterInventory::BuildInventoryItem()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_PS4
+    FString Locale = FSonyPlatformMisc::GetDefaultLocale();
 #endif
 
 	if (!bRequestInventoryList)

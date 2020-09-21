@@ -41,15 +41,26 @@ public class ShooterGame : ModuleRules
 				"JsonUtilities",
 				"WebBrowser",
 				"AccelByteUe4Sdk",
-				"OnlineSubsystemSteam",
-				"Steamworks",
 				"Icmp",
 				"UMG"
 				//"AvengersSDK",
 			}
 		);
 
-		PrivateDependencyModuleNames.AddRange(
+
+        if (Target.Platform != UnrealTargetPlatform.PS4)
+        {
+            // Only add steam for windows
+            PublicDependencyModuleNames.AddRange(
+            new string[] {               
+                "OnlineSubsystemSteam",
+                "Steamworks",
+			}
+        );
+        }
+
+
+            PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"InputCore",
 				"Slate",
