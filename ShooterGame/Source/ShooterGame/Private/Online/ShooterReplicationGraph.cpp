@@ -604,10 +604,10 @@ void UShooterReplicationGraphNode_AlwaysRelevant_ForConnection::GatherActorLists
 
 	ReplicationActorList.Reset();
 
-	ReplicationActorList.ConditionalAdd(Params.Viewer.InViewer);
-	ReplicationActorList.ConditionalAdd(Params.Viewer.ViewTarget);
+	ReplicationActorList.ConditionalAdd(Params.Viewers[0].InViewer);
+	ReplicationActorList.ConditionalAdd(Params.Viewers[0].ViewTarget);
 	
-	if (AShooterPlayerController* PC = Cast<AShooterPlayerController>(Params.Viewer.InViewer))
+	if (AShooterPlayerController* PC = Cast<AShooterPlayerController>(Params.Viewers[0].InViewer))
 	{
 		// 50% throttling of PlayerStates.
 		const bool bReplicatePS = (Params.ConnectionManager.ConnectionId % 2) == (Params.ReplicationFrameNum % 2);
@@ -637,7 +637,7 @@ void UShooterReplicationGraphNode_AlwaysRelevant_ForConnection::GatherActorLists
 				ConnectionActorInfo.SetCullDistanceSquared(0.f);
 			}
 
-			if (Pawn != Params.Viewer.ViewTarget)
+			if (Pawn != Params.Viewers[0].ViewTarget)
 			{
 				ReplicationActorList.ConditionalAdd(Pawn);
 			}
@@ -653,9 +653,9 @@ void UShooterReplicationGraphNode_AlwaysRelevant_ForConnection::GatherActorLists
 			}
 		}
 
-		if (Params.Viewer.ViewTarget != LastPawn)
+		if (Params.Viewers[0].ViewTarget != LastPawn)
 		{
-			if (AShooterCharacter* ViewTargetPawn = Cast<AShooterCharacter>(Params.Viewer.ViewTarget))
+			if (AShooterCharacter* ViewTargetPawn = Cast<AShooterCharacter>(Params.Viewers[0].ViewTarget))
 			{
 				UE_LOG(LogShooterReplicationGraph, Verbose, TEXT("Setting connection view target pawn cull distance to 0. %s"), *ViewTargetPawn->GetName());
 				LastPawn = ViewTargetPawn;

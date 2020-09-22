@@ -8,7 +8,7 @@
 // AccelByte
 #include "Core/AccelByteError.h"
 
-#if !PLATFORM_PS4
+#if PLATFORM_WINDOWS
 class ShooterGameSteamUtility
 {
 public:

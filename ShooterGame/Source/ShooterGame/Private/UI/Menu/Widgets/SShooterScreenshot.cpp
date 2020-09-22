@@ -30,7 +30,7 @@
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
-const FString STATUS_PENDING = "Pending";
+const FString STATUS_PENDING_CONST_STRING = "Pending";
 
 FSlateColorBrush GreyBackgroundBrush = FSlateColorBrush(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 FSlateColorBrush BlackBackgroundBrush = FSlateColorBrush(FLinearColor(0, 0, 0, 0.5f));
@@ -745,7 +745,7 @@ public:
 			return &GalleryStyle->CloudDownload;
 		case UPLOADING:
 			return &GalleryStyle->CloudUpload;
-		case ERROR:
+		case ERROR_UNKNOWN:
 		case ERROR_UPLOAD:
 			return &GalleryStyle->CloudOff;
 		case CONFLICT:
@@ -1198,7 +1198,7 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 	TArray<FString> Tags = { FString::Printf(TEXT("SlotIndex=%d"), Index) };
 	FString SlotId = LocalSlots[Index].SlotId;
 
-	LocalSlots[Index].Status = STATUS_PENDING;
+	LocalSlots[Index].Status = STATUS_PENDING_CONST_STRING;
 	LocalSlots[Index].Checksum = MD5HashArray(ImageData);
 
 	SaveScreenshotMetadata();
@@ -1491,7 +1491,7 @@ void SShooterScreenshot::OnReceiveSlotImage(const TArray64<uint8>& Result64, con
 	// If the specified index doesn't exist, abort the operation.
 	if (SlotIndex >= LocalSlots.Num()) { return; }
 
-	if (LocalSlots[SlotIndex].Status == STATUS_PENDING)
+	if (LocalSlots[SlotIndex].Status == STATUS_PENDING_CONST_STRING)
 	{
 		SaveScreenshotCloudImage(SlotIndex, Result64);
 		ConflictImages.Add(SlotIndex, ImageBrush);
@@ -1582,7 +1582,7 @@ void SShooterScreenshot::OnResolveSlot(int32 Index)
 				LoadScreenshotImage(Index, ImageData64);
                 TArray<uint8> ImageData(MoveTemp(ImageData64));
 
-				LocalSlots[Index].Status = STATUS_PENDING;
+				LocalSlots[Index].Status = STATUS_PENDING_CONST_STRING;
 				LocalSlots[Index].Checksum = MD5HashArray(ImageData);
 
 				SaveScreenshotMetadata();
@@ -1601,7 +1601,7 @@ void SShooterScreenshot::RemoveErrorSlots()
 	// Cleanup pending local slot
 	for (auto& slot : LocalSlots)
 	{
-		if (slot.Status == STATUS_PENDING)
+		if (slot.Status == STATUS_PENDING_CONST_STRING)
 		{
 			slot = FAccelByteModelsSlot();
 		}
@@ -1612,7 +1612,7 @@ void SShooterScreenshot::RemoveErrorSlots()
 	{
 		switch (SavedScreenshotList[i]->State)
 		{
-			case EScreenshotState::ERROR:
+			case EScreenshotState::ERROR_UNKNOWN:
 			case EScreenshotState::ERROR_UPLOAD:
 				SavedScreenshotList[i]->Image = nullptr;
 				SavedScreenshotList[i]->State = NONE;
@@ -1645,7 +1645,7 @@ void SShooterScreenshot::RefreshFromCloud()
 	for (int i = 0; i < LocalSlots.Num(); i++)
 	{
 		FAccelByteModelsSlot LocalSlot = LocalSlots[i];
-		bool Pending = LocalSlot.Status == STATUS_PENDING;
+		bool Pending = LocalSlot.Status == STATUS_PENDING_CONST_STRING;
 		if (!LocalSlot.SlotId.IsEmpty() || Pending)
 		{
 			SavedScreenshotList[i]->Checksum = LocalSlot.Checksum;
@@ -1733,7 +1733,7 @@ void SShooterScreenshot::RefreshFromCloud()
 				else
 				{
 					if (!LocalSlots[SlotIndex].SlotId.IsEmpty() && LocalSlots[SlotIndex].Checksum != Slot.Checksum
-						&& LocalSlots[SlotIndex].Status == STATUS_PENDING
+						&& LocalSlots[SlotIndex].Status == STATUS_PENDING_CONST_STRING
 						)
 					{
 						ConflictSlots.Add(SlotIndex, Slot);

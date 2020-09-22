@@ -330,7 +330,7 @@ void UShooterGameInstance::GameClientLogin()
 	}
 	else if (ShooterGameConfig::Get().IsSteamLaunch_)
 	{
-#if !PLATFORM_PS4
+#if PLATFORM_WINDOWS
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from Steam"));
 		ShooterGameSteamUtility::SteamLogin(OnLoginSuccess, OnLoginError);
 #endif // prevent error on PS4
@@ -2042,7 +2042,7 @@ FReply UShooterGameInstance::OnPairingUseNewProfile()
 
 void UShooterGameInstance::HandleControllerPairingChanged( int LocalUserNum, FControllerPairingChangedUserInfo PreviousUser, FControllerPairingChangedUserInfo NewUser )
 {
-	UE_LOG(LogOnlineGame, Log, TEXT("UShooterGameInstance::HandleControllerPairingChanged GameUserIndex %d PreviousUser '%s' NewUser '%s'"),
+	UE_LOG(LogOnlineGame, Log, TEXT("UShooterGameInstance::HandleControllerPairingChanged LocalUserNum %d PreviousUser '%s' NewUser '%s'"),
 		LocalUserNum, *PreviousUser.User.ToString(), *NewUser.User.ToString());
 	
 	if ( CurrentState == ShooterGameInstanceState::WelcomeScreen )
@@ -2052,23 +2052,23 @@ void UShooterGameInstance::HandleControllerPairingChanged( int LocalUserNum, FCo
 	}
 
 #if SHOOTER_CONSOLE_UI && PLATFORM_XBOXONE
-	if ( IgnorePairingChangeForControllerId != -1 && GameUserIndex == IgnorePairingChangeForControllerId )
+	if ( IgnorePairingChangeForControllerId != -1 && LocalUserNum == IgnorePairingChangeForControllerId )
 	{
 		// We were told to ignore
 		IgnorePairingChangeForControllerId = -1;	// Reset now so there there is no chance this remains in a bad state
 		return;
 	}
 
-	if ( PreviousUser.IsValid() && !NewUser.IsValid() )
+	if ( PreviousUser.User.IsValid() && !NewUser.User.IsValid() )
 	{
 		// Treat this as a disconnect or signout, which is handled somewhere else
 		return;
 	}
 
-	if ( !PreviousUser.IsValid() && NewUser.IsValid() )
+	if ( !PreviousUser.User.IsValid() && NewUser.User.IsValid() )
 	{
 		// Treat this as a signin
-		ULocalPlayer * ControlledLocalPlayer = FindLocalPlayerFromControllerId( GameUserIndex );
+		ULocalPlayer * ControlledLocalPlayer = FindLocalPlayerFromControllerId( LocalUserNum );
 
 		if ( ControlledLocalPlayer != NULL && !ControlledLocalPlayer->GetCachedUniqueNetId().IsValid() )
 		{
@@ -2080,10 +2080,10 @@ void UShooterGameInstance::HandleControllerPairingChanged( int LocalUserNum, FCo
 	}
 
 	// Find the local player currently being controlled by this controller
-	ULocalPlayer * ControlledLocalPlayer	= FindLocalPlayerFromControllerId( GameUserIndex );
+	ULocalPlayer * ControlledLocalPlayer	= FindLocalPlayerFromControllerId( LocalUserNum );
 
 	// See if the newly assigned profile is in our local player list
-	ULocalPlayer * NewLocalPlayer			= FindLocalPlayerFromUniqueNetId( NewUser );
+	ULocalPlayer * NewLocalPlayer			= FindLocalPlayerFromUniqueNetId( NewUser.User );
 
 	// If the local player being controlled is not the target of the pairing change, then give them a chance 
 	// to continue controlling the old player with this controller

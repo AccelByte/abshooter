@@ -19,8 +19,16 @@
 #include "ShooterGameConfig.h"
 
 
-#if PLATFORM_PS4
+#ifndef PLATFORM_PS5
+#define PLATFORM_PS5 0
+#endif
+
+#if PLATFORM_PS4 || PLATFORM_PS5
 #include "SonyPlatformMisc.h"
+#endif
+
+#if PLATFORM_XBOXONE
+#include "XboxCommonPlatformMisc.h"
 #endif
 
 using namespace AccelByte::Api;
@@ -214,8 +222,10 @@ void SShooterInventory::BuildInventoryItem()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
-#elif PLATFORM_PS4
+#elif PLATFORM_PS4 || PLATFORM_PS5
     FString Locale = FSonyPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_XBOXONE
+    FString Locale = FXboxCommonPlatformMisc::GetDefaultLocale();
 #endif
 
 	if (!bRequestInventoryList)

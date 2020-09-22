@@ -34,7 +34,7 @@ void UGeneralNotificationPopupUI::Show(ENotificationType Type, FString Message)
 		MessageText->SetColorAndOpacity(FLinearColor::Yellow);
 		MessageText->SetText(FText::FromString(Message));
 		break;
-	case ENotificationType::ERROR:
+	case ENotificationType::ERROR_UNKNOWN:
 		NotificationSwitcher->SetActiveWidget(MessageText);
 		MessageText->SetColorAndOpacity(FLinearColor::Red);
 		MessageText->SetText(FText::FromString(Message));
@@ -61,7 +61,7 @@ void UGeneralNotificationPopupUI::Show(ENotificationType Type, FString Message, 
 		MessageText->SetColorAndOpacity(FLinearColor::Yellow);
 		MessageText->SetText(FText::FromString(Message));
 		break;
-	case ENotificationType::ERROR:
+	case ENotificationType::ERROR_UNKNOWN:
 		NotificationSwitcher->SetActiveWidget(MessageText);
 		MessageText->SetColorAndOpacity(FLinearColor::Red);
 		MessageText->SetText(FText::FromString(Message));

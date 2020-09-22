@@ -517,7 +517,7 @@ void ShooterLobby::OnRequestFriendsResponse(const FAccelByteModelsRequestFriends
 	if (Response.Code != TEXT("0"))
 	{
 		TWeakObjectPtr<UGeneralNotificationPopupUI> AddingFriendResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-		AddingFriendResponsePopup->Show(ENotificationType::ERROR, TEXT("Failed to Add Friend!"));
+		AddingFriendResponsePopup->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Failed to Add Friend!"));
 	}
 }
 
@@ -756,7 +756,7 @@ void ShooterLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyRespon
 			Message.Append(FString::Printf(TEXT("\nCode: %s."), *PartyInfo.Code));
 		}
 		TWeakObjectPtr<UGeneralNotificationPopupUI> InvitePartyResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-		InvitePartyResponsePopup->Show(ENotificationType::ERROR, Message);
+		InvitePartyResponsePopup->Show(ENotificationType::ERROR_UNKNOWN, Message);
 
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] %s"), *Message);
 	}
@@ -828,7 +828,7 @@ void ShooterLobby::OnInvitePartyResponse(const FAccelByteModelsPartyInviteRespon
 		}
 		
 		TWeakObjectPtr<UGeneralNotificationPopupUI> InvitePartyResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-		InvitePartyResponsePopup->Show(ENotificationType::ERROR, Message);
+		InvitePartyResponsePopup->Show(ENotificationType::ERROR_UNKNOWN, Message);
 
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] %s"), *Message);
 	}

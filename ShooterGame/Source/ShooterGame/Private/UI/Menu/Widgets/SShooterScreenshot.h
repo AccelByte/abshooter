@@ -14,7 +14,7 @@ typedef TSharedPtr<int> FScreenshotComboBoxType;
 enum EScreenshotState
 {
 	NONE = 0,
-	ERROR,
+	ERROR_UNKNOWN,
 	ERROR_UPLOAD,
 	CONFLICT,
 	DONE,

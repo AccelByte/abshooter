@@ -12,7 +12,7 @@ UENUM(BlueprintType)
 enum class EGalleryState : uint8
 {
 	NONE = 0,
-	ERROR,
+	ERROR_UNKNOWN, // fix compile error on Xbox, ERROR already defined macro on Xbox
 	DONE,
 	// loading bar would be showed (state > DONE)
 	DOWNLOADING,

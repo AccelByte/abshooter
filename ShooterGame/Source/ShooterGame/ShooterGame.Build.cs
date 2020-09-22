@@ -43,12 +43,11 @@ public class ShooterGame : ModuleRules
 				"AccelByteUe4Sdk",
 				"Icmp",
 				"UMG"
-				//"AvengersSDK",
 			}
 		);
 
 
-        if (Target.Platform != UnrealTargetPlatform.PS4)
+        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
         {
             // Only add steam for windows
             PublicDependencyModuleNames.AddRange(
