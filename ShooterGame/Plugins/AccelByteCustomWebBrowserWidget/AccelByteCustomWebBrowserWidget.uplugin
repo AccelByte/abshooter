@@ -22,12 +22,7 @@
             "WhitelistPlatforms": [
                 "Win32",
                 "Win64",
-                "Linux",
-                "XSX",
-                "XboxOne",
-                "PS4",
-                "PS5",
-                "XboxOneGDK"
+                "Linux"
             ]
         }
     ],

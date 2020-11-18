@@ -31,9 +31,9 @@
 #include "Sockets.h"
 
 
-//#ifndef PLATFORM_PS5
-//#define PLATFORM_PS5 0
-//#endif
+#ifndef PLATFORM_PS5
+#define PLATFORM_PS5 0
+#endif
 
 
 #if PLATFORM_PS4 || PLATFORM_PS5
