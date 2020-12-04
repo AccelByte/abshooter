@@ -1,8 +1,8 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "SShooterSplitScreenLobbyWidget.h"
 #include "ShooterGame.h"
 #include "ShooterStyle.h"
-#include "SShooterSplitScreenLobbyWidget.h"
 #include "ShooterMenuItemWidgetStyle.h"
 #include "ShooterMenuWidgetStyle.h"
 #include "SShooterConfirmationDialog.h"

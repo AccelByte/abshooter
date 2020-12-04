@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "Weapons/ShooterWeapon.h"
+#include "ShooterGame.h"
 #include "Player/ShooterCharacter.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Bots/ShooterAIController.h"
@@ -173,7 +173,7 @@ void AShooterWeapon::OnLeaveInventory()
 		OnUnEquip();
 	}
 
-	if (Role == ROLE_Authority)
+	if (this->GetLocalRole() == ROLE_Authority)
 	{
 		SetOwningPawn(NULL);
 	}
@@ -222,7 +222,7 @@ void AShooterWeapon::DetachMeshFromPawn()
 
 void AShooterWeapon::StartFire()
 {
-	if (Role < ROLE_Authority)
+	if (this->GetLocalRole() < ROLE_Authority)
 	{
 		ServerStartFire();
 	}
@@ -236,7 +236,7 @@ void AShooterWeapon::StartFire()
 
 void AShooterWeapon::StopFire()
 {
-	if ((Role < ROLE_Authority) && MyPawn && MyPawn->IsLocallyControlled())
+	if ((this->GetLocalRole() < ROLE_Authority) && MyPawn && MyPawn->IsLocallyControlled())
 	{
 		ServerStopFire();
 	}
@@ -250,7 +250,7 @@ void AShooterWeapon::StopFire()
 
 void AShooterWeapon::StartReload(bool bFromReplication)
 {
-	if (!bFromReplication && Role < ROLE_Authority)
+	if (!bFromReplication && this->GetLocalRole() < ROLE_Authority)
 	{
 		ServerStartReload();
 	}
@@ -267,7 +267,7 @@ void AShooterWeapon::StartReload(bool bFromReplication)
 		}
 
 		GetWorldTimerManager().SetTimer(TimerHandle_StopReload, this, &AShooterWeapon::StopReload, AnimDuration, false);
-		if (Role == ROLE_Authority)
+		if (this->GetLocalRole() == ROLE_Authority)
 		{
 			GetWorldTimerManager().SetTimer(TimerHandle_ReloadWeapon, this, &AShooterWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
 		}
@@ -457,7 +457,7 @@ void AShooterWeapon::HandleFiring()
 	if (MyPawn && MyPawn->IsLocallyControlled())
 	{
 		// local client will notify server
-		if (Role < ROLE_Authority)
+		if (GetLocalRole() < ROLE_Authority)
 		{
 			ServerHandleFiring();
 		}
@@ -641,7 +641,7 @@ void AShooterWeapon::StopWeaponAnimation(const FWeaponAnim& Animation)
 
 FVector AShooterWeapon::GetCameraAim() const
 {
-	AShooterPlayerController* const PlayerController = Instigator ? Cast<AShooterPlayerController>(Instigator->Controller) : NULL;
+	AShooterPlayerController* const PlayerController = GetInstigator() != nullptr ? Cast<AShooterPlayerController>(GetInstigator()->Controller) : NULL;
 	FVector FinalAim = FVector::ZeroVector;
 
 	if (PlayerController)
@@ -651,9 +651,9 @@ FVector AShooterWeapon::GetCameraAim() const
 		PlayerController->GetPlayerViewPoint(CamLoc, CamRot);
 		FinalAim = CamRot.Vector();
 	}
-	else if (Instigator)
+	else if (GetInstigator())
 	{
-		FinalAim = Instigator->GetBaseAimRotation().Vector();		
+		FinalAim = GetInstigator()->GetBaseAimRotation().Vector();		
 	}
 
 	return FinalAim;
@@ -661,7 +661,7 @@ FVector AShooterWeapon::GetCameraAim() const
 
 FVector AShooterWeapon::GetAdjustedAim() const
 {
-	AShooterPlayerController* const PlayerController = Instigator ? Cast<AShooterPlayerController>(Instigator->Controller) : NULL;
+	AShooterPlayerController* const PlayerController = GetInstigator() ? Cast<AShooterPlayerController>(GetInstigator()->Controller) : NULL;
 	FVector FinalAim = FVector::ZeroVector;
 	// If we have a player controller use it for the aim
 	if (PlayerController)
@@ -671,7 +671,7 @@ FVector AShooterWeapon::GetAdjustedAim() const
 		PlayerController->GetPlayerViewPoint(CamLoc, CamRot);
 		FinalAim = CamRot.Vector();
 	}
-	else if (Instigator)
+	else if (GetInstigator())
 	{
 		// Now see if we have an AI controller - we will want to get the aim from there if we do
 		AShooterAIController* AIController = MyPawn ? Cast<AShooterAIController>(MyPawn->Controller) : NULL;
@@ -681,7 +681,7 @@ FVector AShooterWeapon::GetAdjustedAim() const
 		}
 		else
 		{			
-			FinalAim = Instigator->GetBaseAimRotation().Vector();
+			FinalAim = GetInstigator()->GetBaseAimRotation().Vector();
 		}
 	}
 
@@ -701,7 +701,7 @@ FVector AShooterWeapon::GetCameraDamageStartLocation(const FVector& AimDir) cons
 		PC->GetPlayerViewPoint(OutStartTrace, UnusedRot);
 
 		// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
-		OutStartTrace = OutStartTrace + AimDir * ((Instigator->GetActorLocation() - OutStartTrace) | AimDir);
+		OutStartTrace = OutStartTrace + AimDir * ((GetInstigator()->GetActorLocation() - OutStartTrace) | AimDir);
 	}
 	else if (AIPC)
 	{
@@ -727,8 +727,11 @@ FHitResult AShooterWeapon::WeaponTrace(const FVector& StartTrace, const FVector&
 {
 
 	// Perform trace to retrieve hit info
-	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(WeaponTrace), true, Instigator);
-	TraceParams.bTraceAsyncScene = true;
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(WeaponTrace), true, GetInstigator());
+	
+    // https://forums.unrealengine.com/unreal-engine/announcements-and-releases/1583659-unreal-engine-4-22-preview/page33
+    // Async scene was removed    
+    // TraceParams.bTraceAsyncScene = true;
 	TraceParams.bReturnPhysicalMaterial = true;
 
 	FHitResult Hit(ForceInit);
@@ -741,7 +744,7 @@ void AShooterWeapon::SetOwningPawn(AShooterCharacter* NewOwner)
 {
 	if (MyPawn != NewOwner)
 	{
-		Instigator = NewOwner;
+		SetInstigator(NewOwner);
 		MyPawn = NewOwner;
 		// net owner for RPC calls
 		SetOwner(NewOwner);
@@ -789,7 +792,7 @@ void AShooterWeapon::OnRep_Reload()
 
 void AShooterWeapon::SimulateWeaponFire()
 {
-	if (Role == ROLE_Authority && CurrentState != EWeaponState::Firing)
+	if (this->GetLocalRole() == ROLE_Authority && CurrentState != EWeaponState::Firing)
 	{
 		return;
 	}
@@ -850,7 +853,13 @@ void AShooterWeapon::SimulateWeaponFire()
 		}
 		if (FireForceFeedback != NULL && PC->IsVibrationEnabled())
 		{
-			PC->ClientPlayForceFeedback(FireForceFeedback, false, false, "Weapon");
+            FForceFeedbackParameters params;
+            params.Tag = FName("Weapon");
+            params.bIgnoreTimeDilation = false;
+            params.bLooping = false;
+            params.bPlayWhilePaused = false;  
+
+			PC->ClientPlayForceFeedback(FireForceFeedback, params);
 		}
 	}
 }

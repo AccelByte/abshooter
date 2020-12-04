@@ -111,7 +111,7 @@ FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName& ResourceNa
 		Width = ImageWrapper->GetWidth();
 		Height = ImageWrapper->GetHeight();
 
-		const TArray<uint8>* RawData = NULL;
+		TArray<uint8> RawData;
 		
 		ERGBFormat RGBFormat = ERGBFormat::RGBA;
 		if (InFormat == EImageFormat::PNG || InFormat == EImageFormat::BMP)
@@ -119,13 +119,14 @@ FSlateDynamicImageBrush* FShooterImageUtils::CreateBrush(const FName& ResourceNa
 			RGBFormat = ERGBFormat::BGRA;
 		}
 
-		if (ImageWrapper->GetRaw( RGBFormat, 8, RawData))
+		if (ImageWrapper->GetRaw(RGBFormat, 8, RawData))
 		{
-			DecodedImage = *RawData;
+			DecodedImage = RawData;
 			bSucceeded = true;
 		}
 	}
 
+    // This parameter required TArray
 	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
 	{
 		Brush = new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight()));
@@ -169,11 +170,11 @@ TSharedPtr<FSlateDynamicImageBrush> FShooterImageUtils::CreateBrush(FString Cont
 		Width = ImageWrapper->GetWidth();
 		Height = ImageWrapper->GetHeight();
 
-		const TArray<uint8>* RawData = NULL;
+		TArray<uint8> RawData;
 
 		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
 		{
-			DecodedImage = *RawData;
+			DecodedImage = RawData;
 			bSucceeded = true;
 		}
 	}

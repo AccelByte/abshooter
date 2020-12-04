@@ -27,6 +27,9 @@ bool ULoginMenuUI::Initialize()
 
 	PasswordField->SetText(FText::FromString(SavedPassword));
 
+
+
+    
 	return true;
 }
 
@@ -38,6 +41,24 @@ void ULoginMenuUI::SetInterface(ILoginMenuInterface* MenuInterface)
 		return;
 	}
 	LoginMenuInterface = MenuInterface;
+
+
+
+    // Gamepad friendly, set login button as first focus
+    
+    APlayerController* PlayerController = GetOwningPlayer();
+    LoginWithUsernameButton->SetUserFocus(PlayerController);
+
+
+    
+	//UWorld* World = GetWorld();
+	//if (!ensure(World != nullptr)) return true;
+
+	//APlayerController* PlayerController = World->GetFirstPlayerController();
+	//if (!ensure(PlayerController != nullptr)) return true;
+
+ //   LoginWithUsernameButton->SetUserFocus(PlayerController);
+
 }
 
 void ULoginMenuUI::SetErrorLoginMessage(FString Message)

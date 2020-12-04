@@ -1,5 +1,9 @@
+## 2.1.0 (2020-10-01)
+- Support Unreal Engine 4.25
+- Controller Support required for console support
+
 # Changelog
-## 2.0.1 (Unreleased)
+## 2.0.1 (2020-08-04)
 ## Added
 - AccelByte Justice SDK 2.18.3
 - Agones SDK

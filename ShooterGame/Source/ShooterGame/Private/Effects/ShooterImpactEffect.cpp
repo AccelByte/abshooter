@@ -1,11 +1,12 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "Effects/ShooterImpactEffect.h"
 #include "ShooterGame.h"
-#include "ShooterImpactEffect.h"
 
 AShooterImpactEffect::AShooterImpactEffect(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	bAutoDestroyWhenFinished = true;
+	//bAutoDestroyWhenFinished = true;
+    SetAutoDestroyWhenFinished(true);
 }
 
 void AShooterImpactEffect::PostInitializeComponents()

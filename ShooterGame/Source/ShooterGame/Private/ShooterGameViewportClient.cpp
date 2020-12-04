@@ -1,10 +1,10 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "ShooterGameViewportClient.h"
+#include "ShooterGame.h"
 #include "SShooterConfirmationDialog.h"
-#include "SSafeZone.h"
-#include "SThrobber.h"
+#include "Widgets/Layout/SSafeZone.h"
+#include "Widgets/Images/SThrobber.h"
 #include "Player/ShooterLocalPlayer.h"
 
 UShooterGameViewportClient::UShooterGameViewportClient(const FObjectInitializer& ObjectInitializer)
@@ -238,15 +238,17 @@ void UShooterGameViewportClient::DrawTransition(UCanvas* Canvas)
 {
 	if (GetOuterUEngine() != NULL)
 	{
-		TEnumAsByte<enum ETransitionType> Type = GetOuterUEngine()->TransitionType;
+		ETransitionType Type = GetOuterUEngine()->TransitionType;
 		switch (Type)
 		{
-		case TT_Connecting:
+        case ETransitionType::Connecting:
 			DrawTransitionMessage(Canvas, NSLOCTEXT("GameViewportClient", "ConnectingMessage", "CONNECTING").ToString());
 			break;
-		case TT_WaitingToConnect:
+		case ETransitionType::WaitingToConnect:
 			DrawTransitionMessage(Canvas, NSLOCTEXT("GameViewportClient", "Waitingtoconnect", "Waiting to connect...").ToString());
 			break;	
+        default:
+            break;
 		}
 	}
 }

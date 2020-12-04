@@ -139,10 +139,9 @@ void User::LoginWithLauncher(const FVoidHandler& OnSuccess, const FErrorHandler 
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
-	TCHAR AuthorizationCode[1000];
-	AuthorizationCode[0] = 0;
+	FString AuthorizationCode = TEXT("");
 #if PLATFORM_WINDOWS
-	FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
+	AuthorizationCode = FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"));
 #elif PLATFORM_LINUX
 	FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
 #elif PLATFORM_MAC

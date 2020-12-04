@@ -170,7 +170,7 @@ void ShooterGallery::GetSlot(FAccelByteModelsSlot Slot)
 					});
 					if (Index != INDEX_NONE)
 					{
-						GalleryList[Index]->State = EGalleryState::ERROR;
+						GalleryList[Index]->State = EGalleryState::ERROR_UNKNOWN;
 						UpdateGalleryList();
 					}
 				}

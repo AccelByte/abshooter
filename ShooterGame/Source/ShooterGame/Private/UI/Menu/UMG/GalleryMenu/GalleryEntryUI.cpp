@@ -132,7 +132,7 @@ void UGalleryEntryUI::SetListItemObjectInternal(UObject* InObject)
 		CloudImage->SetVisibility(ESlateVisibility::Visible);
 		switch (Entry->State)
 		{
-		case EGalleryState::ERROR:
+		case EGalleryState::ERROR_UNKNOWN:
 			CloudImage->SetBrush(Entry->CloudOffIcon);
 			break;
 		case EGalleryState::DONE:

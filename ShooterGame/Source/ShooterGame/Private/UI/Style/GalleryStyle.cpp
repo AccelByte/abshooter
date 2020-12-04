@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "ShooterGame.h"
 #include "GalleryStyle.h"
+#include "ShooterGame.h"
 
 FGalleryStyle::FGalleryStyle()
 {

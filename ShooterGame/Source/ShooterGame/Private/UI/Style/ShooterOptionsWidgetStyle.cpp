@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "ShooterOptionsWidgetStyle.h"
+#include "ShooterGame.h"
 
 FShooterOptionsStyle::FShooterOptionsStyle()
 {

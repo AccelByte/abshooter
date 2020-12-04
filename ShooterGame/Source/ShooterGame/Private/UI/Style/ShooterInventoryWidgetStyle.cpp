@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "ShooterInventoryWidgetStyle.h"
+#include "ShooterGame.h"
 
 FShooterInventoryStyle::FShooterInventoryStyle()
 {

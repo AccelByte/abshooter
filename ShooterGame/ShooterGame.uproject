@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.21",
+	"EngineAssociation": "4.25",
 	"Category": "Samples",
 	"Description": "",
 	"Modules": [
@@ -91,7 +91,10 @@
 		"WindowsNoEditor",
 		"XboxOne",
 		"Switch",
-		"Quail"
+		"Quail",
+		"XboxOneGDK",
+		"XSX",
+		"PS5"
 	],
 	"EpicSampleNameHash": "3868556100"
 }

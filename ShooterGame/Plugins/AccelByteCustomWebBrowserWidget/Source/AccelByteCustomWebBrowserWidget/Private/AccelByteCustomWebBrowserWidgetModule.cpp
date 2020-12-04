@@ -2,8 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "AccelByteCustomWebBrowserWidget.h"
 #include "AccelByteCustomWebBrowserWidgetModule.h"
+#include "AccelByteCustomWebBrowserWidget.h"
 #include "Modules/ModuleManager.h"
 
 

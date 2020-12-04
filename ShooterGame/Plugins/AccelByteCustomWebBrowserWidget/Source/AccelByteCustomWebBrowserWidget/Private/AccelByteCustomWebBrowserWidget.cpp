@@ -8,7 +8,7 @@
 #include "Serialization/JsonSerializerMacros.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Base64.h"
+#include "Misc/Base64.h"
 
 #define LOCTEXT_NAMESPACE "AccelByteCustomWebBrowserWidget"
 
@@ -80,12 +80,14 @@ void UAccelByteCustomWebBrowserWidget::SetRedirectSuccessUrl(FString NewUrl)
 	RedirectSuccessUrl = NewUrl;
 }
 
-void UAccelByteCustomWebBrowserWidget::LoadString(FString Contents, FString DummyUrl)
+void UAccelByteCustomWebBrowserWidget::LoadHTMLContentString(FString Contents, FString DummyUrl)
 {
+#if PLATFORM_WINDOWS
 	if ( WebBrowserWidget.IsValid() )
 	{
-		return WebBrowserWidget->LoadString(Contents, DummyUrl);
+		WebBrowserWidget->LoadString(Contents, DummyUrl);
 	}
+#endif
 }
 
 void UAccelByteCustomWebBrowserWidget::ExecuteJavascript(const FString& ScriptText)

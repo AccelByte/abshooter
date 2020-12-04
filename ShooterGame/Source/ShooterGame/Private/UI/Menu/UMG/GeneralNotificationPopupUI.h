@@ -14,7 +14,7 @@ enum class ENotificationType : uint8
 	NOTIFICATION = 0,
 	WARNING,
 	BUTTON,
-	ERROR
+	ERROR_UNKNOWN
 };
 
 /** Delegate used for when Notification::Button button are pressed. */
