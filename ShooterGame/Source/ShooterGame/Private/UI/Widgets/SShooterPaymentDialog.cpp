@@ -1,7 +1,7 @@
+#include "SShooterPaymentDialog.h"
 #include "SWebBrowser.h"
 #include "ShooterGame.h"
 #include "ShooterStyle.h"
-#include "SShooterPaymentDialog.h"
 #include "ShooterGameInstance.h"
 #include "PopupStyle.h"
 #include "ShooterMenuWidgetStyle.h"

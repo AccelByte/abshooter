@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "Bots/BTDecorator_HasLoSTo.h"
 #include "ShooterGame.h"
-#include "BTDecorator_HasLoSTo.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Object.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Vector.h"
@@ -111,7 +111,9 @@ bool UBTDecorator_HasLoSTo::LOSTrace(AActor* InActor, AActor* InEnemyActor, cons
 		{
 			// Perform trace to retrieve hit info
 			FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(AILosTrace), true, InActor);
-			TraceParams.bTraceAsyncScene = true;
+            // https://forums.unrealengine.com/unreal-engine/announcements-and-releases/1583659-unreal-engine-4-22-preview/page33
+            // Async scene was removed
+			// TraceParams.bTraceAsyncScene = true;
 			
 			TraceParams.bReturnPhysicalMaterial = true;
 			TraceParams.AddIgnoredActor(MyBot);

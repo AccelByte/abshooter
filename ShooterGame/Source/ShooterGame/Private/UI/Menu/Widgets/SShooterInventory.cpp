@@ -1,6 +1,6 @@
 
-#include "ShooterGame.h"
 #include "SShooterInventory.h"
+#include "ShooterGame.h"
 #include "ShooterStyle.h"
 #include "SShooterMenuWidget.h"
 #include "ShooterMenuWidgetStyle.h"
@@ -9,14 +9,27 @@
 #include "ShooterGameViewportClient.h"
 #include "ShooterGameInstance.h"
 #include "SShooterConfirmationDialog.h"
-#include "AccelByteOrderApi.h"
-#include "AccelByteItemApi.h"
-#include "AccelByteEntitlementApi.h"
-#include "AccelByteError.h"
+#include "Api/AccelByteOrderApi.h"
+#include "Api/AccelByteItemApi.h"
+#include "Api/AccelByteEntitlementApi.h"
+#include "Core/AccelByteError.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "Core/AccelByteRegistry.h"
 #include "ShooterGameConfig.h"
+
+
+#ifndef PLATFORM_PS5
+#define PLATFORM_PS5 0
+#endif
+
+#if PLATFORM_PS4 || PLATFORM_PS5
+#include "SonyPlatformMisc.h"
+#endif
+
+#if PLATFORM_XBOXONE
+#include "XboxCommonPlatformMisc.h"
+#endif
 
 using namespace AccelByte::Api;
 
@@ -209,6 +222,10 @@ void SShooterInventory::BuildInventoryItem()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_PS4 || PLATFORM_PS5
+    FString Locale = FSonyPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_XBOXONE
+    FString Locale = FXboxCommonPlatformMisc::GetDefaultLocale();
 #endif
 
 	if (!bRequestInventoryList)
@@ -351,7 +368,7 @@ void SShooterInventory::Tick(const FGeometry& AllottedGeometry, const double InC
 		{
 			Text += ".";
 		}
-		LoadingDialogText->SetText(Text);
+		LoadingDialogText->SetText(FText::FromString(Text));
 	}
 }
 

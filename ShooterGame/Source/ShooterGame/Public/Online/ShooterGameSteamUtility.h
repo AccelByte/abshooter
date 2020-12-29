@@ -6,11 +6,13 @@
 #include "CoreMinimal.h"
 
 // AccelByte
-#include "AccelByteError.h"
+#include "Core/AccelByteError.h"
 
+#if PLATFORM_WINDOWS
 class ShooterGameSteamUtility
 {
 public:
 	static void SteamLogin(FVoidHandler OnSuccess, FErrorHandler OnError);
 	static void OnIdentityLoginComplete(int32 LocalUserNum, bool bSuccessful, const FUniqueNetId& UserId, const FString& ErrorStr, FVoidHandler OnSuccessExt, FErrorHandler OnErrorExt);
 };
+#endif

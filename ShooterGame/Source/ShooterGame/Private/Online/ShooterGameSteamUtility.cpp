@@ -2,7 +2,9 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "ShooterGameSteamUtility.h"
+#if PLATFORM_WINDOWS
+
+#include "Online/ShooterGameSteamUtility.h"
 
 // Steam
 #include "OnlineSubsystem.h"
@@ -13,6 +15,8 @@
 *
 *    Taken from: https://answers.unrealengine.com/questions/170549/engine-wont-compile-with-steamworks-132-latest.html
 */
+
+
 #pragma push_macro("ARRAY_COUNT")
 #undef ARRAY_COUNT
 // Prevents deprecated messages for steam header
@@ -26,10 +30,11 @@
 *    Above is added so we can compile for Linux
 */
 
+
 // AccelByte
-#include "AccelByteOauth2Api.h"
+#include "Api/AccelByteOauth2Api.h"
 #include "Core/AccelByteRegistry.h"
-#include "AccelByteUserApi.h"
+#include "Api/AccelByteUserApi.h"
 #include "ShooterGameConfig.h"
 
 void ExecuteErrorDelegate(const AccelByte::FErrorHandler& OnErrorExt, int Code, FString Reason)
@@ -86,3 +91,5 @@ void ShooterGameSteamUtility::OnIdentityLoginComplete(int32 LocalUserNum, bool b
 		ExecuteErrorDelegate(OnErrorExt, 400, "IdentityLogin is not success. \nReason:" + ErrorStr);
 	}
 }
+
+#endif // prevent error on PS4

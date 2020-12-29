@@ -1,9 +1,9 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
+#include "SShooterMenuWidget.h"
 #include "ShooterGame.h"
 #include "Engine/Console.h"
 #include "ShooterGameInstance.h"
-#include "SShooterMenuWidget.h"
 #include "ShooterMenuItem.h"
 #include "SShooterMenuItem.h"
 #include "ShooterStyle.h"

@@ -8,7 +8,7 @@ namespace UnrealBuildTool.Rules
 	{
 		public AccelByteCustomWebBrowserWidget(ReadOnlyTargetRules Target) : base(Target)
 		{
-            PrivateDependencyModuleNames.AddRange(new string[] { "AccelByteUe4Sdk" });
+            //PrivateDependencyModuleNames.AddRange(new string[] { "AccelByteUe4Sdk" });
 
             PublicDependencyModuleNames.AddRange(
 				new string[]
@@ -21,7 +21,7 @@ namespace UnrealBuildTool.Rules
 					"UMG",
                     "Json",
                     "JsonUtilities",
-                    "AccelByteUe4Sdk",
+                    //"AccelByteUe4Sdk",
                 }
 			);
 		}

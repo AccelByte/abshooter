@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "SlateWidgetStyleContainerBase.h"
+#include "Styling/SlateWidgetStyleContainerBase.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "GalleryStyle.generated.h"

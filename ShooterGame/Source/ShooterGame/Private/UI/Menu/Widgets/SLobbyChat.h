@@ -10,6 +10,7 @@
 #include "LobbyStyle.h"
 #include "SLobbyChatPage.h"
 #include "SLobbyChatTabButton.h"
+#include "Models\AccelByteLobbyModels.h"
 
 class SLobby;
 
