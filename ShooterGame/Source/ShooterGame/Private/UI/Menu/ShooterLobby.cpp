@@ -287,7 +287,16 @@ void ShooterLobby::AddFriendEntry(FFriendEntry Friend)
 	TWeakObjectPtr<UFriendEntryUI> Entry = MakeWeakObjectPtr<UFriendEntryUI>(CreateWidget<UFriendEntryUI>(GameInstance.Get(), *GameInstance->FriendEntryClass.Get()));
 	Entry->Data = Friend;
 	Entry->SetInterface(this);
-	FriendList.Add(Entry.Get());
+
+	// Avoid Adding existing entry
+	int32 Index = FriendList.IndexOfByPredicate([Friend](UFriendEntryUI* Entry) {
+		return Entry->Data.UserId == Friend.UserId;
+	});
+
+	if (Index == INDEX_NONE)
+	{
+		FriendList.Add(Entry.Get());
+	}
 }
 
 void ShooterLobby::OnAvatarReceived(FCacheBrush Image, FFriendEntry Friend)
