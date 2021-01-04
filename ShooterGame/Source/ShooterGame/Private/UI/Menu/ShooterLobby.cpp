@@ -1173,8 +1173,9 @@ void ShooterLobby::OnRematchmakingNotification(const FAccelByteModelsRematchmaki
 
 		FOnNotificationCloseButtonClicked CloseButtonDelegate = FOnNotificationCloseButtonClicked::CreateLambda([RematchmakingPopup, this]()
 			{
-				bMatchmakingStarted = true;
+				bMatchmakingStarted = false;
 				UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+				LobbyMenuUI->StartMatch();
 			});
 
 		RematchmakingPopup->Show(ENotificationType::NOTIFICATION, FString("Your Opponent's Party Have been Banned Because of Long Term Inactivity. We'll Rematch You with Another Party."), NULL , CloseButtonDelegate);
