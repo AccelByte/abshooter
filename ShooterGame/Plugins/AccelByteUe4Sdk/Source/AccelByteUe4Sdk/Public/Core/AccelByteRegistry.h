@@ -32,7 +32,10 @@ namespace Api
 	class QosManager;
 	class Qos;
 	class Leaderboard;
+	class CloudSave;
 	class GameTelemetry;
+	class Agreement;
+	class Achievement;
 }
 
 namespace GameServerApi
@@ -43,6 +46,7 @@ namespace GameServerApi
 	class ServerEcommerce;
 	class ServerQosManager;
 	class ServerGameTelemetry;
+	class ServerAchievement;
 }
 
 class ACCELBYTEUE4SDK_API FRegistry
@@ -67,13 +71,17 @@ public:
 	static Api::QosManager QosManager;
 	static Api::Qos Qos;
 	static Api::Leaderboard Leaderboard;
+	static Api::CloudSave CloudSave;
 	static Api::GameTelemetry GameTelemetry;
+	static Api::Agreement Agreement;
+	static Api::Achievement Achievement;
 	static GameServerApi::ServerOauth2 ServerOauth2;
 	static GameServerApi::ServerDSM ServerDSM;
 	static GameServerApi::ServerStatistic ServerStatistic;
 	static GameServerApi::ServerEcommerce ServerEcommerce;
 	static GameServerApi::ServerQosManager ServerQosManager;
 	static GameServerApi::ServerGameTelemetry ServerGameTelemetry;
+	static GameServerApi::ServerAchievement ServerAchievement;
 
 	//Static class doesn't have constructors or destructor
 	FRegistry() = delete;

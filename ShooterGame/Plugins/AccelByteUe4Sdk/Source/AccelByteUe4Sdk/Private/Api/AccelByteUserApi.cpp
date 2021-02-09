@@ -2,10 +2,15 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "Api/AccelByteUserApi.h"
 
+#include "Api/AccelByteUserApi.h"
+#include "Api/AccelByteEntitlementApi.h"
+#include "Api/AccelByteItemApi.h"
 #include "Core/AccelByteRegistry.h"
+#include "Models/AccelByteEcommerceModels.h"
+#include "Core/AccelByteHttpListenerExtension.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
+#include "Core/AccelByteEnvironment.h"
 #include "Api/AccelByteOauth2Api.h"
 #include "Runtime/Core/Public/Misc/Base64.h"
 
@@ -22,19 +27,50 @@ User::User(AccelByte::Credentials& Credentials, AccelByte::Settings& Setting) : 
 User::~User()
 {}
 
+static HttpListenerExtension ListenerExtension;
 FString User::TempUsername;
 
-static FString PlatformStrings[] = {
-	TEXT("steam"),
-	TEXT("google"),
-	TEXT("facebook"),
-	TEXT("android"),
-	TEXT("ios"),
-	TEXT("device"),
-	TEXT("twitch"),
-	TEXT("oculus"),
-	TEXT("twitter"),
+static FString SearchStrings[] = {
+	TEXT(""),
+	TEXT("emailAddress"),
+	TEXT("displayName"),
+	TEXT("username")
 };
+
+static FString GetPlatformString(EAccelBytePlatformType PlatformType)
+{
+	switch (PlatformType)
+	{
+	case EAccelBytePlatformType::Steam:
+		return "steam";
+	case EAccelBytePlatformType::PS4:
+		return "ps4";
+	case EAccelBytePlatformType::Live:
+		return "live";
+	case EAccelBytePlatformType::Google:
+		return "google";
+	case EAccelBytePlatformType::Facebook:
+		return "facebook";
+	case EAccelBytePlatformType::Android:
+		return "android";
+	case EAccelBytePlatformType::iOS:
+		return "ios";
+	case EAccelBytePlatformType::Device:
+		return "device";
+	case EAccelBytePlatformType::Twitch:
+		return "twitch";
+	case EAccelBytePlatformType::Oculus:
+		return "oculus";
+	case EAccelBytePlatformType::Twitter:
+		return "twitter";
+	case EAccelBytePlatformType::EpicGames:
+		return "epicgames";
+	case EAccelBytePlatformType::Stadia:
+		return "stadia";
+	default:
+		return "unknown";
+	}
+}
 
 void User::LoginWithOtherPlatform(EAccelBytePlatformType PlatformType, const FString& PlatformToken, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
 {
@@ -49,11 +85,11 @@ void User::LoginWithOtherPlatform(EAccelBytePlatformType PlatformType, const FSt
 			OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 		}));
 	}
-	Oauth2::GetSessionIdWithPlatformGrant(Settings.ClientId, Settings.ClientSecret, PlatformStrings[static_cast<std::underlying_type<EAccelBytePlatformType>::type>(PlatformType)], PlatformToken, THandler<FOauth2Session>::CreateLambda([this, OnSuccess, OnError](const FOauth2Session& Result)
+	Oauth2::GetSessionIdWithPlatformGrant(Settings.ClientId, Settings.ClientSecret, GetPlatformString(PlatformType), PlatformToken, THandler<FOauth2Session>::CreateLambda([this, OnSuccess, OnError](const FOauth2Session& Result)
 	{
 		const FOauth2Session session = Result;
 		AccelByte::Api::User::Credentials.SetUserSession(session.Session_id, FPlatformTime::Seconds() + (session.Expires_in*FMath::FRandRange(0.7, 0.9)), session.Refresh_id);
-		GetData(THandler<FUserData>::CreateLambda([this, OnSuccess, session](const FUserData& Result)
+		GetData(THandler<FAccountUserData>::CreateLambda([this, OnSuccess, session](const FAccountUserData& Result)
 		{
 			AccelByte::Api::User::Credentials.SetUserLogin(Result.UserId, Result.DisplayName, Result.Namespace);
 			OnSuccess.ExecuteIfBound();
@@ -85,7 +121,7 @@ void User::LoginWithUsername(const FString& Username, const FString& Password, c
 	{
 		const FOauth2Session session = Result;
 		AccelByte::Api::User::Credentials.SetUserSession(session.Session_id, FPlatformTime::Seconds() + (session.Expires_in*FMath::FRandRange(0.7, 0.9)), session.Refresh_id);
-		GetData(THandler<FUserData>::CreateLambda([this, OnSuccess, session](const FUserData& Result)
+		GetData(THandler<FAccountUserData>::CreateLambda([this, OnSuccess, session](const FAccountUserData& Result)
 		{
 			AccelByte::Api::User::Credentials.SetUserLogin(Result.UserId, Result.DisplayName, Result.Namespace);
 			OnSuccess.ExecuteIfBound();
@@ -116,7 +152,7 @@ void User::LoginWithDeviceId(const FVoidHandler& OnSuccess, const FErrorHandler&
 	{
 		const FOauth2Session session = Result;
 		AccelByte::Api::User::Credentials.SetUserSession(session.Session_id, FPlatformTime::Seconds() + (session.Expires_in*FMath::FRandRange(0.7, 0.9)), session.Refresh_id);
-		GetData(THandler<FUserData>::CreateLambda([this, OnSuccess, session](const FUserData& Result)
+		GetData(THandler<FAccountUserData>::CreateLambda([this, OnSuccess, session](const FAccountUserData& Result)
 		{
 			AccelByte::Api::User::Credentials.SetUserLogin(Result.UserId, Result.DisplayName, Result.Namespace);
 			OnSuccess.ExecuteIfBound();
@@ -135,15 +171,7 @@ void User::LoginWithLauncher(const FVoidHandler& OnSuccess, const FErrorHandler 
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
-	TCHAR AuthorizationCode[1000];
-	AuthorizationCode[0] = 0;
-#if PLATFORM_WINDOWS
-	FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
-#elif PLATFORM_LINUX
-	FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
-#elif PLATFORM_MAC
-	FApplePlatformMisc::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), AuthorizationCode, 1000);
-#endif
+	FString AuthorizationCode = Environment::GetEnvironmentVariable(TEXT("JUSTICE_AUTHORIZATION_CODE"), 1000);
 
 	if (Credentials.GetSessionState() == Credentials::ESessionState::Valid)
 	{
@@ -157,7 +185,7 @@ void User::LoginWithLauncher(const FVoidHandler& OnSuccess, const FErrorHandler 
 	Oauth2::GetSessionIdWithAuthorizationCodeGrant(Settings.ClientId, Settings.ClientSecret, AuthorizationCode, Settings.RedirectURI, THandler<FOauth2Session>::CreateLambda([this, OnSuccess, OnError](const FOauth2Session& Result) {
 		const FOauth2Session session = Result;
 		AccelByte::Api::User::Credentials.SetUserSession(session.Session_id, FPlatformTime::Seconds() + (session.Expires_in*FMath::FRandRange(0.7, 0.9)), session.Refresh_id);
-		GetData(THandler<FUserData>::CreateLambda([this, OnSuccess, session](const FUserData& Result)
+		GetData(THandler<FAccountUserData>::CreateLambda([this, OnSuccess, session](const FAccountUserData& Result)
 		{
 			AccelByte::Api::User::Credentials.SetUserLogin(Result.UserId, Result.DisplayName, Result.Namespace);
 			OnSuccess.ExecuteIfBound();
@@ -165,7 +193,8 @@ void User::LoginWithLauncher(const FVoidHandler& OnSuccess, const FErrorHandler 
 		{
 			OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 		}));
-	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) {
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
+	{
 		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
 	}));
 }
@@ -208,7 +237,38 @@ void User::Register(const FString& Username, const FString& Password, const FStr
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::GetData(const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError)
+void User::Registerv2(const FString& EmailAddress, const FString& Username, const FString& Password, const FString& DisplayName, const FString& Country, const FString& DateOfBirth, const THandler<FRegisterResponse>& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	FRegisterRequestv2 NewUserRequest;
+	NewUserRequest.DisplayName = DisplayName;
+	NewUserRequest.Password = Password;
+	NewUserRequest.EmailAddress = EmailAddress;
+	NewUserRequest.Username = Username;
+	NewUserRequest.AuthType = TEXT("EMAILPASSWD");
+	NewUserRequest.Country = Country;
+	NewUserRequest.DateOfBirth = DateOfBirth;
+
+	FString Url = FString::Printf(TEXT("%s/v4/public/namespaces/%s/users"), *Settings.IamServerUrl, *Settings.Namespace);
+	FString Verb = TEXT("POST");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+	FString Content;
+	FJsonObjectConverter::UStructToJsonObjectString(NewUserRequest, Content);
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+	Request->SetContentAsString(Content);
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+}
+
+void User::GetData(const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -231,7 +291,7 @@ void User::GetData(const THandler<FUserData>& OnSuccess, const FErrorHandler& On
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::UpdateUser(FUserUpdateRequest UpdateRequest, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError)
+void User::UpdateUser(FUserUpdateRequest UpdateRequest, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -260,7 +320,7 @@ void AccelByte::Api::User::BulkGetUserByOtherPlatformUserIds(EAccelBytePlatformT
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
-	const FString PlatformString = PlatformStrings[static_cast<std::underlying_type<EAccelBytePlatformType>::type>(PlatformType)];
+	const FString PlatformString = GetPlatformString(PlatformType);
 	const FBulkPlatformUserIdRequest UserIdRequests{ OtherPlatformUserId };
 
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
@@ -308,11 +368,11 @@ void User::SendUpgradeVerificationCode(const FString& Username, const FVoidHandl
 		TEXT(""),
 		Username
 	};
-	
+
 	SendVerificationCode(SendUpgradeVerificationCodeRequest, OnSuccess, OnError);
 }
 
-void User::UpgradeAndVerify(const FString& Username, const FString& Password, const FString& VerificationCode, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError)
+void User::UpgradeAndVerify(const FString& Username, const FString& Password, const FString& VerificationCode, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -335,16 +395,16 @@ void User::UpgradeAndVerify(const FString& Username, const FString& Password, co
 	FRegistry::HttpRetryScheduler.ProcessRequest(
 		Request,
 		CreateHttpResultHandler(
-			THandler<FUserData>::CreateLambda(
-				[OnSuccess](const FUserData& UserData)
+			THandler<FAccountUserData>::CreateLambda(
+				[OnSuccess](const FAccountUserData& UserData)
 				{
 					OnSuccess.ExecuteIfBound(UserData);
 				}),
-				OnError),
+			OnError),
 		FPlatformTime::Seconds());
 }
 
-void User::Upgrade(const FString& Username, const FString& Password, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError)
+void User::Upgrade(const FString& Username, const FString& Password, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -367,13 +427,97 @@ void User::Upgrade(const FString& Username, const FString& Password, const THand
 	FRegistry::HttpRetryScheduler.ProcessRequest(
 		Request,
 		CreateHttpResultHandler(
-			THandler<FUserData>::CreateLambda(
-				[OnSuccess](const FUserData& UserData)
+			THandler<FAccountUserData>::CreateLambda(
+				[OnSuccess](const FAccountUserData& UserData)
 				{
 					OnSuccess.ExecuteIfBound(UserData);
 				}),
-				OnError),
+			OnError),
 		FPlatformTime::Seconds());
+}
+
+void User::Upgradev2(const FString& EmailAddress, const FString& Username, const FString& Password, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url = FString::Printf(TEXT("%s/v4/public/namespaces/%s/users/me/headless/verify"), *Settings.IamServerUrl, *Credentials.GetUserNamespace());
+	FString Verb = TEXT("POST");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+	FString Content = FString::Printf(TEXT("{ \"emailAddress\": \"%s\", \"password\": \"%s\", \"username\": \"%s\"}"), *EmailAddress, *Password, *Username);
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+	Request->SetContentAsString(Content);
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(
+		Request,
+		CreateHttpResultHandler(
+			THandler<FAccountUserData>::CreateLambda(
+				[OnSuccess](const FAccountUserData& UserData)
+				{
+					OnSuccess.ExecuteIfBound(UserData);
+				}),
+			OnError),
+		FPlatformTime::Seconds());
+}
+
+void User::UpgradeWithPlayerPortal(const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	const auto HttpNotifDelegate = HttpListenerExtension::FHttpNotif::CreateLambda([this]()
+	{
+		UpgradeNotif.ExecuteIfBound();
+	});
+
+	ListenerExtension = HttpListenerExtension();
+	ListenerExtension.SetHttpNotifDelegate(HttpNotifDelegate);
+	ListenerExtension.GetAvailableLocalUrl();
+	FString LocalUrl = ListenerExtension.AvailableLocalUrl;
+
+	User::UpgradeWithPlayerPortalAsync(LocalUrl, THandler<FUpgradeUserRequest>::CreateLambda([this, OnSuccess](const FUpgradeUserRequest& Result)
+	{
+		FString Url = FString::Printf(TEXT("%s/upgrade-account-from-sdk?temporary_session_id=%s"), *Settings.NonApiBaseUrl, *Result.Temporary_session_id);
+		FPlatformProcess::LaunchURL(*Url, NULL, NULL);
+
+		ListenerExtension.StartHttpListener();
+
+		OnSuccess.ExecuteIfBound();
+	}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage)
+	{
+		OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+	}));
+}
+
+void User::UpgradeWithPlayerPortalAsync(const FString& ReturnUrl, const THandler<FUpgradeUserRequest>& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	FString Authorization   = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url             = FString::Printf(TEXT("%s/v1/public/temporarysessions"), *Settings.BaseUrl);
+	FString Verb            = TEXT("POST");
+	FString ContentType     = TEXT("application/json");
+	FString Accept          = TEXT("application/json");
+	FString Content         = FString::Printf(TEXT("{ \"return_url\": \"%s\", \"ttl\": %i}"), *ReturnUrl, ListenerExtension.TTL);
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+	Request->SetContentAsString(Content);
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
 void User::Verify(const FString& VerificationCode, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
@@ -453,7 +597,7 @@ void User::GetPlatformLinks(const THandler<FPagedPlatformLinks>& OnSuccess, cons
 	report.GetFunctionLog(FString(__FUNCTION__));
 
 	FString Authorization   = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/me/platforms"), *Settings.IamServerUrl, *Credentials.GetClientNamespace());
+	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/me/platforms"), *Settings.IamServerUrl, *Credentials.GetUserNamespace());
 	FString Verb            = TEXT("GET");
 	FString ContentType     = TEXT("application/json");
 	FString Accept          = TEXT("application/json");
@@ -470,13 +614,15 @@ void User::GetPlatformLinks(const THandler<FPagedPlatformLinks>& OnSuccess, cons
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::LinkOtherPlatform(const FString& PlatformId, const FString& Ticket, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+void User::LinkOtherPlatform(EAccelBytePlatformType PlatformType, const FString& Ticket, const FVoidHandler& OnSuccess, const FCustomErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
+	auto PlatformId = GetPlatformString(PlatformType);
+
 	FString Authorization   = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/me/platforms/%s"), *Settings.IamServerUrl, *Credentials.GetClientNamespace(), *PlatformId);
+	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/me/platforms/%s"), *Settings.IamServerUrl, *Credentials.GetUserNamespace(), *PlatformId);
 	FString Verb            = TEXT("POST");
 	FString ContentType     = TEXT("application/x-www-form-urlencoded");
 	FString Accept          = TEXT("application/json");
@@ -493,13 +639,45 @@ void User::LinkOtherPlatform(const FString& PlatformId, const FString& Ticket, c
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::UnlinkOtherPlatform(const FString& PlatformId, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+void User::ForcedLinkOtherPlatform(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, const FVoidHandler& OnSuccess, const FCustomErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
+	auto PlatformId = GetPlatformString(PlatformType);
+
+	FLinkPlatformAccountRequest linkRequest;
+	linkRequest.PlatformId = PlatformId;
+	linkRequest.PlatformUserId = PlatformUserId;
+
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/%s/platforms/link"), *Settings.IamServerUrl, *Credentials.GetUserNamespace(), *Credentials.GetUserId());
+	FString Verb = TEXT("POST");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+	FString Content = TEXT("");
+	FJsonObjectConverter::UStructToJsonObjectString(linkRequest, Content);
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+	Request->SetContentAsString(Content);
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+}
+
+void User::UnlinkOtherPlatform(EAccelBytePlatformType PlatformType, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	auto PlatformId = GetPlatformString(PlatformType);
+
 	FString Authorization   = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/me/platforms/%s"), *Settings.IamServerUrl, *Credentials.GetClientNamespace(), *PlatformId);
+	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/users/me/platforms/%s"), *Settings.IamServerUrl, *Credentials.GetUserNamespace(), *PlatformId);
 	FString Verb            = TEXT("DELETE");
 	FString ContentType     = TEXT("application/json");
 	FString Accept          = TEXT("application/json");
@@ -545,7 +723,7 @@ void User::SendVerificationCode(const FVerificationCodeRequest& VerificationCode
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::SearchUsers(const FString& Query, const THandler<FPagedPublicUsersInfo>& OnSuccess, const FErrorHandler& OnError)
+void User::SearchUsers(const FString& Query, EAccelByteSearchType By, const THandler<FPagedPublicUsersInfo>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -556,6 +734,12 @@ void User::SearchUsers(const FString& Query, const THandler<FPagedPublicUsersInf
 	FString ContentType     = TEXT("application/json");
 	FString Accept          = TEXT("application/json");
 	FString Content;
+
+	if (By != EAccelByteSearchType::ALL)
+	{
+		FString SearchId = SearchStrings[static_cast<std::underlying_type<EAccelByteSearchType>::type>(By)];
+		Url.Append(FString::Printf(TEXT("&by=%s"), *SearchId));
+	}
 
 	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
@@ -568,7 +752,12 @@ void User::SearchUsers(const FString& Query, const THandler<FPagedPublicUsersInf
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::GetUserByUserId(const FString& UserID, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError)
+void User::SearchUsers(const FString& Query, const THandler<FPagedPublicUsersInfo>& OnSuccess, const FErrorHandler& OnError)
+{
+	SearchUsers(Query, EAccelByteSearchType::ALL, OnSuccess, OnError);
+}
+
+void User::GetUserByUserId(const FString& UserID, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -589,11 +778,11 @@ void User::GetUserByUserId(const FString& UserID, const THandler<FUserData>& OnS
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 }
 
-void User::GetUserByOtherPlatformUserId(EAccelBytePlatformType PlatformType, const FString& OtherPlatformUserId, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError)
+void User::GetUserByOtherPlatformUserId(EAccelBytePlatformType PlatformType, const FString& OtherPlatformUserId, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
-	FString PlatformId      = PlatformStrings[static_cast<std::underlying_type<EAccelBytePlatformType>::type>(PlatformType)];
+	FString PlatformId      = GetPlatformString(PlatformType);
 
 	FString Authorization   = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
 	FString Url             = FString::Printf(TEXT("%s/v3/public/namespaces/%s/platforms/%s/users/%s"), *Settings.IamServerUrl, *Settings.Namespace, *PlatformId, *OtherPlatformUserId);
@@ -607,6 +796,53 @@ void User::GetUserByOtherPlatformUserId(EAccelBytePlatformType PlatformType, con
 	Request->SetHeader(TEXT("Accept"), Accept);
 
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+}
+
+void User::GetCountryFromIP(const THandler<FCountryInfo>& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	FString Authorization   = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url             = FString::Printf(TEXT("%s/location/country"), *Settings.BaseUrl);
+	FString Verb            = TEXT("GET");
+	FString Accept          = TEXT("application/json");
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Accept"), Accept);
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+}
+
+void User::GetUserEligibleToPlay(const THandler<bool>& OnSuccess, const FErrorHandler& OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	auto onItemInfoGot = THandler<FAccelByteModelsItemInfo>::CreateLambda([this, OnSuccess, OnError](const FAccelByteModelsItemInfo& itemInfoResult)
+	{
+
+		TArray<FString> itemIds;
+		TArray<FString> skus = itemInfoResult.Features;
+		TArray<FString> appIds;
+		appIds.Init(*Settings.AppId, 1);
+
+		FRegistry::Entitlement.GetUserEntitlementOwnershipAny(itemIds, appIds, skus, THandler<FAccelByteModelsEntitlementOwnership>::CreateLambda([OnSuccess, OnError](FAccelByteModelsEntitlementOwnership ownership)
+		{
+			OnSuccess.ExecuteIfBound(ownership.Owned);
+		}), FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMsg)
+		{
+			OnError.ExecuteIfBound(ErrorCode, ErrorMsg);
+		}));
+	});
+
+	FRegistry::Item.GetItemByAppId(*Settings.AppId, "", "", onItemInfoGot, FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMsg)
+	{
+		OnError.ExecuteIfBound(ErrorCode, ErrorMsg);
+	}));
 }
 
 } // Namespace Api

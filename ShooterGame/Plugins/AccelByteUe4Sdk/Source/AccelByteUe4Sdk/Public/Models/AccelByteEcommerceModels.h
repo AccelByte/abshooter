@@ -136,7 +136,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsItemRegionDataItem
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo | RegionData")
 		FString CurrencyCode;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo | RegionData")
-		EAccelByteItemCurrencyType CurrencyType;
+		EAccelByteItemCurrencyType CurrencyType{EAccelByteItemCurrencyType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo | RegionData")
 		FString CurrencyNamespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo | RegionData")
@@ -192,7 +192,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsItemInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		FString Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
-		EAccelByteEntitlementType EntitlementType;
+		EAccelByteEntitlementType EntitlementType{EAccelByteEntitlementType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		int32 UseCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
@@ -200,9 +200,9 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsItemInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		FString CategoryPath;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
-		EAccelByteItemStatus Status;
+		EAccelByteItemStatus Status{EAccelByteItemStatus::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
-		EAccelByteItemType ItemType;
+		EAccelByteItemType ItemType{EAccelByteItemType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		FString TargetNamespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
@@ -219,6 +219,8 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsItemInfo
 		TArray<FString> ItemIds;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		TArray<FString> Tags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
+		TArray<FString> Features;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		int32 MaxCountPerUser;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
@@ -268,7 +270,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsPopulatedItemInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		FString Name;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
-		EAccelByteEntitlementType EntitlementType;
+		EAccelByteEntitlementType EntitlementType{EAccelByteEntitlementType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		int32 UseCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
@@ -276,9 +278,9 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsPopulatedItemInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		FString CategoryPath;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
-		EAccelByteItemStatus Status;
+		EAccelByteItemStatus Status{EAccelByteItemStatus::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
-		EAccelByteItemType ItemType;
+		EAccelByteItemType ItemType{EAccelByteItemType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		FString TargetNamespace;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
@@ -295,6 +297,8 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsPopulatedItemInfo
 		TArray<FString> ItemIds;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		TArray<FString> Tags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
+		TArray<FString> Features;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
 		int32 MaxCountPerUser;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
@@ -336,9 +340,9 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsItemCriteria
 {
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Item | Models | ItemCriteria")
-		EAccelByteItemType ItemType;
+		EAccelByteItemType ItemType{EAccelByteItemType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Item | Models | ItemCriteria")
-		EAccelByteAppType AppType;
+		EAccelByteAppType AppType{EAccelByteAppType::NONE};
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Item | Models | ItemCriteria")
 		FString Region;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Item | Models | ItemCriteria")
@@ -349,6 +353,8 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsItemCriteria
 		FString BaseAppId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Item | Models | ItemCriteria")
 		TArray<FString> Tags;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Item | Models | ItemInfo")
+		TArray<FString> Features;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Item | Models | ItemCriteria")
 		FString SortBy;
 };
@@ -482,6 +488,14 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsConsumeUserEntitlementRequest
 };
 
 USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsEntitlementOwnership
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | EntitlementOwnership")
+		bool Owned;
+};
+
+USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsEntitlementGrant
 {
 	GENERATED_BODY()
@@ -559,6 +573,42 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsStackableEntitlementInfo
 		int32 StackedUseCount;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Accelbyte | Entitlement | Models | EntitlementPagingSlicedResult | StackableEntitlementInfo ")
 		int32 StackedQuantity;
+};
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsAttributes
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | Attributes")
+		FString ServerId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | Attributes")
+		FString ServerName;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | Attributes")
+		FString CharacterId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | Attributes")
+		FString CharacterName;
+};
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsDistributionAttributes
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | DistributionAttributes")
+		FAccelByteModelsAttributes Attributes;
+};
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsDistributionReceiver
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | DistributionReceiver")
+		FString UserId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | DistributionReceiver")
+		FString Namespace;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | DistributionReceiver")
+		FString ExtUserId;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Entitlements | Models | DistributionReceiver")
+		FAccelByteModelsAttributes Attributes;
 };
 
 #pragma endregion EntitlementModelsField

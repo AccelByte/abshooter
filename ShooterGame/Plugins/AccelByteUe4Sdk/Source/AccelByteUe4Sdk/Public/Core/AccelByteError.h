@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include "Core/AccelByteReport.h"
+#include "Models/AccelByteUserModels.h"
 #include "AccelByteError.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE(FDHandler);
@@ -32,10 +33,17 @@ struct ACCELBYTEUE4SDK_API FErrorInfo
 
 namespace AccelByte
 {
-
+#if ENGINE_MINOR_VERSION > 25
+	template <typename T> using THandler = TDelegate<void(const T&)>;
+	using FVoidHandler = TDelegate<void()>;
+	using FErrorHandler = TDelegate<void(int32 /*ErrorCode*/, const FString& /* ErrorMessage */)>;
+	using FCustomErrorHandler = TDelegate<void(int32 /*ErrorCode*/, const FString& /* ErrorMessage */, const FJsonObject& /* MessageVariables */)>;
+#else
 	template <typename T> using THandler = TBaseDelegate<void, const T&>;
 	using FVoidHandler = TBaseDelegate<void>;
 	using FErrorHandler = TBaseDelegate<void, int32 /*ErrorCode*/, const FString& /* ErrorMessage */>;
+	using FCustomErrorHandler = TBaseDelegate<void, int32 /*ErrorCode*/, const FString& /* ErrorMessage */, const FJsonObject& /* MessageVariables */>;
+#endif
 
 	UENUM(BlueprintType)
 	enum class ErrorCodes : int32
@@ -108,6 +116,7 @@ namespace AccelByte
 		StatusNetworkAuthenticationRequired = 511, // Reference: RFC 6585, Section 6
 
 		UserEmailAlreadyUsedException = 10133,
+		UserDisplayNameAlreadyUsedException = 10180,
 
 		// Platform error
 		PlatformInternalServerErrorException = 20000,
@@ -276,24 +285,31 @@ namespace AccelByte
 		//
 		//Statistic Error Code List
 		//
-		StatisticConfigNotFoundException = 70131,
-		StatisticNotFoundException = 70331,
-		InvalidStatOperatorException = 70330,
-		StatNotDecreasableException = 70334,
-		UserStatsNotFoundException = 70335,
-		UserStatAlreadyExistException = 70336,
-		StatValueOutOfRangeException = 70337,
+		StatisticConfigNotFoundException = 12241,
+		StatisticNotFoundException = 12241,
+		InvalidStatOperatorException = 12221,
+		StatNotDecreasableException = 12273,
+		UserStatsNotFoundException = 12242,
+		UserStatAlreadyExistException = 12274,
+		StatValueOutOfRangeException = 12275,
 		//
 		//Leaderboard Error Code List
 		//
 		LeaderboardConfigAlreadyExist = 71132,
+		LeaderboardRankingNotFound = 71235,
 		//
 		//Client side Error Code List
 		//
 		UnknownError = 14000,
 		JsonDeserializationFailed = 14001,
+		InvalidRequest = 14003,
+		InvalidResponse = 14004,
 		NetworkError = 14005,
-		WebSocketConnectFailed = 14201
+		WebSocketConnectFailed = 14201,
+		//
+		//GameServer-side Error Code List
+		//
+		DsRegistrationConflict = 9014143
 	};
 
 
@@ -310,6 +326,84 @@ namespace AccelByte
 
 
 	ACCELBYTEUE4SDK_API void HandleHttpError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage);
+
+	inline void HandleHttpCustomError(FHttpRequestPtr Request, FHttpResponsePtr Response, int& OutCode, FString& OutMessage, FJsonObject& OutMessageVariables)
+	{
+		FErrorInfo Error;
+		Error.NumericErrorCode = -1;
+		Error.ErrorCode = -1;
+		int32 Code = 0;
+		OutMessage = "";
+		if (Response.IsValid())
+		{
+			if (FJsonObjectConverter::JsonObjectStringToUStruct(Response->GetContentAsString(), &Error, 0, 0))
+			{
+				if (Error.NumericErrorCode != -1)
+				{
+					Code = Error.NumericErrorCode;
+				}
+				else if (Error.ErrorCode != -1)
+				{
+					Code = Error.ErrorCode;
+				}
+				else
+				{
+					Code = Response->GetResponseCode();
+				}
+			}
+			else
+			{
+				Code = Response->GetResponseCode();
+			}
+		}
+		else
+		{
+			Code = (int32)ErrorCodes::NetworkError;
+		}
+
+		auto it = ErrorMessages::Default.find(Code);
+		if (it != ErrorMessages::Default.cend())
+		{
+			OutMessage += ErrorMessages::Default.at(Code);
+		}
+
+		if (!Error.ErrorMessage.IsEmpty())
+		{
+			OutMessage += " " + Error.ErrorMessage;
+		}
+
+		TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+		FJsonSerializer::Deserialize(Reader, JsonObject);
+		OutMessageVariables = *JsonObject.Get()->TryGetField("messageVariables")->AsObject();
+
+		// Debug message. Delete this code section for production
+#if UE_BUILD_DEBUG
+		if (Request.IsValid() && Response.IsValid())
+		{
+			OutMessage += "\n\nResponse";
+			OutMessage += "\nCode: " + FString::FromInt(Response->GetResponseCode());
+			OutMessage += "\nContent: \n" + Response->GetContentAsString();
+
+			OutMessage += " \n\nRequest";
+			OutMessage += "\nElapsed time (seconds): " + FString::SanitizeFloat(Request->GetElapsedTime());
+			OutMessage += "\nVerb: " + Request->GetVerb();
+			OutMessage += "\nURL: " + Request->GetURL();
+			OutMessage += "\nHeaders: \n";
+			for (auto a : Request->GetAllHeaders())
+			{
+				OutMessage += a + "\n";
+			}
+			OutMessage += "\nContent: \n";
+			for (auto a : Request->GetContent())
+			{
+				OutMessage += static_cast<char>(a);
+			}
+			OutMessage += "\n";
+		}
+#endif
+		OutCode = Code;
+	}
 
 	inline void HandleHttpResultOk(FHttpResponsePtr Response, const FVoidHandler& OnSuccess)
 	{
@@ -374,6 +468,30 @@ namespace AccelByte
 			FString Message;
 			HandleHttpError(Request, Response, Code, Message);
 			OnError.ExecuteIfBound(Code, Message);
+		});
+	}
+
+	template<typename T>
+	FHttpRequestCompleteDelegate CreateHttpResultHandler(const T& OnSuccess, const FCustomErrorHandler& OnError)
+	{
+		return FHttpRequestCompleteDelegate::CreateLambda(
+			[OnSuccess, OnError]
+		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
+		{
+			Report report;
+			report.GetHttpResponse(Request, Response);
+
+			if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+			{
+				HandleHttpResultOk(Response, OnSuccess);
+				return;
+			}
+
+			int32 Code;
+			FString Message;
+			FJsonObject MessageVariables;
+			HandleHttpCustomError(Request, Response, Code, Message, MessageVariables);
+			OnError.ExecuteIfBound(Code, Message, MessageVariables);
 		});
 	}
 

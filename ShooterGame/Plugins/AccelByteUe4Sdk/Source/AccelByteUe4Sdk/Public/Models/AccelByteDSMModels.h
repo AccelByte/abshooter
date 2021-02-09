@@ -72,6 +72,8 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchingParty
 	FString Party_id;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchingParty")
 	TArray<FAccelByteModelsUser> Party_members;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchingParty")
+	TMap<FString, FString> Party_attributes;
 };
 
 USTRUCT(BlueprintType)
@@ -80,22 +82,6 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchingAlly
 	GENERATED_BODY()
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchingAlly")
 	TArray<FAccelByteModelsMatchingParty> Matching_parties;
-};
-
-USTRUCT(BlueprintType)
-struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchmakingInfoNotif
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchmakingInfo")
-	FString Session_id;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchmakingInfo")
-	FString Namespace;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchmakingInfo")
-	FString Game_mode;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchmakingInfo")
-	TArray<FAccelByteModelsMatchingAlly> Matching_allies;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchmakingInfo")
-	FString Pod_name;
 };
 
 USTRUCT(BlueprintType)
@@ -113,16 +99,6 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchRequest
 };
 
 USTRUCT(BlueprintType)
-struct ACCELBYTEUE4SDK_API FAccelByteModelsDSMMessage
-{
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | Message")
-	FString Msg_type;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | Message")
-	FAccelByteModelsMatchmakingInfoNotif Message;
-};
-
-USTRUCT(BlueprintType)
 struct ACCELBYTEUE4SDK_API FAccelByteModelsDSMClient
 {
 	GENERATED_BODY()
@@ -130,6 +106,8 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsDSMClient
 		FString Host_address;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | Client")
 		FString Region;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | Client")
+		FString Provider;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | Client")
 		FString Status;
 };

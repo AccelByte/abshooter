@@ -102,7 +102,13 @@ void Oauth2::GetSessionIdWithDeviceGrant(const FString& ClientId, const FString&
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
-	FString DeviceId        = FGenericPlatformMisc::GetDeviceId();
+	const TArray<uint8> MacAddr = FPlatformMisc::GetMacAddress();
+	FString MacAddressString;
+	for (TArray<uint8>::TConstIterator it(MacAddr);it;++it)
+	{
+		MacAddressString += FString::Printf(TEXT("%02x"),*it);
+	}
+	FString DeviceId        = FMD5::HashAnsiString(*MacAddressString);
 	FString url;
 	url = FRegistry::Settings.IamServerUrl;
 	if (FRegistry::Settings.IamServerUrl.Contains("/iam"))
@@ -111,7 +117,7 @@ void Oauth2::GetSessionIdWithDeviceGrant(const FString& ClientId, const FString&
 	}
 
 	FString Authorization   = TEXT("Basic " + FBase64::Encode(ClientId + ":" + ClientSecret));
-	FString Url             = FString::Printf(TEXT("%s/v1/login/platforms/device"), *url);;
+	FString Url             = FString::Printf(TEXT("%s/v3/login/platforms/device"), *url);;
 	FString Verb            = TEXT("POST");
 	FString ContentType     = TEXT("application/x-www-form-urlencoded");
 	FString Accept          = TEXT("application/json");
@@ -141,7 +147,7 @@ void Oauth2::GetSessionIdWithPlatformGrant(const FString& ClientId, const FStrin
 	}
 
     FString Authorization   = TEXT("Basic " + FBase64::Encode(ClientId + ":" + ClientSecret));
-    FString Url             = FString::Printf(TEXT("%s/v1/login/platforms/%s"), *url, *PlatformId);
+    FString Url             = FString::Printf(TEXT("%s/v3/login/platforms/%s"), *url, *PlatformId);
     FString Verb            = TEXT("POST");
     FString ContentType     = TEXT("application/x-www-form-urlencoded");
     FString Accept          = TEXT("application/json");

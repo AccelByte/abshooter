@@ -76,9 +76,24 @@ FString UAccelByteBlueprintsSettings::GetLeaderboardServerUrl()
 	return FRegistry::Settings.LeaderboardServerUrl;
 }
 
+FString UAccelByteBlueprintsSettings::GetCloudSaveServerUrl()
+{
+	return FRegistry::Settings.CloudSaveServerUrl;
+}
+
 FString UAccelByteBlueprintsSettings::GetGameTelemetryServerUrl()
 {
 	return FRegistry::Settings.GameTelemetryServerUrl;
+}
+
+FString UAccelByteBlueprintsSettings::GetAchievementServerUrl()
+{
+	return FRegistry::Settings.AchievementServerUrl;
+}
+
+FString UAccelByteBlueprintsSettings::GetAppId()
+{
+	return FRegistry::Settings.AppId;
 }
 
 void UAccelByteBlueprintsSettings::SetClientId(const FString& ClientId)
@@ -146,7 +161,22 @@ void UAccelByteBlueprintsSettings::SetLeaderboardServerUrl(const FString& Leader
 	FRegistry::Settings.LeaderboardServerUrl = LeaderboardServerUrl;
 }
 
+void UAccelByteBlueprintsSettings::SetCloudSaveServerUrl(const FString& CloudSaveServerUrl)
+{
+	FRegistry::Settings.CloudSaveServerUrl = CloudSaveServerUrl;
+}
+
 void UAccelByteBlueprintsSettings::SetGameTelemetryServerUrl(const FString& GameTelemetryServerUrl)
 {
 	FRegistry::Settings.GameTelemetryServerUrl = GameTelemetryServerUrl;
+}
+
+void UAccelByteBlueprintsSettings::SetAchievementServerUrl(const FString& AchievementServerUrl)
+{
+	FRegistry::Settings.AchievementServerUrl = AchievementServerUrl;
+}
+
+void UAccelByteBlueprintsSettings::SetAppId(const FString& AppId)
+{
+	FRegistry::Settings.AppId = AppId;
 }

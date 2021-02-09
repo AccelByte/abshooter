@@ -6,6 +6,7 @@
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
 #include "CoreUObject.h"
+#include "Api/AccelByteGameTelemetryApi.h"
 #include "Runtime/Core/Public/Containers/Ticker.h"
 
 #if WITH_EDITOR
@@ -13,6 +14,15 @@
 #include "ISettingsSection.h"
 #endif
 
+FString GetDefaultServerUrl(const FString& SpecificServerUrl, const FString& DefaultServerPath)
+{
+	if (SpecificServerUrl.IsEmpty()) 
+	{
+		return FString::Printf(TEXT("%s/%s"), *FRegistry::Settings.BaseUrl, *DefaultServerPath);
+	}
+
+	return SpecificServerUrl;
+}
 
 class FAccelByteUe4SdkModule : public IAccelByteUe4SdkModuleInterface
 {
@@ -25,6 +35,7 @@ class FAccelByteUe4SdkModule : public IAccelByteUe4SdkModuleInterface
 
 	bool LoadSettingsFromConfigUobject();
 	bool LoadServerSettingsFromConfigUobject();
+	void NullCheckConfig(FString value, FString configField);
 };
 
 void FAccelByteUe4SdkModule::StartupModule()
@@ -32,29 +43,17 @@ void FAccelByteUe4SdkModule::StartupModule()
 	RegisterSettings();
 	LoadSettingsFromConfigUobject();
 	LoadServerSettingsFromConfigUobject();
-	FTicker& Ticker = FTicker::GetCoreTicker();
 
-	Ticker.AddTicker(
-		FTickerDelegate::CreateLambda([](float DeltaTime)
-		{
-			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
-
-			return true;
-		}),
-		0.2f);
-
-	Ticker.AddTicker(
-		FTickerDelegate::CreateLambda([](float DeltaTime)
-		{
-			FRegistry::Credentials.PollRefreshToken(FPlatformTime::Seconds());
-
-			return true;
-		}),
-		0.2f);
+	FRegistry::HttpRetryScheduler.Startup();
+	FRegistry::Credentials.Startup();
+	FRegistry::GameTelemetry.Startup();
 }
 
 void FAccelByteUe4SdkModule::ShutdownModule()
 {
+	FRegistry::GameTelemetry.Shutdown();
+	FRegistry::Credentials.Shutdown();
+	FRegistry::HttpRetryScheduler.Shutdown();
 	UnregisterSettings();
 }
 
@@ -105,6 +104,7 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.PublisherNamespace = GetDefault<UAccelByteSettings>()->PublisherNamespace;
 	FRegistry::Settings.RedirectURI = GetDefault<UAccelByteSettings>()->RedirectURI;
 	FRegistry::Settings.BaseUrl = GetDefault<UAccelByteSettings>()->BaseUrl;
+	FRegistry::Settings.NonApiBaseUrl = GetDefault<UAccelByteSettings>()->NonApiBaseUrl;
 	FRegistry::Settings.IamServerUrl = GetDefault<UAccelByteSettings>()->IamServerUrl;
 	FRegistry::Settings.PlatformServerUrl = GetDefault<UAccelByteSettings>()->PlatformServerUrl;
 	FRegistry::Settings.LobbyServerUrl = GetDefault<UAccelByteSettings>()->LobbyServerUrl;
@@ -115,6 +115,14 @@ bool FAccelByteUe4SdkModule::LoadSettingsFromConfigUobject()
 	FRegistry::Settings.QosManagerServerUrl = GetDefault<UAccelByteSettings>()->QosManagerServerUrl;
 	FRegistry::Settings.LeaderboardServerUrl = GetDefault<UAccelByteSettings>()->LeaderboardServerUrl;
 	FRegistry::Settings.GameTelemetryServerUrl = GetDefault<UAccelByteSettings>()->GameTelemetryServerUrl;
+	FRegistry::Settings.AgreementServerUrl = GetDefaultServerUrl(GetDefault<UAccelByteSettings>()->AgreementServerUrl, TEXT("agreement"));
+	FRegistry::Settings.CloudSaveServerUrl = GetDefault<UAccelByteSettings>()->CloudSaveServerUrl;
+	FRegistry::Settings.AchievementServerUrl = GetDefault<UAccelByteSettings>()->AchievementServerUrl;
+	FRegistry::Settings.AppId = GetDefault<UAccelByteSettings>()->AppId;
+	NullCheckConfig(*FRegistry::Settings.ClientId, "Client ID");
+	NullCheckConfig(*FRegistry::Settings.Namespace, "Namespace");
+	NullCheckConfig(*FRegistry::Settings.BaseUrl, "Base URL");
+	NullCheckConfig(*FRegistry::Settings.NonApiBaseUrl, "Non-API Base URL");
 	FRegistry::Credentials.SetClientCredentials(FRegistry::Settings.ClientId, FRegistry::Settings.ClientSecret);
 	
 	return true;
@@ -133,11 +141,22 @@ bool FAccelByteUe4SdkModule::LoadServerSettingsFromConfigUobject()
 	FRegistry::ServerSettings.StatisticServerUrl = GetDefault<UAccelByteServerSettings>()->StatisticServerUrl;
 	FRegistry::ServerSettings.PlatformServerUrl = GetDefault<UAccelByteServerSettings>()->PlatformServerUrl;
 	FRegistry::ServerSettings.QosManagerServerUrl = GetDefault<UAccelByteServerSettings>()->QosManagerServerUrl;
-	FRegistry::ServerSettings.LeaderboardServerUrl = GetDefault<UAccelByteSettings>()->LeaderboardServerUrl;
 	FRegistry::ServerSettings.GameTelemetryServerUrl = GetDefault<UAccelByteServerSettings>()->GameTelemetryServerUrl;
+	FRegistry::ServerSettings.AchievementServerUrl = GetDefault<UAccelByteServerSettings>()->AchievementServerUrl;
 	FRegistry::ServerCredentials.SetClientCredentials(FRegistry::ServerSettings.ClientId, FRegistry::ServerSettings.ClientSecret);
+
+	NullCheckConfig(*FRegistry::ServerSettings.ClientId, "Client ID");
+	NullCheckConfig(*FRegistry::ServerSettings.ClientSecret, "Client Secret");
 #endif
 	return true;
+}
+
+void FAccelByteUe4SdkModule::NullCheckConfig(FString value, FString configField)
+{
+	if (value.IsEmpty())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("\"%s\" is not configured yet.\nCheck DefaultEngine.ini or Edit/ProjectSettings/Plugins/"), *configField);
+	}
 }
 
 IMPLEMENT_MODULE(FAccelByteUe4SdkModule, AccelByteUe4Sdk)

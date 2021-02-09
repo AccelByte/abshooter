@@ -56,14 +56,14 @@ FString UAccelByteBlueprintsServerSettings::GetQosManagerServerUrl()
 	return FRegistry::ServerSettings.QosManagerServerUrl;
 }
 
-FString UAccelByteBlueprintsServerSettings::GetLeaderboardServerUrl()
-{
-	return FRegistry::ServerSettings.LeaderboardServerUrl;
-}
-
 FString UAccelByteBlueprintsServerSettings::GetGameTelemetryServerUrl()
 {
 	return FRegistry::ServerSettings.GameTelemetryServerUrl;
+}
+
+FString UAccelByteBlueprintsServerSettings::GetAchievementServerUrl()
+{
+	return FRegistry::ServerSettings.AchievementServerUrl;
 }
 
 void UAccelByteBlueprintsServerSettings::SetClientId(const FString& ClientId)
@@ -111,12 +111,12 @@ void UAccelByteBlueprintsServerSettings::SetQosManagerServerUrl(const FString& Q
 	FRegistry::ServerSettings.QosManagerServerUrl = QosManagerServerUrl;
 }
 
-void UAccelByteBlueprintsServerSettings::SetLeaderboardServerUrl(const FString& LeaderboardServerUrl)
-{
-	FRegistry::ServerSettings.LeaderboardServerUrl = LeaderboardServerUrl;
-}
-
 void UAccelByteBlueprintsServerSettings::SetGameTelemetryServerUrl(const FString& GameTelemetryServerUrl)
 {
 	FRegistry::ServerSettings.GameTelemetryServerUrl = GameTelemetryServerUrl;
+}
+
+void UAccelByteBlueprintsServerSettings::SetAchievementServerUrl(const FString& AchievementServerUrl)
+{
+	FRegistry::ServerSettings.AchievementServerUrl = AchievementServerUrl;
 }

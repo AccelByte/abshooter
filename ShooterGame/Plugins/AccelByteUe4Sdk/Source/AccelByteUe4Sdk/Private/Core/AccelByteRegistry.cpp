@@ -18,13 +18,17 @@
 #include "Api/AccelByteQosManagerApi.h"
 #include "Api/AccelByteQos.h"
 #include "Api/AccelByteLeaderboardApi.h"
+#include "Api/AccelByteCloudSaveApi.h"
 #include "Api/AccelByteGameTelemetryApi.h"
+#include "Api/AccelByteAgreementApi.h"
+#include "Api/AccelByteAchievementApi.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerStatisticApi.h"
 #include "GameServerApi/AccelByteServerEcommerceApi.h"
 #include "GameServerApi/AccelByteServerQosManagerApi.h"
 #include "GameServerApi/AccelByteServerGameTelemetryApi.h"
+#include "GameServerApi/AccelByteServerAchievementApi.h"
 
 using namespace AccelByte;
 using namespace AccelByte::Api;
@@ -46,12 +50,16 @@ Api::Lobby FRegistry::Lobby(FRegistry::Credentials, FRegistry::Settings);
 Api::GameProfile FRegistry::GameProfile(FRegistry::Credentials, FRegistry::Settings);
 Api::Statistic FRegistry::Statistic(FRegistry::Credentials, FRegistry::Settings);
 Api::QosManager FRegistry::QosManager(FRegistry::Credentials, FRegistry::Settings);
+Api::CloudSave FRegistry::CloudSave(FRegistry::Credentials, FRegistry::Settings);
 Api::Qos FRegistry::Qos;
 Api::Leaderboard FRegistry::Leaderboard(FRegistry::Credentials, FRegistry::Settings);
 Api::GameTelemetry FRegistry::GameTelemetry(FRegistry::Credentials, FRegistry::Settings);
+Api::Agreement FRegistry::Agreement(FRegistry::Credentials, FRegistry::Settings);
+Api::Achievement FRegistry::Achievement(FRegistry::Credentials, FRegistry::Settings);
 GameServerApi::ServerOauth2 FRegistry::ServerOauth2(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerDSM FRegistry::ServerDSM(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerStatistic FRegistry::ServerStatistic(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerEcommerce FRegistry::ServerEcommerce(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerQosManager FRegistry::ServerQosManager(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerGameTelemetry FRegistry::ServerGameTelemetry(FRegistry::ServerCredentials, FRegistry::ServerSettings);
+GameServerApi::ServerAchievement FRegistry::ServerAchievement(FRegistry::ServerCredentials, FRegistry::ServerSettings);

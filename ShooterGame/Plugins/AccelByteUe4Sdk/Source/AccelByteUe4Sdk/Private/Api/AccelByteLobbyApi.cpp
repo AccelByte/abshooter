@@ -28,6 +28,8 @@ namespace Api
 		// Chat
 		const FString PersonalChat = TEXT("personalChatRequest");
 		const FString PartyChat = TEXT("partyChatRequest");
+		const FString JoinChannelChat = TEXT("joinDefaultChannelRequest");
+		const FString ChannelChat = TEXT("sendChannelChatRequest");
 
 		// Presence
 		const FString SetPresence = TEXT("setUserStatusRequest");
@@ -77,6 +79,9 @@ namespace Api
 		const FString PersonalChatNotif = TEXT("personalChatNotif");
 		const FString PartyChat = TEXT("partyChatResponse");
 		const FString PartyChatNotif = TEXT("partyChatNotif");
+		const FString JoinChannelChat = TEXT("joinDefaultChannelResponse");
+		const FString ChannelChat = TEXT("sendChannelChatResponse");
+		const FString ChannelChatNotif = TEXT("channelChatNotif");
 
 		// Presence
 		const FString SetUserPresence = TEXT("setUserStatusResponse");
@@ -165,6 +170,7 @@ void Lobby::Disconnect()
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
+	ChannelSlug = "";
 	if (LobbyTickDelegateHandle.IsValid())
 	{
 		FTicker::GetCoreTicker().RemoveTicker(LobbyTickDelegateHandle);
@@ -223,6 +229,36 @@ FString Lobby::SendPartyMessage(const FString& Message)
 
 	return SendRawRequest(LobbyRequest::PartyChat, Prefix::Chat,
 		FString::Printf(TEXT("payload: %s\n"), *Message));
+}
+
+FString Lobby::SendJoinDefaultChannelChatRequest()
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	return SendRawRequest(LobbyRequest::JoinChannelChat, Prefix::Chat);
+}
+
+FString Lobby::SendChannelMessage(const FString& Message)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	if (!ChannelSlug.IsEmpty())
+	{
+		return SendRawRequest(LobbyRequest::ChannelChat, Prefix::Chat,
+			FString::Printf(TEXT("channelSlug: %s\npayload: %s\n"), *ChannelSlug, *Message));
+	}
+	else
+	{
+		FAccelByteModelsChannelMessageResponse ErrorResult
+		{
+			(int)ErrorCodes::InvalidRequest,
+			"You're not in any chat channel."
+		};
+		ChannelChatResponse.ExecuteIfBound(ErrorResult);
+		return "";
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -318,7 +354,7 @@ void Lobby::GetAllAsyncNotification()
 //-------------------------------------------------------------------------------------------------
 // Matchmaking
 //-------------------------------------------------------------------------------------------------
-FString Lobby::SendStartMatchmaking(FString GameMode, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies)
+FString Lobby::SendStartMatchmaking(FString GameMode, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies, TMap<FString, FString> PartyAttributes)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -345,6 +381,30 @@ FString Lobby::SendStartMatchmaking(FString GameMode, FString ServerName, FStrin
 		}
 		ServerLatencies.Append(TEXT("}"));
 		Contents.Append(FString::Printf(TEXT("latencies: %s\n"), *ServerLatencies));
+	}
+
+	if (PartyAttributes.Num() > 0)
+	{
+		FString partyAttributeSerialized = "";
+		TArray<FString> keys;
+		PartyAttributes.GetKeys(keys);
+		for (int i = 0 ; i < keys.Num() ; i++)
+		{
+			FString key = keys[i];
+			FString value = PartyAttributes[keys[i]];
+			key.ReplaceCharWithEscapedChar();
+			value.ReplaceCharWithEscapedChar();
+			
+			//Convert to this format [ "key":"value" ]
+			partyAttributeSerialized.Append(FString::Printf(TEXT("\"%s\":\"%s\""), *key, *value));
+
+			//If there's more attribute, append a delimiter
+			if (i < keys.Num() - 1)
+			{
+				partyAttributeSerialized.Append(", ");
+			}
+		}
+		Contents.Append(FString::Printf(TEXT("partyAttributes: {%s}"), *partyAttributeSerialized));
 	}
 
 	return SendRawRequest(LobbyRequest::StartMatchmaking, Prefix::Matchmaking,
@@ -500,6 +560,7 @@ void Lobby::UnbindEvent()
 	DsNotif.Unbind();
 	AcceptFriendsNotif.Unbind();
 	RequestFriendsNotif.Unbind();
+	ChannelChatNotif.Unbind();
 }
 
 void Lobby::OnConnected()
@@ -569,6 +630,7 @@ bool Lobby::Tick(float DeltaTime)
 		}
 		else if (WebSocket->IsConnected() || (WsEvents & EWebSocketEvent::Connected) != EWebSocketEvent::None)
 		{
+			ChannelSlug = "";
 			TimeSinceLastPing = FPlatformTime::Seconds();
 			WsState = EWebSocketState::Connected;
 		}
@@ -656,29 +718,94 @@ FString Lobby::LobbyMessageToJson(FString Message)
 	for (int i = 0; i < Out.Num(); i++)
 	{
 		FString CurrentLine = Out[i];
-		if (CurrentLine.Contains("["))
+
+		FString Key;
+		FString Value;
+
+		CurrentLine.Split(": ", &Key, &Value);
+		Json += FString::Printf(TEXT("\"%s\":"), *Key);
+		Value.TrimStartAndEndInline();
+
+		if (Value.StartsWith("["))
 		{
-			Json += "\"";
-			CurrentLine.ReplaceInline(TEXT(": "), TEXT("\":"));
-			if (!CurrentLine.Contains("[]"))
+			if (Value.Equals("[]"))
 			{
-				CurrentLine.ReplaceInline(TEXT("["), TEXT("[\""));
-				CurrentLine.ReplaceInline(TEXT(",]"), TEXT("\"]"));
-				CurrentLine.ReplaceInline(TEXT(","), TEXT("\",\""));
+				Json += Value;
 			}
-			Json += CurrentLine;
+			else
+			{
+				bool Quote = false;
+				bool ElementStart = false;
+				FString Element;
+				Json += "[";
+				for (int j = 1; j < Value.Len() - 1; j++)
+				{
+					if (!ElementStart)
+					{
+						if (Value[j] == ' ') 
+						{
+							continue;
+						}
+
+						ElementStart = true;
+						Element.AppendChar('"');
+						if (Value[j] == '"')
+						{
+							Quote = true;
+							continue;
+						}
+					}
+
+					if (!Quote && Value[j] == ',')
+					{
+						ElementStart = false;
+						Element.TrimEndInline();
+						Json += Element;
+
+						if (!Element.EndsWith("\""))
+						{
+							Json.AppendChar('"');
+						}
+						Element = "";
+
+						if (j == Value.Len() - 2) 
+						{
+							break;
+						}
+					}
+
+					Element.AppendChar(Value[j]);
+
+					if (Quote && Value[j] == '\\')
+					{
+						Element.AppendChar(Value[++j]);
+					}
+					else if (Value[j] == '"')
+					{
+						Quote = false;
+					}
+				}
+
+				if (!Element.IsEmpty())
+				{
+					Json += Element;
+					if (!Element.EndsWith("\""))
+					{
+						Json.AppendChar('"');
+					}
+				}
+				Json += "]";
+			}
+		}
+		else if (Value.StartsWith("{"))
+		{
+			Json += Value;
 		}
 		else
 		{
-			Json += "\"";
-			FString Left;
-			FString Right;
-			CurrentLine.Split(": ", &Left, &Right);
-			Json += Left;
-			Json += "\":\"";
-			Json += Right;
-			Json += "\"";
+			Json += FString::Printf(TEXT("\"%s\""), *Value);
 		}
+
 		if (i < Out.Num() - 1)
 		{
 			Json += ",";
@@ -701,7 +828,7 @@ void Lobby::OnMessage(const FString& Message)
 		return;
 	}
 	FString lobbyResponseType = JsonParsed->GetStringField("type");
-	int lobbyResponseCode;
+	int lobbyResponseCode = 0;
 	if (lobbyResponseType.Contains("Response"))
 		lobbyResponseCode = JsonParsed->GetIntegerField("code");
 	UE_LOG(LogTemp, Display, TEXT("Type: %s"), *lobbyResponseType);
@@ -744,6 +871,19 @@ return; \
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PersonalChatNotif, FAccelByteModelsPersonalMessageNotice, PersonalChatNotif);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PartyChat, FAccelByteModelsPartyMessageResponse, PartyChatResponse);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PartyChatNotif, FAccelByteModelsPartyMessageNotice, PartyChatNotif);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::ChannelChat, FAccelByteModelsChannelMessageResponse, ChannelChatResponse);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::ChannelChatNotif, FAccelByteModelsChannelMessageNotice, ChannelChatNotif);
+	if (lobbyResponseType.Equals(LobbyResponse::JoinChannelChat))
+	{
+		FAccelByteModelsJoinDefaultChannelResponse Result;
+		bool bParseSuccess = FJsonObjectConverter::JsonObjectStringToUStruct(ParsedJson, &Result, 0, 0);
+		if (bParseSuccess)
+		{
+			ChannelSlug = Result.ChannelSlug;
+			JoinDefaultChannelResponse.ExecuteIfBound(Result);
+			return;
+		}
+	}
 
 	// Presence
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::SetUserPresence, FAccelByteModelsSetOnlineUsersResponse, SetUserPresenceResponse);
@@ -790,8 +930,9 @@ return; \
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::RequestFriendsNotif, FAccelByteModelsRequestFriendsNotif, RequestFriendsNotif);
 
 #undef HANDLE_LOBBY_MESSAGE
+#ifdef DEBUG_LOBBY_MESSAGE
 	ParsingError.ExecuteIfBound(-1, FString::Printf(TEXT("Warning: Unhandled message %s, Raw: %s"), *lobbyResponseType, *ParsedJson));
-
+#endif
 }
 
 Lobby::Lobby(const AccelByte::Credentials& Credentials, const AccelByte::Settings& Settings, float PingDelay, float InitialBackoffDelay, float MaxBackoffDelay, float TotalTimeout, TSharedPtr<IWebSocket> WebSocket)
@@ -815,7 +956,11 @@ Lobby::Lobby(const AccelByte::Credentials& Credentials, const AccelByte::Setting
 
 Lobby::~Lobby()
 {
-	Disconnect();
+	// only disconnect when engine is still valid
+	if(UObjectInitialized())
+	{
+		Disconnect();
+	}
 }
 
 } // Namespace Api
