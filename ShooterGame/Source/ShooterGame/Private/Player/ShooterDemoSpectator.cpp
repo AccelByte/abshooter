@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "Player/ShooterDemoSpectator.h"
+#include "ShooterGame.h"
 #include "UI/Menu/ShooterDemoPlaybackMenu.h"
 #include "UI/Widgets/SShooterDemoHUD.h"
 #include "Engine/DemoNetDriver.h"
@@ -47,7 +47,7 @@ void AShooterDemoSpectator::SetPlayer( UPlayer* InPlayer )
 	FActorSpawnParameters SpawnInfo;
 
 	SpawnInfo.Owner				= this;
-	SpawnInfo.Instigator		= Instigator;
+    SpawnInfo.Instigator = GetInstigator();
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	PlaybackSpeed = 2;

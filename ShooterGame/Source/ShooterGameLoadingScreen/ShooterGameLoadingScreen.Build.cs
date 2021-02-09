@@ -1,6 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 // This module must be loaded "PreLoadingScreen" in the .uproject file, otherwise it will not hook in time!
 
@@ -25,6 +26,6 @@ public class ShooterGameLoadingScreen : ModuleRules
 
 		// Accelbyte SDK
 		PublicDependencyModuleNames.AddRange(new string[] { "AccelByteUe4Sdk", });
-		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
+		PublicIncludePaths.AddRange(new string[] { Path.Combine(ModuleDirectory, "AccelByteUe4Sdk/Public"), });
 	}
 }

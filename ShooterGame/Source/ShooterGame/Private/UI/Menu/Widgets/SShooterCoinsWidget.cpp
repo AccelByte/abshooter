@@ -1,5 +1,5 @@
-#include "ShooterGame.h"
 #include "SShooterCoinsWidget.h"
+#include "ShooterGame.h"
 #include "ShooterStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
 #include "Runtime/ImageWrapper/Public/IImageWrapperModule.h"

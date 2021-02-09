@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "Pickups/ShooterPickup_Ammo.h"
+#include "ShooterGame.h"
 #include "Weapons/ShooterWeapon.h"
 
 AShooterPickup_Ammo::AShooterPickup_Ammo(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)

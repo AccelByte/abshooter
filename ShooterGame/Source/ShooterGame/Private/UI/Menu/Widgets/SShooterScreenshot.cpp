@@ -2,8 +2,8 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "ShooterGame.h"
 #include "SShooterScreenshot.h"
+#include "ShooterGame.h"
 #include "SShooterScreenshotPreview.h"
 #include "SShooterScreenshotEdit.h"
 #include "SShooterScreenshotResolver.h"
@@ -16,9 +16,9 @@
 #include "ShooterGameViewportClient.h"
 #include "ShooterGameInstance.h"
 #include "SShooterConfirmationDialog.h"
-#include "AccelByteOrderApi.h"
-#include "AccelByteItemApi.h"
-#include "AccelByteError.h"
+#include "Api/AccelByteOrderApi.h"
+#include "Api/AccelByteItemApi.h"
+#include "Core/AccelByteError.h"
 #include "Api/AccelByteCloudStorageApi.h"
 #include "Core/AccelByteRegistry.h"
 #include "Runtime/Slate/Public/Widgets/Layout/SScaleBox.h"
@@ -30,7 +30,7 @@
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
-const FString STATUS_PENDING = "Pending";
+const FString STATUS_PENDING_CONST_STRING = "Pending";
 
 FSlateColorBrush GreyBackgroundBrush = FSlateColorBrush(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 FSlateColorBrush BlackBackgroundBrush = FSlateColorBrush(FLinearColor(0, 0, 0, 0.5f));
@@ -72,7 +72,7 @@ TSharedPtr<TImagePixelData<FColor>> FSlateBrushToPixelData(const FSlateBrush* Br
 
 	FIntPoint Size = FIntPoint(Width, Height);
 	TSharedPtr<TImagePixelData<FColor>> PixelData = MakeShared<TImagePixelData<FColor>>(Size);
-	TArray<FColor>& Color = PixelData->Pixels;
+	TArray64<FColor>& Color = PixelData->Pixels;
 	Color.SetNum(Width * Height);
 
 	uint8* MipData = static_cast<uint8*>(Texture2D->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_ONLY));
@@ -129,20 +129,23 @@ FString GetBase64Thumbnail(TSharedPtr<TImagePixelData<FColor>> PixelData, EImage
 		ERGBFormat PixelLayout = PixelData->GetPixelLayout();
 
 		if (ImageWrapper->SetRaw(ResizedImage.GetData(), SizeBytes, NewWidth, NewHeight, PixelLayout, BitDepth))
-		{
-			TArray<uint8> Array = ImageWrapper->GetCompressed();
-			return FBase64::Encode(Array);
+		{            
+            
+			//TArray64<uint8> Array = ImageWrapper->GetCompressed();
+            TArray<uint8> Array32;
+            ImageWrapper->GetRaw(ERGBFormat::RGBA, 8, Array32);
+			return FBase64::Encode(Array32);
 		}
 	}
 	return "";
 }
 
-TArray<uint8> GetCompressedImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
+TArray64<uint8> GetCompressedImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
 {
 	IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
 	if (!ensure(ImageWrapperModule))
 	{
-		return TArray<uint8>();
+		return TArray64<uint8>();
 	}
 
 	const void* RawPtr = nullptr;
@@ -165,16 +168,16 @@ TArray<uint8> GetCompressedImage(TSharedPtr<TImagePixelData<FColor>> PixelData, 
 		}
 	}
 
-	return TArray<uint8>();
+	return TArray64<uint8>();
 }
 
-TArray<uint8> GetCompressedAndScaledImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
+TArray64<uint8> GetCompressedAndScaledImage(TSharedPtr<TImagePixelData<FColor>> PixelData, EImageFormat InFormat)
 {
-	IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
-	if (!ensure(ImageWrapperModule))
-	{
-		return TArray<uint8>();
-	}
+    IImageWrapperModule* ImageWrapperModule = FModuleManager::GetModulePtr<IImageWrapperModule>("ImageWrapper");
+    if (!ensure(ImageWrapperModule))
+    {
+        return TArray64<uint8>();
+    }
 
 	const void* RawPtr = nullptr;
 	int32 SizeBytes = 0;
@@ -197,13 +200,13 @@ TArray<uint8> GetCompressedAndScaledImage(TSharedPtr<TImagePixelData<FColor>> Pi
 		uint8      BitDepth = PixelData->GetBitDepth();
 		ERGBFormat PixelLayout = PixelData->GetPixelLayout();
 
-		if (ImageWrapper->SetRaw(ResizedImage.GetData(), SizeBytes, NewWidth, NewHeight, PixelLayout, BitDepth))
-		{
-			return ImageWrapper->GetCompressed();
-		}
-	}
+        if (ImageWrapper->SetRaw(ResizedImage.GetData(), SizeBytes, NewWidth, NewHeight, PixelLayout, BitDepth))
+        {            
+            return ImageWrapper->GetCompressed();
+        }
+    }
 
-	return TArray<uint8>();
+    return TArray64<uint8>();
 }
 
 static FString MD5HashArray(const TArray<uint8>& Array)
@@ -742,7 +745,7 @@ public:
 			return &GalleryStyle->CloudDownload;
 		case UPLOADING:
 			return &GalleryStyle->CloudUpload;
-		case ERROR:
+		case ERROR_UNKNOWN:
 		case ERROR_UPLOAD:
 			return &GalleryStyle->CloudOff;
 		case CONFLICT:
@@ -1093,7 +1096,7 @@ void SShooterScreenshot::LoadScreenshotMetadata()
 	LocalSlots = ScreenshotSave.Screenshots;
 }
 
-void SShooterScreenshot::SaveLocalScreenshotImage(int32 Index, const TArray<uint8>& Binary)
+void SShooterScreenshot::SaveLocalScreenshotImage(int32 Index, const TArray64<uint8>& Binary)
 {
 	FString ScreenshotsDir = GetUserScreenshotsDir();
 
@@ -1107,7 +1110,7 @@ void SShooterScreenshot::SaveLocalScreenshotImage(int32 Index, const TArray<uint
 	FFileHelper::SaveArrayToFile(Binary, *ImageName);
 }
 
-void SShooterScreenshot::SaveScreenshotCloudImage(int32 Index, const TArray<uint8>& Binary)
+void SShooterScreenshot::SaveScreenshotCloudImage(int32 Index, const TArray64<uint8>& Binary)
 {
 	FString ScreenshotsDir = GetUserScreenshotsDir();
 
@@ -1155,7 +1158,7 @@ void SShooterScreenshot::ResolveUseLocalScreenshot(int32 Index)
 	PlatformFile.DeleteFile(*CloudImageName);
 }
 
-bool SShooterScreenshot::LoadScreenshotImage(int32 Index, TArray<uint8>& Result)
+bool SShooterScreenshot::LoadScreenshotImage(int32 Index, TArray64<uint8>& Result)
 {
 	FString ScreenshotsDir = GetUserScreenshotsDir();
 
@@ -1186,14 +1189,16 @@ void SShooterScreenshot::DeleteScreenshotImage(int32 Index)
 
 void SShooterScreenshot::SaveToCloud(int32 Index)
 {
-	TArray<uint8> ImageData;
-	LoadScreenshotImage(Index, ImageData);
+	TArray64<uint8> ImageData64;
+	LoadScreenshotImage(Index, ImageData64);
+
+    TArray<uint8> ImageData(MoveTemp(ImageData64));
 
 	FString Label = SavedScreenshotList[Index]->Title;
 	TArray<FString> Tags = { FString::Printf(TEXT("SlotIndex=%d"), Index) };
 	FString SlotId = LocalSlots[Index].SlotId;
 
-	LocalSlots[Index].Status_DEPRECATED = STATUS_PENDING;
+	LocalSlots[Index].Status_DEPRECATED = STATUS_PENDING_CONST_STRING;
 	LocalSlots[Index].Checksum = MD5HashArray(ImageData);
 
 	SaveScreenshotMetadata();
@@ -1446,18 +1451,16 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString Cont
 		Width = ImageWrapper->GetWidth();
 		Height = ImageWrapper->GetHeight();
 
-		const TArray<uint8>* RawData = NULL;
+        TArray<uint8> RawData;
 
-		if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
-		{
-			DecodedImage = *RawData;
-			bSucceeded = true;
-		}
-	}
-	if (bSucceeded && FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(), DecodedImage))
-	{
-		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
-	}
+        if (ImageWrapper->GetRaw(RgbFormat, BitDepth, RawData))
+        {
+            DecodedImage = RawData;
+            bSucceeded = true;
+        }
+    }
+
+    // This parameter required TArray
 
 	return Brush;
 }
@@ -1466,7 +1469,10 @@ void SShooterScreenshot::LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 
 {
 	SavedScreenshotList[SlotIndex]->State = DOWNLOADING;
 	auto OnSuccess = AccelByte::THandler<TArray<uint8>>::CreateLambda([&, Slot, SlotIndex](const TArray<uint8>& Result) {
-		OnReceiveSlotImage(Result, Slot, SlotIndex);
+        
+        // do not use MoveTemp if source is Const &
+        TArray64<uint8> Result64(Result);
+		OnReceiveSlotImage(Result64, Slot, SlotIndex);
 	});
 	FRegistry::CloudStorage.GetSlot(Slot.SlotId, OnSuccess,
 		AccelByte::FErrorHandler::CreateLambda([&](int32 ErrorCode, FString ErrorString) {
@@ -1474,17 +1480,20 @@ void SShooterScreenshot::LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 
 	}));
 }
 
-void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const FAccelByteModelsSlot& Slot, int32 SlotIndex)
+void SShooterScreenshot::OnReceiveSlotImage(const TArray64<uint8>& Result64, const FAccelByteModelsSlot& Slot, int32 SlotIndex)
 {
-	UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
+    UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Load slot %d success, updating brush"), SlotIndex);
+
+
+    TArray<uint8> Result(Result64);
 	auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
 
 	// If the specified index doesn't exist, abort the operation.
 	if (SlotIndex >= LocalSlots.Num()) { return; }
 
-	if (LocalSlots[SlotIndex].Status_DEPRECATED == STATUS_PENDING)
+	if (LocalSlots[SlotIndex].Status_DEPRECATED == STATUS_PENDING_CONST_STRING)
 	{
-		SaveScreenshotCloudImage(SlotIndex, Result);
+		SaveScreenshotCloudImage(SlotIndex, Result64);
 		ConflictImages.Add(SlotIndex, ImageBrush);
 		SavedScreenshotList[SlotIndex]->State = CONFLICT;
 		return;
@@ -1496,18 +1505,19 @@ void SShooterScreenshot::OnReceiveSlotImage(const TArray<uint8>& Result, const F
 	SavedScreenshotList[SlotIndex]->SlotID = Slot.SlotId;
 	SavedScreenshotList[SlotIndex]->Checksum = Slot.Checksum;
 
-	TArray<uint8> Image;
-	if (LoadScreenshotImage(SlotIndex, Image))
+	TArray64<uint8> Image64;
+	if (LoadScreenshotImage(SlotIndex, Image64))
 	{
+        TArray<uint8> Image(MoveTemp(Image64));
 		FString Checksum = MD5HashArray(Image);
 		if (Checksum != Slot.Checksum)
 		{
-			SaveLocalScreenshotImage(SlotIndex, Result);
+			SaveLocalScreenshotImage(SlotIndex, Result64);
 		}
 	}
 	else
 	{
-		SaveLocalScreenshotImage(SlotIndex, Result);
+		SaveLocalScreenshotImage(SlotIndex, Result64);
 	}
 }
 
@@ -1568,10 +1578,11 @@ void SShooterScreenshot::OnResolveSlot(int32 Index)
 			}
 			else if (Result == RESULT_LOCAL)
 			{
-				TArray<uint8> ImageData;
-				LoadScreenshotImage(Index, ImageData);
+				TArray64<uint8> ImageData64;
+				LoadScreenshotImage(Index, ImageData64);
+                TArray<uint8> ImageData(MoveTemp(ImageData64));
 
-				LocalSlots[Index].Status_DEPRECATED = STATUS_PENDING;
+				LocalSlots[Index].Status_DEPRECATED = STATUS_PENDING_CONST_STRING;
 				LocalSlots[Index].Checksum = MD5HashArray(ImageData);
 
 				SaveScreenshotMetadata();
@@ -1590,7 +1601,7 @@ void SShooterScreenshot::RemoveErrorSlots()
 	// Cleanup pending local slot
 	for (auto& slot : LocalSlots)
 	{
-		if (slot.Status_DEPRECATED == STATUS_PENDING)
+		if (slot.Status_DEPRECATED == STATUS_PENDING_CONST_STRING)
 		{
 			slot = FAccelByteModelsSlot();
 		}
@@ -1601,7 +1612,7 @@ void SShooterScreenshot::RemoveErrorSlots()
 	{
 		switch (SavedScreenshotList[i]->State)
 		{
-			case EScreenshotState::ERROR:
+			case EScreenshotState::ERROR_UNKNOWN:
 			case EScreenshotState::ERROR_UPLOAD:
 				SavedScreenshotList[i]->Image = nullptr;
 				SavedScreenshotList[i]->State = NONE;
@@ -1634,15 +1645,15 @@ void SShooterScreenshot::RefreshFromCloud()
 	for (int i = 0; i < LocalSlots.Num(); i++)
 	{
 		FAccelByteModelsSlot LocalSlot = LocalSlots[i];
-		bool Pending = LocalSlot.Status_DEPRECATED == STATUS_PENDING;
+		bool Pending = LocalSlot.Status_DEPRECATED == STATUS_PENDING_CONST_STRING;
 		if (!LocalSlot.SlotId.IsEmpty() || Pending)
 		{
 			SavedScreenshotList[i]->Checksum = LocalSlot.Checksum;
 			SavedScreenshotList[i]->SlotID = LocalSlot.SlotId;
 			SavedScreenshotList[i]->Title = LocalSlot.Label;
 			SavedScreenshotList[i]->State = Pending ? ERROR_UPLOAD : NONE;
-			TArray<uint8> ImageData;
-			if (LoadScreenshotImage(i, ImageData))
+			TArray64<uint8> ImageData64;
+			if (LoadScreenshotImage(i, ImageData64))
 			{
 				FString Name;
 				if (Name.IsEmpty())
@@ -1653,6 +1664,8 @@ void SShooterScreenshot::RefreshFromCloud()
 				{
 					Name = FString::Printf(TEXT("%s-%d"), *LocalSlot.SlotId, FMath::Rand());
 				}
+
+                TArray<uint8> ImageData(MoveTemp(ImageData64));
 				SavedScreenshotList[i]->Image = CreateBrush(TEXT("png"), FName(*Name), ImageData);
 				if (SavedScreenshotList[i]->Image.IsValid())
 				{
@@ -1720,7 +1733,7 @@ void SShooterScreenshot::RefreshFromCloud()
 				else
 				{
 					if (!LocalSlots[SlotIndex].SlotId.IsEmpty() && LocalSlots[SlotIndex].Checksum != Slot.Checksum
-						&& LocalSlots[SlotIndex].Status_DEPRECATED == STATUS_PENDING
+						&& LocalSlots[SlotIndex].Status_DEPRECATED == STATUS_PENDING_CONST_STRING
 						)
 					{
 						ConflictSlots.Add(SlotIndex, Slot);

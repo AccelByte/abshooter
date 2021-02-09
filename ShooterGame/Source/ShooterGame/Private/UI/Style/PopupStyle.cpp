@@ -1,7 +1,7 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
-#include "ShooterGame.h"
 #include "PopupStyle.h"
+#include "ShooterGame.h"
 
 FPopupStyle::FPopupStyle()
 {

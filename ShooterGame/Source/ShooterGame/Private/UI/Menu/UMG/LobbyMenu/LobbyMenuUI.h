@@ -138,9 +138,13 @@ private:
 	UFUNCTION()
 	void RefreshFriendList();
 
+public:
+
 	/** Start Matchmaking */
 	UFUNCTION()
 	void StartMatch();
+	
+private:
 
 	/** Cancel Matchmaking */
 	UFUNCTION()

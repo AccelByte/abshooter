@@ -58,7 +58,7 @@ namespace AccelByte
 			}
 			else if (Provider == AGONES_PROVIDER)
 			{
-#if defined(AGONES_PLUGIN_FOUND) && AGONES_PLUGIN_FOUND
+#if AGONES_PLUGIN_FOUND
 				InitiateAgones(OnSuccess);
 #else
 				UE_LOG(LogTemp, Fatal, TEXT("Agones library not found"));
@@ -153,7 +153,7 @@ namespace AccelByte
 			}
 			else if (Provider == AGONES_PROVIDER && ServerType != EServerType::LOCALSERVER)
 			{
-#if defined(AGONES_PLUGIN_FOUND) && AGONES_PLUGIN_FOUND
+#if AGONES_PLUGIN_FOUND
 				ShutdownAgones(OnSuccess);
 #else
 				UE_LOG(LogTemp, Fatal, TEXT("Agones library not found"));
@@ -290,7 +290,7 @@ namespace AccelByte
 			report.GetFunctionLog(FString(__FUNCTION__));
 			if (Provider == AGONES_PROVIDER && ServerType != EServerType::LOCALSERVER)
 			{
-#if defined(AGONES_PLUGIN_FOUND) && AGONES_PLUGIN_FOUND
+#if AGONES_PLUGIN_FOUND
 				PollAgonesHeartBeat();
 #else
 				UE_LOG(LogTemp, Fatal, TEXT("Agones library not found"));
@@ -600,7 +600,7 @@ namespace AccelByte
 
 		ServerDSM::~ServerDSM() {}
 
-#if defined(AGONES_PLUGIN_FOUND) && AGONES_PLUGIN_FOUND
+#if AGONES_PLUGIN_FOUND
 		void ServerDSM::InitiateAgones(FVoidHandler OnSuccess)
 		{
 			Report report;

@@ -160,3 +160,13 @@ void UBPUser::GetUserEligibleToPlay(const FDUserEligiblePlayHandler& OnSuccess, 
 		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }
+
+
+void UBPUser::GetUserByUserId(const FString& UserId, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError)
+{
+	FRegistry::User.GetUserByUserId(
+		UserId,
+		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
+	);
+}

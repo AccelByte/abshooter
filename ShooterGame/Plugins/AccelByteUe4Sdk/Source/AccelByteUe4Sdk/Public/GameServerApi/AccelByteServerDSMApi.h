@@ -8,7 +8,7 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Core/AccelByteError.h"
 #include "Models/AccelByteDSMModels.h"
-#if defined(AGONES_PLUGIN_FOUND) && AGONES_PLUGIN_FOUND
+#if AGONES_PLUGIN_FOUND
 #include "Agones.h"
 #endif
 
@@ -167,7 +167,7 @@ private:
 
 
 
-#if defined(AGONES_PLUGIN_FOUND) && AGONES_PLUGIN_FOUND
+#if AGONES_PLUGIN_FOUND
 public:
 	/*
 	 * @brief Poll agones heartbeat manually. It will raise OnMatchRequest event if DSM send match request data in heartbeat response

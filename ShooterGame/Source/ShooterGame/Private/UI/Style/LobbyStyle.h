@@ -1,9 +1,9 @@
 #pragma once
 
-#include "SlateWidgetStyleContainerBase.h"
+#include "Styling/SlateWidgetStyleContainerBase.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
-#include "RichTextLayoutMarshaller.h"
+#include "Framework/Text/RichTextLayoutMarshaller.h"
 #include "LobbyStyle.generated.h"
 
 USTRUCT()

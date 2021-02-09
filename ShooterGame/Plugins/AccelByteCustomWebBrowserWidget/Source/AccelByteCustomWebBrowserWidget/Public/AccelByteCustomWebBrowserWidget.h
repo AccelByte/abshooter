@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "Widget.h"
+#include "Components/Widget.h"
 #include "AccelByteCustomWebBrowserWidget.generated.h"
 
 /**
@@ -37,7 +37,7 @@ public:
 	 * @param DummyUrl Dummy Url for the page
 	 */
 	UFUNCTION(BlueprintCallable, Category="AccelByte Custom Web Browser")
-	void LoadString(FString Contents, FString DummyUrl);
+	void LoadHTMLContentString(FString Contents, FString DummyUrl);
 
 	/**
 	* Executes a JavaScript string in the context of the web page

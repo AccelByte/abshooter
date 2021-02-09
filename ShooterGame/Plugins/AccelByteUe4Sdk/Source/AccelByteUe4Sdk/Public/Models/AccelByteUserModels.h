@@ -3,10 +3,7 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
-
-//for UE version macro
 #include "Runtime/Launch/Resources/Version.h"
-
 #include "CoreMinimal.h"
 #include "AccelByteGeneralModels.h"
 #include "AccelByteUserModels.generated.h"
@@ -197,6 +194,7 @@ struct ACCELBYTEUE4SDK_API FAccountUserData
 
 // backward compatibility with previous AccelByte SDK codes
 // remove this if you are using FUserData from Unreal PhysicsCore
+
 #if ENGINE_MINOR_VERSION < 26
 using FUserData = FAccountUserData;
 #endif

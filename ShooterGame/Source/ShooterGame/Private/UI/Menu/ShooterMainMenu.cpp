@@ -22,14 +22,14 @@
 #include "ShooterMenuSoundsWidgetStyle.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
-#include "GenericPlatformChunkInstall.h"
+#include "GenericPlatform/GenericPlatformChunkInstall.h"
 #include "Online/ShooterOnlineGameSettings.h"
 #include "OnlineSubsystemSessionSettings.h"
 #include "SShooterConfirmationDialog.h"
 #include "ShooterMenuItemWidgetStyle.h"
 #include "ShooterGameUserSettings.h"
 #include "ShooterGameViewportClient.h"
-#include "ShooterPersistentUser.h"
+#include "Player/ShooterPersistentUser.h"
 #include "Player/ShooterLocalPlayer.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/World.h"
@@ -685,7 +685,8 @@ void FShooterMainMenu::Tick(float DeltaSeconds)
 		EMap SelectedMap = GetSelectedMap();
 		// use assetregistry when maps are added to it.
 		int32 MapChunk = ChunkMapping[(int)SelectedMap];
-		EChunkLocation::Type ChunkLocation = ChunkInstaller->GetChunkLocation(MapChunk);
+        //ChunkInstaller->GetPakchunkLocation()
+		EChunkLocation::Type ChunkLocation = ChunkInstaller->GetPakchunkLocation(MapChunk);
 
 		FText UpdatedText;
 		bool bUpdateText = false;
@@ -790,7 +791,7 @@ void FShooterMainMenu::OnUserCanPlayOnlineQuickMatch(const FUniqueNetId& UserId,
 		//GVC->AddViewportWidgetContent(SplitScreenLobbyWidgetContainer.ToSharedRef());
 
 		//SplitScreenLobbyWidget->Clear();
-		FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
+		//FSlateApplication::Get().SetKeyboardFocus(SplitScreenLobbyWidget);
 #endif
 	}
 	else if (GameInstance.IsValid())
@@ -1044,7 +1045,7 @@ FReply FShooterMainMenu::OnSplitScreenPlay()
 				//SplitScreenLobbyWidget->EnterSubMenu();
 #endif
 			}
-			else
+			break; // I have no idea
 #endif
 			{
 				if (GEngine && GEngine->GameViewport)
@@ -1722,7 +1723,7 @@ bool FShooterMainMenu::IsMapReady() const
 		EMap SelectedMap = GetSelectedMap();
 		// should use the AssetRegistry as soon as maps are added to the AssetRegistry
 		int32 MapChunk = ChunkMapping[(int)SelectedMap];
-		EChunkLocation::Type ChunkLocation = ChunkInstaller->GetChunkLocation(MapChunk);
+		EChunkLocation::Type ChunkLocation = ChunkInstaller->GetPakchunkLocation(MapChunk);
 		if (ChunkLocation == EChunkLocation::NotAvailable)
 		{			
 			bReady = false;

@@ -2,10 +2,10 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#include "SLobbyChatTabButton.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "LobbyStyle.h"
-#include "SLobbyChatTabButton.h"
 
 void SLobbyChatTabButton::Construct(const FArguments& InArgs)
 {

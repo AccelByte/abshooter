@@ -2,10 +2,10 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#include "SLobbyParty.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
 #include "LobbyStyle.h"
-#include "SLobbyParty.h"
 #include "Api/AccelByteLobbyApi.h"
 #include "Core/AccelByteRegistry.h"
 

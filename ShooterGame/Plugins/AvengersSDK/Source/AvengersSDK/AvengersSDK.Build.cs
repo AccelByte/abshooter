@@ -58,7 +58,6 @@ public class AvengersSDK : ModuleRules
         if (Target.Platform == UnrealTargetPlatform.Win64)
 		{			
 			PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Private//Api//ThirdParty//Distorm"));
-			PublicLibraryPaths.Add(Path.Combine(ModuleDirectory, "Private//Api//ThirdParty//Distorm"));
 			PublicAdditionalLibraries.Add("distorm.lib");
 		}
     }

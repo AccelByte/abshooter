@@ -1,5 +1,6 @@
-#include "ShooterGame.h"
+
 #include "LobbyStyle.h"
+#include "ShooterGame.h"
 
 FLobbyStyle::FLobbyStyle()
 {

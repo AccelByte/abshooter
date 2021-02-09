@@ -1,6 +1,6 @@
 
-#include "ShooterGame.h"
 #include "SShooterStore.h"
+#include "ShooterGame.h"
 #include "ShooterStyle.h"
 #include "ShooterMenuWidgetStyle.h"
 #include "SShooterMenuWidget.h"
@@ -9,10 +9,10 @@
 #include "ShooterGameViewportClient.h"
 #include "ShooterGameInstance.h"
 #include "SShooterConfirmationDialog.h"
-#include "AccelByteOrderApi.h"
-#include "AccelByteItemApi.h"
-#include "AccelByteEntitlementApi.h"
-#include "AccelByteError.h"
+#include "Api/AccelByteOrderApi.h"
+#include "Api/AccelByteItemApi.h"
+#include "Api/AccelByteEntitlementApi.h"
+#include "Core/AccelByteError.h"
 #include "Core/AccelByteRegistry.h"
 #include "ShooterStoreStyle.h"
 #include "ShooterInventoryWidgetStyle.h"
@@ -29,6 +29,21 @@
 #include "Interfaces/IPv4/IPv4Address.h"
 #include "Interfaces/IPv4/IPv4Endpoint.h"
 #include "Sockets.h"
+
+
+#ifndef PLATFORM_PS5
+#define PLATFORM_PS5 0
+#endif
+
+
+#if PLATFORM_PS4 || PLATFORM_PS5
+#include "SonyPlatformMisc.h"
+#endif
+
+#if PLATFORM_XBOXONE
+#include "XboxCommonPlatformMisc.h"
+#endif
+
 
 #define USING_EXTERNAL_BROWSER 0
 
@@ -279,6 +294,10 @@ void SShooterStore::BuildInventoryItem()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_PS4 || PLATFORM_PS5
+    FString Locale = FSonyPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_XBOXONE
+    FString Locale = FXboxCommonPlatformMisc::GetDefaultLocale();
 #endif
 
 	if (!bRequestInventoryList)
@@ -419,6 +438,10 @@ FReply SShooterStore::OnBuyConfirm()
 	FString Locale = FMacPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_LINUX
 	FString Locale = FLinuxPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_PS4 || PLATFORM_PS5
+    FString Locale = FSonyPlatformMisc::GetDefaultLocale();
+#elif PLATFORM_XBOXONE
+    FString Locale = FXboxCommonPlatformMisc::GetDefaultLocale();
 #endif
 
 	FJsonSerializableArray Split;
@@ -680,7 +703,7 @@ void SShooterStore::Tick(const FGeometry& AllottedGeometry, const double InCurre
 		{
 			Text += ".";
 		}
-		LoadingDialogText->SetText(Text);
+		LoadingDialogText->SetText(FText::FromString(Text));
 	}
 }
 

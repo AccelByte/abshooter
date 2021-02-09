@@ -2,9 +2,9 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
+#include "SLobbyChatPage.h"
 #include "SlateBasics.h"
 #include "SlateExtras.h"
-#include "SLobbyChatPage.h"
 
 void SLobbyChatPage::Construct(const FArguments& InArgs)
 	{

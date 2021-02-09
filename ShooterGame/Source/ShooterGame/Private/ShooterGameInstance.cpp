@@ -3,12 +3,12 @@
 /*=============================================================================
 	ShooterGameInstance.cpp
 =============================================================================*/
+#include "ShooterGameInstance.h"
 
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
 // shootergame
 #include "ShooterGame.h"
-#include "ShooterGameInstance.h"
 #include "ShooterLoginMenu.h"
 #include "ShooterMainMenu.h"
 #include "ShooterWelcomeMenu.h"
@@ -24,9 +24,9 @@
 #include "Online/ShooterOnlineSessionClient.h"
 #include "Misc/CommandLine.h"
 #include "ShooterGameConfig.h"
-#include "ShooterGame_TeamDeathMatch.h"
+#include "Online/ShooterGame_TeamDeathMatch.h"
 // Temporary Solution
-#include "ShooterGame_FreeForAll.h"
+#include "Online/ShooterGame_FreeForAll.h"
 // accelbyte
 #include "Core/AccelByteRegistry.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
@@ -42,7 +42,7 @@
 #include "HttpModule.h"
 #include "HttpManager.h"
 #include "ShooterGameTelemetry.h"
-#include "ShooterGameSteamUtility.h"
+#include "Online/ShooterGameSteamUtility.h"
 
 FAutoConsoleVariable CVarShooterGameTestEncryption(TEXT("ShooterGame.TestEncryption"), 0, TEXT("If true, clients will send an encryption token with their request to join the server and attempt to encrypt the connection using a debug key. This is NOT SECURE and for demonstration purposes only."));
 
@@ -255,6 +255,10 @@ void UShooterGameInstance::SetupCallbacks()
 		IdentityInterface->AddOnLoginStatusChangedDelegate_Handle(i, FOnLoginStatusChangedDelegate::CreateUObject(this, &UShooterGameInstance::HandleUserLoginChanged));
 	}
 
+    //DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnControllerPairingChanged, int /*LocalUserNum*/, FControllerPairingChangedUserInfo /*PreviousUser*/, FControllerPairingChangedUserInfo /*NewUser*/);
+    //typedef FOnControllerPairingChanged::FDelegate FOnControllerPairingChangedDelegate;
+
+
 	IdentityInterface->AddOnControllerPairingChangedDelegate_Handle(FOnControllerPairingChangedDelegate::CreateUObject(this, &UShooterGameInstance::HandleControllerPairingChanged));
 
 	FCoreDelegates::ApplicationWillDeactivateDelegate.AddUObject(this, &UShooterGameInstance::HandleAppWillDeactivate);
@@ -326,8 +330,10 @@ void UShooterGameInstance::GameClientLogin()
 	}
 	else if (ShooterGameConfig::Get().IsSteamLaunch_)
 	{
+#if PLATFORM_WINDOWS
 		UE_LOG(LogTemp, Log, TEXT("[Accelbyte SDK] Login from Steam"));
 		ShooterGameSteamUtility::SteamLogin(OnLoginSuccess, OnLoginError);
+#endif // prevent error on PS4
 	}
 	else
 	{
@@ -612,8 +618,7 @@ void UShooterGameInstance::OnPreLoadMap(const FString& MapName)
 		UGameViewportClient* GameViewportClient = GetGameViewportClient();
 		if (GameViewportClient != nullptr)
 		{
-			GameViewportClient->SetDisableSplitscreenOverride(false);
-
+			GameViewportClient->SetForceDisableSplitscreen(false);
 			bPendingEnableSplitscreen = false;
 		}
 	}
@@ -698,7 +703,7 @@ void UShooterGameInstance::StartGameInstance()
 	const TCHAR* Cmd = FCommandLine::Get();
 
 	// Catch the case where we want to override the map name on startup (used for connecting to other MP instances)
-	if (FParse::Token(Cmd, Parm, ARRAY_COUNT(Parm), 0) && Parm[0] != '-')
+	if (FParse::Token(Cmd, Parm, UE_ARRAY_COUNT(Parm), 0) && Parm[0] != '-')
 	{
 		// if we're 'overriding' with the default map anyway, don't set a bogus 'playing' state.
 		if (!MainMenuMap.Contains(Parm))
@@ -1031,7 +1036,7 @@ void UShooterGameInstance::BeginWelcomeScreenState()
 	WelcomeMenuUI->AddToGameViewport();
 
 	// Disallow splitscreen (we will allow while in the playing state)
-	GetGameViewportClient()->SetDisableSplitscreenOverride( true );
+	GetGameViewportClient()->SetForceDisableSplitscreen( true );
 }
 
 void UShooterGameInstance::EndWelcomeScreenState()
@@ -1083,7 +1088,7 @@ void UShooterGameInstance::BeginLoginMenuState()
 
 	if (GameViewportClient)
 	{
-		GetGameViewportClient()->SetDisableSplitscreenOverride(true);
+		GetGameViewportClient()->SetForceDisableSplitscreen(true);
 	}
 
 	// Remove any possible splitscren players
@@ -1140,7 +1145,7 @@ void UShooterGameInstance::BeginMainMenuState()
 	
 	if (GameViewportClient)
 	{
-		GetGameViewportClient()->SetDisableSplitscreenOverride(true);
+		GetGameViewportClient()->SetForceDisableSplitscreen(true);
 	}
 
 	// Remove any possible splitscren players
@@ -1284,7 +1289,7 @@ void UShooterGameInstance::BeginPlayingState()
 void UShooterGameInstance::EndPlayingState()
 {
 	// Disallow splitscreen
-	GetGameViewportClient()->SetDisableSplitscreenOverride( true );
+	GetGameViewportClient()->SetForceDisableSplitscreen( true );
 
 	// Clear the players' presence information
 	SetPresenceForLocalPlayers(FString(TEXT("In Menu")), FVariantData(FString(TEXT("OnMenu"))));
@@ -2032,10 +2037,13 @@ FReply UShooterGameInstance::OnPairingUseNewProfile()
 	return FReply::Handled();
 }
 
-void UShooterGameInstance::HandleControllerPairingChanged( int GameUserIndex, const FUniqueNetId& PreviousUser, const FUniqueNetId& NewUser )
+    //DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnControllerPairingChanged, int /*LocalUserNum*/, FControllerPairingChangedUserInfo /*PreviousUser*/, FControllerPairingChangedUserInfo /*NewUser*/);
+    //typedef FOnControllerPairingChanged::FDelegate FOnControllerPairingChangedDelegate;
+
+void UShooterGameInstance::HandleControllerPairingChanged( int LocalUserNum, FControllerPairingChangedUserInfo PreviousUser, FControllerPairingChangedUserInfo NewUser )
 {
-	UE_LOG(LogOnlineGame, Log, TEXT("UShooterGameInstance::HandleControllerPairingChanged GameUserIndex %d PreviousUser '%s' NewUser '%s'"),
-		GameUserIndex, *PreviousUser.ToString(), *NewUser.ToString());
+	UE_LOG(LogOnlineGame, Log, TEXT("UShooterGameInstance::HandleControllerPairingChanged LocalUserNum %d PreviousUser '%s' NewUser '%s'"),
+		LocalUserNum, *PreviousUser.User.ToString(), *NewUser.User.ToString());
 	
 	if ( CurrentState == ShooterGameInstanceState::WelcomeScreen )
 	{
@@ -2044,23 +2052,23 @@ void UShooterGameInstance::HandleControllerPairingChanged( int GameUserIndex, co
 	}
 
 #if SHOOTER_CONSOLE_UI && PLATFORM_XBOXONE
-	if ( IgnorePairingChangeForControllerId != -1 && GameUserIndex == IgnorePairingChangeForControllerId )
+	if ( IgnorePairingChangeForControllerId != -1 && LocalUserNum == IgnorePairingChangeForControllerId )
 	{
 		// We were told to ignore
 		IgnorePairingChangeForControllerId = -1;	// Reset now so there there is no chance this remains in a bad state
 		return;
 	}
 
-	if ( PreviousUser.IsValid() && !NewUser.IsValid() )
+	if ( PreviousUser.User.IsValid() && !NewUser.User.IsValid() )
 	{
 		// Treat this as a disconnect or signout, which is handled somewhere else
 		return;
 	}
 
-	if ( !PreviousUser.IsValid() && NewUser.IsValid() )
+	if ( !PreviousUser.User.IsValid() && NewUser.User.IsValid() )
 	{
 		// Treat this as a signin
-		ULocalPlayer * ControlledLocalPlayer = FindLocalPlayerFromControllerId( GameUserIndex );
+		ULocalPlayer * ControlledLocalPlayer = FindLocalPlayerFromControllerId( LocalUserNum );
 
 		if ( ControlledLocalPlayer != NULL && !ControlledLocalPlayer->GetCachedUniqueNetId().IsValid() )
 		{
@@ -2072,10 +2080,10 @@ void UShooterGameInstance::HandleControllerPairingChanged( int GameUserIndex, co
 	}
 
 	// Find the local player currently being controlled by this controller
-	ULocalPlayer * ControlledLocalPlayer	= FindLocalPlayerFromControllerId( GameUserIndex );
+	ULocalPlayer * ControlledLocalPlayer	= FindLocalPlayerFromControllerId( LocalUserNum );
 
 	// See if the newly assigned profile is in our local player list
-	ULocalPlayer * NewLocalPlayer			= FindLocalPlayerFromUniqueNetId( NewUser );
+	ULocalPlayer * NewLocalPlayer			= FindLocalPlayerFromUniqueNetId( NewUser.User );
 
 	// If the local player being controlled is not the target of the pairing change, then give them a chance 
 	// to continue controlling the old player with this controller

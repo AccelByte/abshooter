@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "4.21",
+	"EngineAssociation": "{F068158E-4B12-4190-BCCF-0FA619600205}",
 	"Category": "Samples",
 	"Description": "",
 	"Modules": [
@@ -79,6 +79,10 @@
 		{
 			"Name": "AccelByteCustomWebBrowserWidget",
 			"Enabled": true
+		},
+		{
+			"Name": "Agones",
+			"Enabled": true
 		}
 	],
 	"TargetPlatforms": [
@@ -87,7 +91,10 @@
 		"WindowsNoEditor",
 		"XboxOne",
 		"Switch",
-		"Quail"
+		"Quail",
+		"XboxOneGDK",
+		"XSX",
+		"PS5"
 	],
 	"EpicSampleNameHash": "3868556100"
 }

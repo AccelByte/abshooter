@@ -2,13 +2,13 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "CoreMinimal.h"
 #include "ShooterGameTelemetry.h"
+#include "CoreMinimal.h"
 #include "JsonUtilities.h"
 #include "ShooterGameConfig.h"
 #include "Kismet/GameplayStatics.h"
-#include "AccelByteRegistry.h"
-#include "AccelByteGameTelemetryApi.h"
+#include "Core/AccelByteRegistry.h"
+#include "Api/AccelByteGameTelemetryApi.h"
 #include "GameServerApi/AccelByteServerGameTelemetryApi.h"
 
 FString ShooterGameTelemetry::ELoginTypeToString(const ELoginType& Type)

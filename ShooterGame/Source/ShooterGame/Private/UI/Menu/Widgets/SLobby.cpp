@@ -2,12 +2,11 @@
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
-#include "Utils/ImageUtils.h"
-
 // TODO: Migrate into UMG
-#include "ShooterGame.h"
 #include "SLobby.h"
-#include "SHeaderRow.h"
+#include "Utils/ImageUtils.h"
+#include "ShooterGame.h"
+#include "Widgets/Views/SHeaderRow.h"
 #include "ShooterStyle.h"
 #include "ShooterMenuWidgetStyle.h"
 #include "ShooterGameLoadingScreen.h"
@@ -676,20 +675,20 @@ float SLobby::GetLobbyWidth(float Divider) const
 	return float(ViewPortSize.X / Divider);
 }
 
-void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FString& DedicatedServerAddress)
+void SLobby::StartMatch(const FString& MatchId, const FString& PartyId, const FString& _DedicatedServerAddress)
 {
 	if (this->bAlreadyEnteringLevel == false)
 	{
 		this->bAlreadyEnteringLevel = true;
 		OnStartMatch.ExecuteIfBound();
-		UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *DedicatedServerAddress);
+		UE_LOG(LogOnlineGame, Log, TEXT("OpenLevel: %s"), *_DedicatedServerAddress);
 
 		// Add delay to ensure the server has received a heartbeat response contains matchmaking result
 		// Player only entering level once
 		FTimerHandle dummyHandle;
-		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(dummyHandle, TFunction<void(void)>([this, DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
+		GEngine->GameViewport->GetWorld()->GetTimerManager().SetTimer(dummyHandle, TFunction<void(void)>([this, _DedicatedServerAddress, PartyId, MatchId, CurrentUserId = GetCurrentUserID()]()
 		{
-				UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
+				UGameplayStatics::OpenLevel(GEngine->GameViewport->GetWorld(), FName(*_DedicatedServerAddress), true, FString::Printf(TEXT("PartyId=%s?MatchId=%s?UserId=%s"), *PartyId, *MatchId, *CurrentUserId));
 		}), 1.0f, false, ShooterGameConfig::Get().PlayerEnteringServerDelay_);
 	}
 

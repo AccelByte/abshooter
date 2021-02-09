@@ -287,7 +287,16 @@ void ShooterLobby::AddFriendEntry(FFriendEntry Friend)
 	TWeakObjectPtr<UFriendEntryUI> Entry = MakeWeakObjectPtr<UFriendEntryUI>(CreateWidget<UFriendEntryUI>(GameInstance.Get(), *GameInstance->FriendEntryClass.Get()));
 	Entry->Data = Friend;
 	Entry->SetInterface(this);
-	FriendList.Add(Entry.Get());
+
+	// Avoid Adding existing entry
+	int32 Index = FriendList.IndexOfByPredicate([Friend](UFriendEntryUI* Entry) {
+		return Entry->Data.UserId == Friend.UserId;
+	});
+
+	if (Index == INDEX_NONE)
+	{
+		FriendList.Add(Entry.Get());
+	}
 }
 
 void ShooterLobby::OnAvatarReceived(FCacheBrush Image, FFriendEntry Friend)
@@ -517,7 +526,7 @@ void ShooterLobby::OnRequestFriendsResponse(const FAccelByteModelsRequestFriends
 	if (Response.Code != TEXT("0"))
 	{
 		TWeakObjectPtr<UGeneralNotificationPopupUI> AddingFriendResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-		AddingFriendResponsePopup->Show(ENotificationType::ERROR, TEXT("Failed to Add Friend!"));
+		AddingFriendResponsePopup->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Failed to Add Friend!"));
 	}
 }
 
@@ -692,7 +701,7 @@ void ShooterLobby::UpdatePartyMemberList()
 	}
 }
 
-void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted)
+void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted_)
 {
 	if (!CurrentPartyId.IsEmpty())
 	{
@@ -700,7 +709,7 @@ void ShooterLobby::UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted)
 		{
 			for (auto& Members : PartyMembers)
 			{
-				if (bMatchmakingStarted == true)
+				if (bMatchmakingStarted_ == true)
 				{
 					Members->Data.isKickable = false;
 				}
@@ -756,7 +765,7 @@ void ShooterLobby::OnCreatePartyResponse(const FAccelByteModelsCreatePartyRespon
 			Message.Append(FString::Printf(TEXT("\nCode: %s."), *PartyInfo.Code));
 		}
 		TWeakObjectPtr<UGeneralNotificationPopupUI> InvitePartyResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-		InvitePartyResponsePopup->Show(ENotificationType::ERROR, Message);
+		InvitePartyResponsePopup->Show(ENotificationType::ERROR_UNKNOWN, Message);
 
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] %s"), *Message);
 	}
@@ -828,7 +837,7 @@ void ShooterLobby::OnInvitePartyResponse(const FAccelByteModelsPartyInviteRespon
 		}
 		
 		TWeakObjectPtr<UGeneralNotificationPopupUI> InvitePartyResponsePopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-		InvitePartyResponsePopup->Show(ENotificationType::ERROR, Message);
+		InvitePartyResponsePopup->Show(ENotificationType::ERROR_UNKNOWN, Message);
 
 		UE_LOG(LogTemp, Warning, TEXT("[ShooterLobby] %s"), *Message);
 	}
@@ -1164,8 +1173,9 @@ void ShooterLobby::OnRematchmakingNotification(const FAccelByteModelsRematchmaki
 
 		FOnNotificationCloseButtonClicked CloseButtonDelegate = FOnNotificationCloseButtonClicked::CreateLambda([RematchmakingPopup, this]()
 			{
-				bMatchmakingStarted = true;
+				bMatchmakingStarted = false;
 				UpdatePartyMatchmakingStatus(bMatchmakingStarted);
+				LobbyMenuUI->StartMatch();
 			});
 
 		RematchmakingPopup->Show(ENotificationType::NOTIFICATION, FString("Your Opponent's Party Have been Banned Because of Long Term Inactivity. We'll Rematch You with Another Party."), NULL , CloseButtonDelegate);

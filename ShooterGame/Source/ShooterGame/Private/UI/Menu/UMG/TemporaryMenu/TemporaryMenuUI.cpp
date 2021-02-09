@@ -6,12 +6,12 @@
 #include "Serialization/JsonSerializerMacros.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Text/STextBlock.h"
-#include "Base64.h"
+#include "Misc/Base64.h"
 #include "ShooterGameConfig.h"
 //AccelByte
 #include "Core/AccelByteRegistry.h"
-#include "AccelByteWalletApi.h"
-#include "AccelByteQos.h"
+#include "Api/AccelByteWalletApi.h"
+#include "Api/AccelByteQos.h"
 
 #pragma region UInventoryMenuUI
 

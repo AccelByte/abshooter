@@ -5,7 +5,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Widget.h"
+#include "Blueprint/UserWidget.h"
 #include "UI/Menu/Widgets/SShooterInventory.h"
 #include "UI/Menu/Widgets/SShooterCoinsWidget.h"
 #include "UI/Menu/Widgets/SShooterStore.h"

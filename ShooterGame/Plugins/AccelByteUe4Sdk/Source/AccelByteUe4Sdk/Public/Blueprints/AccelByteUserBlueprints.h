@@ -68,4 +68,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | User | Api")
 	static void GetUserEligibleToPlay(const FDUserEligiblePlayHandler& OnSuccess, const FDErrorHandler& OnError);
+
+	UFUNCTION(BlueprintCallable, Category = "AccelByte | User | Api")
+	static void GetUserByUserId(const FString& UserId, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError);
 };

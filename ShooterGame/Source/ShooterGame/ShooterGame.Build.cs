@@ -1,12 +1,16 @@
 // Copyright 1998-2018 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
+using System.IO;
 
 public class ShooterGame : ModuleRules
 {
 	public ShooterGame(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PrivatePCHHeaderFile = "Public/ShooterGame.h";
+        bLegacyPublicIncludePaths = false;
+        ShadowVariableWarningLevel = WarningLevel.Error;
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        PrivatePCHHeaderFile = "Public/ShooterGame.h";
 		//Definitions.Add("UE_ENGINE_DIRECTORY=F:/UE4/UE_4.21/Engine/");
 
 		PrivateIncludePaths.AddRange(
@@ -37,15 +41,25 @@ public class ShooterGame : ModuleRules
 				"JsonUtilities",
 				"WebBrowser",
 				"AccelByteUe4Sdk",
-				"OnlineSubsystemSteam",
-				"Steamworks",
 				"Icmp",
 				"UMG"
-				//"AvengersSDK",
 			}
 		);
 
-		PrivateDependencyModuleNames.AddRange(
+
+        if (Target.Platform == UnrealTargetPlatform.Win64 || Target.Platform == UnrealTargetPlatform.Win32)
+        {
+            // Only add steam for windows
+            PublicDependencyModuleNames.AddRange(
+            new string[] {               
+                "OnlineSubsystemSteam",
+                "Steamworks",
+			}
+        );
+        }
+
+
+            PrivateDependencyModuleNames.AddRange(
 			new string[] {
 				"InputCore",
 				"Slate",
@@ -88,7 +102,7 @@ public class ShooterGame : ModuleRules
 
 
 		// Accelbyte SDK
-		PublicIncludePaths.AddRange(new string[] { "AccelByteUe4Sdk/Public", });
+		PublicIncludePaths.AddRange(new string[] { Path.Combine(ModuleDirectory, "AccelByteUe4Sdk/Public"), });
 		//PublicIncludePaths.AddRange(new string[] { "AvengersSDK" });   
 	}
 }
