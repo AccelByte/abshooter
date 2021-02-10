@@ -28,21 +28,19 @@ FString ShooterGameTelemetry::ELoginTypeToString(const ELoginType& Type)
 
 void TelemetryDispatcher(TSharedPtr<FJsonObject> JsonObject, const FString& EventName)
 {
-#if UE_SERVER
-	FRegistry::ServerGameTelemetry.SendProtectedEvent(
-		EventName,
-		JsonObject,
-		FVoidHandler::CreateLambda([EventName]()
-			{
-				UE_LOG(LogTemp, Display, TEXT("%s event sent successfully."), *EventName);
-			})
-		, FErrorHandler::CreateLambda([EventName](int32 ErrorCode, FString Message)
-			{
-				UE_LOG(LogTemp, Display, TEXT("%s event error.\nCode:%d\nMessage:%s"), *EventName, ErrorCode, *Message);
-			}));
-#else
-	//TelemetryBody.EventNamespace = abshooter
 	FAccelByteModelsTelemetryBody TelemetryBody{ "abshooter", EventName, JsonObject };
+#if UE_SERVER
+	FRegistry::GameTelemetry.Send(
+		TelemetryBody,
+		FVoidHandler::CreateLambda([EventName]()
+		{
+			UE_LOG(LogTemp, Display, TEXT("%s event sent successfully."), *EventName);
+		})
+		, FErrorHandler::CreateLambda([EventName](int32 ErrorCode, FString Message)
+		{
+			UE_LOG(LogTemp, Display, TEXT("%s event error.\nCode:%d\nMessage:%s"), *EventName, ErrorCode, *Message);
+		}));
+#else
 	FRegistry::GameTelemetry.Send(
 		TelemetryBody,
 		FVoidHandler::CreateLambda([EventName]()

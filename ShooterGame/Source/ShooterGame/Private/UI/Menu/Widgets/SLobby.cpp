@@ -34,8 +34,9 @@
 #include "Server/Models/AccelByteMatchmakingModels.h"
 
 SLobby::SLobby()
-	: OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
-	, ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	:  ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	  ,OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	
 {
 
 }

@@ -6,7 +6,7 @@
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/EditableTextBox.h"
-#include "Misc/ConfigCacheini.h"
+#include "Misc/ConfigCacheIni.h"
 
 bool ULoginMenuUI::Initialize()
 {
