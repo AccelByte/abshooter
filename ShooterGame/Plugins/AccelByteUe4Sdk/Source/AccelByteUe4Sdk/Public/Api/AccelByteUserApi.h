@@ -5,8 +5,9 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AccelByteUe4Sdk/Public/Models/AccelByteUserModels.h"
-#include "AccelByteUe4Sdk/Public/Core/AccelByteError.h"
+#include "Models/AccelByteUserModels.h"
+#include "Models/AccelByteEcommerceModels.h"
+#include "Core/AccelByteError.h"
 
 
 namespace AccelByte
@@ -15,7 +16,8 @@ namespace AccelByte
 	class Settings;
 	namespace Api
 	{
-
+		class Entitlement;
+		class Item;
 		/**
 		 * @brief User management API for creating user, verifying user, and resetting password.
 		 */
@@ -34,9 +36,9 @@ namespace AccelByte
 			DECLARE_DELEGATE(FUpgradeNotif);
 
 			/**
-			 * @brief Log in with email/phone number account.
+			 * @brief Log in with email/username account.
 			 *
-			 * @param Username User email address.
+			 * @param Username User email address or username.
 			 * @param Password Password.
 			 * @param OnSuccess This will be called when the operation succeeded.
 			 * @param OnError This will be called when the operation failed.
@@ -77,21 +79,37 @@ namespace AccelByte
 			/**
 			 * @brief This function will register a new user with email-based account.
 			 *
-			 * @param Username User email address or phone number.
+			 * @param Username Email address of the user, can be used as login username.
 			 * @param Password The Password.
 			 * @param DisplayName The DisplayName.
-			 * @param OnSuccess This will be called when the operation succeeded. The result is FUserData.
+			 * @param Country User's country, ISO3166-1 alpha-2 two letter, e.g. US.
+			 * @param DateOfBirth User's date of birth, valid values are between 1905-01-01 until current date.
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FAccountUserData.
 			 * @param OnError This will be called when the operation failed.
 			 */
 			void Register(const FString& Username, const FString& Password, const FString& DisplayName, const FString& Country, const FString& DateOfBirth, const THandler<FRegisterResponse>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
-			 * @brief This function will get data of currently logged in user.
+			 * @brief This function will register a new user with email-based account.
 			 *
-			 * @param OnSuccess This will be called when the operation succeeded. The result is FUserData.
+			 * @param EmailAddress Email address of the user, can be used as login username.
+			 * @param Username The username can be used as login username, case insensitive, alphanumeric with allowed symbols underscore (_) and dot (.).
+			 * @param Password The Password.
+			 * @param DisplayName The DisplayName.
+			 * @param Country User's country, ISO3166-1 alpha-2 two letter, e.g. US.
+			 * @param DateOfBirth User's date of birth, valid values are between 1905-01-01 until current date.
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FAccountUserData.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void GetData(const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError);
+			void Registerv2(const FString& EmailAddress, const FString& Username, const FString& Password, const FString& DisplayName, const FString& Country, const FString& DateOfBirth, const THandler<FRegisterResponse>& OnSuccess, const FErrorHandler& OnError);
+
+			/**
+			 * @brief This function will get data of currently logged in user.
+			 *
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FAccountUserData.
+			 * @param OnError This will be called when the operation failed.
+			 */
+			void GetData(const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
 			 * @brief This function will upgrade user's headless account. You may call SendUserAccountVerificationCode afterwards.
@@ -99,12 +117,26 @@ namespace AccelByte
 			 * If user logs in with a device/platform and they cannot login with email-and-password, their account is considered as a headless account.
 			 * Therefore, the function requests user’s Username and Password for parameters.
 			 *
+			 * @param Username The EmailAddress of the user.
+			 * @param Password The Password.
+			 * @param OnSuccess This will be called when the operation succeeded.
+			 * @param OnError This will be called when the operation failed.
+			 */
+			void Upgrade(const FString& Username, const FString& Password, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
+
+			/**
+			 * @brief This function will upgrade user's headless account. You may call SendUserAccountVerificationCode afterwards.
+			 * Headless account is an account that doesn't have an email and password.
+			 * If user logs in with a device/platform and they cannot login with email-and-password, their account is considered as a headless account.
+			 * Therefore, the function requests user’s Username and Password for parameters.
+			 *
+			 * @param EmailAddress The EmailAddress of the user.
 			 * @param Username The Username.
 			 * @param Password The Password.
 			 * @param OnSuccess This will be called when the operation succeeded.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void Upgrade(const FString& Username, const FString& Password, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError);
+			void Upgradev2(const FString& EmailAddress, const FString& Username, const FString& Password, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
 			 * @brief This function will upgrade user's headless account. You may call SendUserAccountVerificationCode afterwards.
@@ -173,7 +205,7 @@ namespace AccelByte
 			 * @param OnSuccess This will be called when the operation succeeded.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void UpgradeAndVerify(const FString& Username, const FString& Password, const FString& VerificationCode, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError);
+			void UpgradeAndVerify(const FString& Username, const FString& Password, const FString& VerificationCode, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
 			 * @brief This function gets user's platform accounts linked to user’s account.
@@ -188,60 +220,82 @@ namespace AccelByte
 			 * Ticket for each platform (PlatformToken) can be obtained from browser with platform linking URL (e.g. Facebook, Google, Twitch platform).
 			 * The browser will redirect the URL to a site with a code in form of parameter URL.
 			 *
-			 * @param PlatformId The PlatformId.
+			 * @param PlatformType The PlatformType (Steam, PS4, Xbox, etc).
 			 * @param Ticket The Ticket.
 			 * @param OnSuccess This will be called when the operation succeeded.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void LinkOtherPlatform(const FString& PlatformId, const FString& Ticket, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
+			void LinkOtherPlatform(EAccelBytePlatformType PlatformType, const FString& Ticket, const FVoidHandler& OnSuccess, const FCustomErrorHandler& OnError);
+
+			/**
+			 * @brief This function forced links user's current account to their other account in other platform. Use this only if the general LinkOtherPlatform get conflicted and getting confirmation from user.
+			 * Ticket for each platform (PlatformToken) can be obtained from browser with platform linking URL (e.g. Facebook, Google, Twitch platform).
+			 * The browser will redirect the URL to a site with a code in form of parameter URL.
+			 *
+			 * @param PlatformType The PlatformType (Steam, PS4, Xbox, etc).
+			 * @param PlatformUserId The UserId from the other platfrom you want to link.
+			 * @param OnSuccess This will be called when the operation succeeded.
+			 * @param OnError This will be called when the operation failed.
+			 */
+			void ForcedLinkOtherPlatform(EAccelBytePlatformType PlatformType, const FString& PlatformUserId, const FVoidHandler& OnSuccess, const FCustomErrorHandler& OnError);
 
 			/**
 			 * @brief This function links user's current account to their other account in other platform
 			 * Ticket for each platform (PlatformToken) can be obtained from browser with platform linking URL (e.g. Facebook, Google, Twitch).
 			 * The browser will redirect the URL to a site with a code in form of parameter URL.
 			 *
-			 * @param PlatformId The PlatformId.
+			 * @param PlatformType The PlatformType (Steam, PS4, Xbox, etc).
 			 * @param OnSuccess This will be called when the operation succeeded.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void UnlinkOtherPlatform(const FString& PlatformId, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
+			void UnlinkOtherPlatform(EAccelBytePlatformType PlatformType, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 
 			/**
-			 * @brief This function will search user by their Email Address or Display Name.
+			 * @brief This function will search user by their Email Address, Username, or Display Name.
 			 *
-			 * @param Query Targeted user's Email Address or Display Name.
+			 * @param Query Targeted user's Email Address, Username, or Display Name.
 			 * @param OnSuccess This will be called when the operation succeeded. The result is FPagedPublicUsersInfo.
 			 * @param OnError This will be called when the operation failed.
 			 */
 			void SearchUsers(const FString& Query, const THandler<FPagedPublicUsersInfo>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
+			 * @brief This function will search user by their Email Address, Username, or Display Name.
+			 *
+			 * @param Query Targeted user's Email Address, Username, or Display Name.
+			 * @param By Filter the responded PagedPublicUsersInfo by SearchType. Choose the SearchType.ALL if you want to be responded with all query type.
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FPagedPublicUsersInfo.
+			 * @param OnError This will be called when the operation failed.
+			 */
+			void SearchUsers(const FString& Query, EAccelByteSearchType By, const THandler<FPagedPublicUsersInfo>& OnSuccess, const FErrorHandler& OnError);
+
+			/**
 			 * @brief This function will search user by userId.
 			 *
 			 * @param UserId Targeted user's ID.
-			 * @param OnSuccess This will be called when the operation succeeded. The result is FUserData.
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FAccountUserData.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void GetUserByUserId(const FString& UserId, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError);
+			void GetUserByUserId(const FString& UserId, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
 			 * @brief This function will get user by other platform user id it linked to.
 			 *
 			 * @param PlatformType Other platform type .
 			 * @param OtherPlatformUserId Targeted user's ID.
-			 * @param OnSuccess This will be called when the operation succeeded. The result is FUserData.
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FAccountUserData.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void GetUserByOtherPlatformUserId(EAccelBytePlatformType PlatformType, const FString& OtherPlatformUserId, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError);
+			void GetUserByOtherPlatformUserId(EAccelBytePlatformType PlatformType, const FString& OtherPlatformUserId, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
 			 * @brief This function for update user account info within the game.
 			 *
 			 * @param UpdateRequest The data you want to update. for DateOfBirth, the format is YYYY-MM-DD.
-			 * @param OnSuccess This will be called when the operation succeeded. The result is FUserData.
+			 * @param OnSuccess This will be called when the operation succeeded. The result is FAccountUserData.
 			 * @param OnError This will be called when the operation failed.
 			 */
-			void UpdateUser(FUserUpdateRequest UpdateRequest, const THandler<FUserData>& OnSuccess, const FErrorHandler& OnError);
+			void UpdateUser(FUserUpdateRequest UpdateRequest, const THandler<FAccountUserData>& OnSuccess, const FErrorHandler& OnError);
 
 			/**
 			 * @brief This function will get user(s) by other platform user id(s) it linked to.
@@ -262,6 +316,15 @@ namespace AccelByte
 			 */
 			void GetCountryFromIP(const THandler<FCountryInfo>& OnSuccess, const FErrorHandler& OnError);
 
+			/**
+			 * @brief This function will check whether user can play the game by having it purchased or subscribed.
+			 *
+			 * @param OnSuccess This will be called when the operation succeeded. The result is boolean.
+			 * @param OnError This will be called when the operation failed.
+			*/
+			void GetUserEligibleToPlay(const THandler<bool>& OnSuccess, const FErrorHandler & OnError);
+
+
 		private:
 			User() = delete;
 			User(User const&) = delete;
@@ -270,6 +333,10 @@ namespace AccelByte
 			void SendVerificationCode(const FVerificationCodeRequest& Request, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 
 			void UpgradeWithPlayerPortalAsync(const FString& ReturnUrl, const THandler<FUpgradeUserRequest>& OnSuccess, const FErrorHandler& OnError);	
+			
+			void CheckUserSubEntitlement(const THandler<bool>& OnSuccess, const FErrorHandler & OnError);
+
+			void CheckSubEntitlementFromItemInfo(const THandler<bool>& OnSuccess, const FErrorHandler& OnError, const FAccelByteModelsItemInfo& itemInfo);
 
 			static FString TempUsername;
 			FUpgradeNotif UpgradeNotif;

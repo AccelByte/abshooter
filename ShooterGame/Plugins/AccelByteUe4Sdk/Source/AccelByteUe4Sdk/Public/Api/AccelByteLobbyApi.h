@@ -136,6 +136,21 @@ public:
      */
     DECLARE_DELEGATE_OneParam(FPartyChatNotif, const FAccelByteModelsPartyMessageNotice&);              // Passive
     
+	/**
+	 * @brief delegate for handling join default channel message event response
+	 */
+	DECLARE_DELEGATE_OneParam(FJoinDefaultChannelChatResponse, const FAccelByteModelsJoinDefaultChannelResponse&);
+
+	/**
+	 * @brief delegate for handling channel message event response
+	 */
+	DECLARE_DELEGATE_OneParam(FChannelChatResponse, const FAccelByteModelsChannelMessageResponse&);
+
+	/**
+	 * @brief delegate for handling channel message event notification
+	 */
+	DECLARE_DELEGATE_OneParam(FChannelChatNotif, const FAccelByteModelsChannelMessageNotice&);
+
     // Presence
     /**
      * @brief delegate for handling user change presence status
@@ -288,6 +303,15 @@ public:
 	 */
     FString SendPartyMessage(const FString& Message);
 	
+	/**
+	 * @brief Request to join the default channel chat.
+	 */
+	FString SendJoinDefaultChannelChatRequest();
+
+	/**
+	 * @brief Send a message to joined channel chat.
+	 */
+	FString SendChannelMessage(const FString& Message);
 
     //------------------------
     // Party
@@ -359,8 +383,9 @@ public:
 	* @param ServerName The Local DS name, fill it blank if you don't use Local DS.
 	* @param ClientVersion The version of DS, fill it blank to choose the default version.
 	* @param Latencies list of servers and their latencies to client, DSM will created the server on one of this list. Fill it blank if you use Local DS.
+	* @param PartyAttributes String map custom attributes to be added on matchmaking and also will be passed to ds too. Example: {"Map":"Dungeon1", "Rank":"B", "Stage":"04"}
 	*/
-	FString SendStartMatchmaking(FString GameMode, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>());
+	FString SendStartMatchmaking(FString GameMode, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>(), TMap<FString, FString> PartyAttributes = TMap<FString, FString>());
 
 	/**
 	* @brief cancel the currently running matchmaking process
@@ -563,12 +588,6 @@ public:
 	*
 	* @param OnPrivateMessageResponse set delegate .
 	*/
-
-	/**
-	* @brief set private message receive delegate
-	*
-	* @param OnPrivateMessageResponse set delegate .
-	*/
 	void SetPrivateMessageResponseDelegate(FPersonalChatResponse OnPrivateMessageResponse)
 	{
 		PersonalChatResponse = OnPrivateMessageResponse;
@@ -584,6 +603,35 @@ public:
 		PartyChatResponse = OnPartyMessageResponse;
 	};
 
+	/**
+	* @brief set join channel chat response
+	*
+	* @param OnJoinDefaultChannelResponse set delegate.
+	*/
+	void SetJoinChannelChatResponseDelegate(FJoinDefaultChannelChatResponse OnJoinDefaultChannelResponse)
+	{
+		JoinDefaultChannelResponse = OnJoinDefaultChannelResponse;
+	};
+
+	/**
+	* @brief set channel message response
+	*
+	* @param OnChannelMessageResponse set delegate.
+	*/
+	void SetChannelMessageResponseDelegate(FChannelChatResponse OnChannelMessageResponse)
+	{
+		ChannelChatResponse = OnChannelMessageResponse;
+	};
+
+	/**
+	* @brief set channel message notif
+	*
+	* @param OnChannelMessageNotif set delegate.
+	*/
+	void SetChannelMessageNotifDelegate(FChannelChatNotif OnChannelMessageNotif)
+	{
+		ChannelChatNotif = OnChannelMessageNotif;
+	}
 
 	// Presence
 	/**
@@ -779,6 +827,8 @@ public:
 	*/
 	void BulkFriendRequest(FAccelByteModelsBulkFriendsRequest UserIds, FVoidHandler OnSuccess, FErrorHandler OnError);
 
+	static FString LobbyMessageToJson(FString Message);
+
 private:
 	Lobby(Lobby const&) = delete; // Copy constructor
 	Lobby(Lobby&&) = delete; // Move constructor
@@ -793,7 +843,6 @@ private:
     FString SendRawRequest(FString MessageType, FString MessageIDPrefix, FString CustomPayload = TEXT(""));
     bool Tick(float DeltaTime);
     FString GenerateMessageID(FString Prefix = TEXT(""));
-    FString LobbyMessageToJson(FString Message);
 
 	const float LobbyTickPeriod = 0.5;
 	const float PingDelay;
@@ -805,6 +854,7 @@ private:
 	float TimeSinceLastPing;
 	float TimeSinceLastReconnect;
 	float TimeSinceConnectionLost;
+	FString ChannelSlug;
 	EWebSocketState WsState;
 	EWebSocketEvent WsEvents;
 	FTickerDelegate LobbyTickDelegate;
@@ -833,6 +883,9 @@ private:
     FPersonalChatNotif PersonalChatNotif;
     FPartyChatResponse PartyChatResponse;
     FPartyChatNotif PartyChatNotif;
+	FJoinDefaultChannelChatResponse JoinDefaultChannelResponse;
+	FChannelChatResponse ChannelChatResponse;
+	FChannelChatNotif ChannelChatNotif;
 
     // Presence
     FSetUserPresenceResponse SetUserPresenceResponse;

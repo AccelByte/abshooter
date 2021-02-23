@@ -26,24 +26,23 @@ FString ShooterGameTelemetry::ELoginTypeToString(const ELoginType& Type)
 	}
 }
 
-void TelemetryDispatcher(const FJsonObject& JsonObject, const FString& EventName)
+void TelemetryDispatcher(TSharedPtr<FJsonObject> JsonObject, const FString& EventName)
 {
+	FAccelByteModelsTelemetryBody TelemetryBody{ "abshooter", EventName, JsonObject };
 #if UE_SERVER
-	FRegistry::ServerGameTelemetry.SendProtectedEvent(
-		EventName,
-		JsonObject,
+	FRegistry::GameTelemetry.Send(
+		TelemetryBody,
 		FVoidHandler::CreateLambda([EventName]()
-			{
-				UE_LOG(LogTemp, Display, TEXT("%s event sent successfully."), *EventName);
-			})
+		{
+			UE_LOG(LogTemp, Display, TEXT("%s event sent successfully."), *EventName);
+		})
 		, FErrorHandler::CreateLambda([EventName](int32 ErrorCode, FString Message)
-			{
-				UE_LOG(LogTemp, Display, TEXT("%s event error.\nCode:%d\nMessage:%s"), *EventName, ErrorCode, *Message);
-			}));
+		{
+			UE_LOG(LogTemp, Display, TEXT("%s event error.\nCode:%d\nMessage:%s"), *EventName, ErrorCode, *Message);
+		}));
 #else
-	FRegistry::GameTelemetry.SendProtectedEvent(
-		EventName,
-		JsonObject,
+	FRegistry::GameTelemetry.Send(
+		TelemetryBody,
 		FVoidHandler::CreateLambda([EventName]()
 		{
 			UE_LOG(LogTemp, Display, TEXT("%s event sent successfully."), *EventName);
@@ -84,7 +83,7 @@ void ShooterGameTelemetry::Login(const ELoginType& Type, const FString& UserId)
 	Request.UserId = UserId;
 
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
-	TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.LoggedIn);
+	TelemetryDispatcher(JsonObject, ShooterGameConfig::Get().TelemetryEvents_.LoggedIn);
 }
 
 void ShooterGameTelemetry::Logout()
@@ -99,7 +98,7 @@ void ShooterGameTelemetry::Logout()
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
 	if (LoginSessionID != "") // If user not logged out, then 
 	{
-		TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.LoggedOut);
+		TelemetryDispatcher(JsonObject, ShooterGameConfig::Get().TelemetryEvents_.LoggedOut);
 	}
 	DisableHeartbeat();
 }
@@ -115,7 +114,7 @@ void ShooterGameTelemetry::StartMatch(const FString& MatchID, const FString& Gam
 	Request.GameMode = GameMode;
 
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
-	TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.MatchStart);
+	TelemetryDispatcher(JsonObject, ShooterGameConfig::Get().TelemetryEvents_.MatchStart);
 }
 
 void ShooterGameTelemetry::EndMatch(bool IsWinner, const FString& EndReason)
@@ -127,7 +126,7 @@ void ShooterGameTelemetry::EndMatch(bool IsWinner, const FString& EndReason)
 	Request.IsWinner = IsWinner;
 
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
-	TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.MatchEnd);
+	TelemetryDispatcher(JsonObject, ShooterGameConfig::Get().TelemetryEvents_.MatchEnd);
 
 	CurrentMatchID = "";
 }
@@ -158,5 +157,5 @@ void ShooterGameTelemetry::Heartbeat()
 #endif
 
 	auto JsonObject = FJsonObjectConverter::UStructToJsonObject(Request);
-	TelemetryDispatcher(*JsonObject, ShooterGameConfig::Get().TelemetryEvents_.Heartbeat);
+	TelemetryDispatcher(JsonObject, ShooterGameConfig::Get().TelemetryEvents_.Heartbeat);
 }

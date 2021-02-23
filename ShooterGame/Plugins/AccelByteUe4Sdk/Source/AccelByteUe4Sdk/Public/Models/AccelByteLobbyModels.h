@@ -232,6 +232,51 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsPartyMessageNotice
 	FString ReceivedAt;
 };
 
+// join default channel chat
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsJoinDefaultChannelResponse
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString ChannelSlug;
+};
+
+// send channel chat request
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsChannelMessageRequest
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString ChannelSlug;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+	FString payload;
+};
+
+// Receive channel chat
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsChannelMessageNotice
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString From;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString ChannelSlug;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString Payload;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString SentAt;
+};
+
+// Send channel chat
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsChannelMessageResponse
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		int32 Code;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
+		FString Message;
+};
 
 // ------------------------------------------------------------------------------------------------
 // Presence 
@@ -348,7 +393,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchmakingNotice
     FString MatchId;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Category | Models | Lobby")
-    EAccelByteMatchmakingStatus Status;
+    EAccelByteMatchmakingStatus Status{EAccelByteMatchmakingStatus::Unknown};
 };
 
 // DS Notification
@@ -511,11 +556,11 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsGetFriendshipStatusResponse
 USTRUCT(BlueprintType)
 struct FAccelByteModelsGetFriendshipStatusStringResponse
 {
-	GENERATED_BODY()
-	UPROPERTY(EditAnywhere, NotBlueprintType)
-		FString Code;
-	UPROPERTY(EditAnywhere, NotBlueprintType)
-		FString friendshipStatus;
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere, NotBlueprintType, Category = "AccelByte | Lobby | Models | Friends | GetFriendshipStatusStringResponse")
+        FString Code;
+    UPROPERTY(EditAnywhere, NotBlueprintType, Category = "AccelByte | Lobby | Models | Friends | GetFriendshipStatusStringResponse")
+        FString friendshipStatus;
 };
 
 UENUM(BlueprintType)

@@ -11,19 +11,22 @@
 #include "Core/AccelByteServerSettings.h"
 #include "Core/AccelByteHttpRetryScheduler.h"
 #include "Core/AccelByteError.h"
+#include "Core/AccelByteEnvironment.h"
 #include "Http.h"
 #include "Modules/ModuleManager.h"
 #include "IWebSocket.h"
 #include "WebSocketsModule.h"
+#include "JsonUtilities.h"
 
 
 namespace AccelByte
 {
-    namespace GameServerApi
-    {
+	namespace GameServerApi
+	{
 		const FName AGONES_MODULE_NAME = "Agones";
 		const FString AGONES_MATCH_DETAILS_ANNOTATION = "match-details";
 		const float AGONES_INITIAL_HEALTH_CHECK_TIMEOUT_SECOND = 8.0f;
+		const FString AGONES_PROVIDER = "Agones";
 
 		void ServerDSM::RegisterServerToDSM(const int32 Port, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
 		{
@@ -53,7 +56,7 @@ namespace AccelByte
 				});
 				GetPubIp(GetPubIpDelegate, OnError);
 			}
-			else if (Provider == EProvider::AGONES)
+			else if (Provider == AGONES_PROVIDER)
 			{
 #if AGONES_PLUGIN_FOUND
 				InitiateAgones(OnSuccess);
@@ -65,25 +68,7 @@ namespace AccelByte
 			}
 			else
 			{
-#if ENGINE_MINOR_VERSION > 20
-#if PLATFORM_WINDOWS
-				ServerName = FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
-#elif PLATFORM_LINUX
-				ServerName = FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
-#elif PLATFORM_MAC
-				ServerName = FApplePlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"));
-#endif
-#else
-				TCHAR data[100];
-#if PLATFORM_WINDOWS
-				FWindowsPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"), data, 100);
-#elif PLATFORM_LINUX
-				FLinuxPlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"), data, 100);
-#elif PLATFORM_MAC
-				FApplePlatformMisc::GetEnvironmentVariable(TEXT("POD_NAME"), data, 100)
-#endif
-					ServerName = FString::Printf(TEXT("%s"), data);
-#endif
+				ServerName = Environment::GetEnvironmentVariable("POD_NAME", 100);
 				FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::ServerCredentials.GetClientAccessToken());
 				FString Url = FString::Printf(TEXT("%s/dsm/namespaces/%s/servers/register"), *DSMServerUrl, *FRegistry::ServerCredentials.GetClientNamespace());
 				FString Verb = TEXT("POST");
@@ -94,7 +79,7 @@ namespace AccelByte
 					DSPubIp,
 					ServerName,
 					Port,
-					PROVIDER_TABLE[Provider]
+					Provider
 				};
 				FString Contents;
 				FJsonObjectConverter::UStructToJsonObjectString(Register, Contents);
@@ -140,11 +125,11 @@ namespace AccelByte
 			}
 		}
 
-        void ServerDSM::SendShutdownToDSM(const bool KillMe, const FString& MatchId, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
-        {
-            Report report;
-            report.GetFunctionLog(FString(__FUNCTION__));
-			if (ServerType != EServerType::CLOUDSERVER)
+		void ServerDSM::SendShutdownToDSM(const bool KillMe, const FString& MatchId, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+		{
+			Report report;
+			report.GetFunctionLog(FString(__FUNCTION__));
+			if (ServerType == EServerType::LOCALSERVER)
 			{
 				OnError.ExecuteIfBound(409, TEXT("Server not registered as Cloud Server."));
 			}
@@ -166,7 +151,7 @@ namespace AccelByte
 				});
 				GetPubIp(GetPubIpDelegate, OnError);
 			}
-			else if (Provider == EProvider::AGONES && ServerType != EServerType::LOCALSERVER)
+			else if (Provider == AGONES_PROVIDER && ServerType != EServerType::LOCALSERVER)
 			{
 #if AGONES_PLUGIN_FOUND
 				ShutdownAgones(OnSuccess);
@@ -202,12 +187,12 @@ namespace AccelByte
 				ServerType = EServerType::NONE;
 				FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 			}
-        }
+		}
 
-        void ServerDSM::RegisterLocalServerToDSM(const FString IPAddress, const int32 Port, const FString ServerName_, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
-        {
-            Report report;
-            report.GetFunctionLog(FString(__FUNCTION__));
+		void ServerDSM::RegisterLocalServerToDSM(const FString IPAddress, const int32 Port, const FString ServerName_, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+		{
+			Report report;
+			report.GetFunctionLog(FString(__FUNCTION__));
 			if (ServerType != EServerType::NONE)
 			{
 				OnError.ExecuteIfBound(409, TEXT("Server already registered."));
@@ -263,13 +248,13 @@ namespace AccelByte
 
 				FRegistry::HttpRetryScheduler.ProcessRequest(Request, OnRegisterResponse, FPlatformTime::Seconds());
 			}
-        }
+		}
 
-        void ServerDSM::DeregisterLocalServerFromDSM(const FString& ServerName_, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
-        {
-            Report report;
-            report.GetFunctionLog(FString(__FUNCTION__));
-			if (ServerType != EServerType::LOCALSERVER)
+		void ServerDSM::DeregisterLocalServerFromDSM(const FString& ServerName_, const FVoidHandler& OnSuccess, const FErrorHandler& OnError)
+		{
+			Report report;
+			report.GetFunctionLog(FString(__FUNCTION__));
+			if (ServerType == EServerType::CLOUDSERVER)
 			{
 				OnError.ExecuteIfBound(409, TEXT("Server not registered as Local Server."));
 			}
@@ -297,13 +282,13 @@ namespace AccelByte
 				ServerType = EServerType::NONE;
 				FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
 			}
-        }
+		}
 
-        bool ServerDSM::HeartBeatTick(float DeltaTime)
-        {
-            Report report;
-            report.GetFunctionLog(FString(__FUNCTION__));
-			if (Provider == EProvider::AGONES && ServerType != EServerType::LOCALSERVER)
+		bool ServerDSM::HeartBeatTick(float DeltaTime)
+		{
+			Report report;
+			report.GetFunctionLog(FString(__FUNCTION__));
+			if (Provider == AGONES_PROVIDER && ServerType != EServerType::LOCALSERVER)
 			{
 #if AGONES_PLUGIN_FOUND
 				PollAgonesHeartBeat();
@@ -315,8 +300,8 @@ namespace AccelByte
 			{
 				PollHeartBeat();
 			}
-            return true;
-        }
+			return true;
+		}
 
 		void ServerDSM::ConfigureHeartBeat(bool bIsAutomatic, int TimeoutSeconds, int ErrorRetry)
 		{
@@ -367,7 +352,7 @@ namespace AccelByte
 		{
 			Report report;
 			report.GetFunctionLog(FString(__FUNCTION__));
-			if (FRegistry::ServerQosManager.Latencies.Num() == 0)
+			if (Region.IsEmpty() && FRegistry::ServerQosManager.Latencies.Num() == 0)
 			{
 				GetLatenciesDelegate.BindLambda([this, OnSuccess, OnError](const TArray<TPair<FString, float>>& Result)
 				{
@@ -377,16 +362,20 @@ namespace AccelByte
 			}
 			else
 			{
-				TPair<FString, float> Region{ "", 10000 };
-				for (auto Latency : FRegistry::ServerQosManager.Latencies)
+				if (Region.IsEmpty())
 				{
-					if (Region.Value > Latency.Value)
+					TPair<FString, float> RegionData{ "", 10000 };
+					for (auto Latency : FRegistry::ServerQosManager.Latencies)
 					{
-						Region = Latency;
+						if (RegionData.Value > Latency.Value)
+						{
+							RegionData = Latency;
+						}
 					}
+					Region = RegionData.Key;
 				}
 				FString Authorization = FString::Printf(TEXT("Bearer %s"), *FRegistry::ServerCredentials.GetClientAccessToken());
-				FString Url = FString::Printf(TEXT("%s/public/dsm?region=%s"), *FRegistry::ServerSettings.DSMControllerServerUrl, *Region.Key);
+				FString Url = FString::Printf(TEXT("%s/public/dsm?region=%s"), *FRegistry::ServerSettings.DSMControllerServerUrl, *Region);
 				FString Verb = TEXT("GET");
 				FString ContentType = TEXT("application/json");
 				FString Accept = TEXT("application/json");
@@ -399,7 +388,81 @@ namespace AccelByte
 				Request->SetHeader(TEXT("Content-Type"), ContentType);
 				Request->SetHeader(TEXT("Accept"), Accept);
 				Request->SetContentAsString(Contents);
-				FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+				FRegistry::HttpRetryScheduler.ProcessRequest(Request, FHttpRequestCompleteDelegate::CreateLambda(
+				[OnSuccess, OnError, this]
+				(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
+				{
+					Report report;
+					report.GetHttpResponse(Request, Response);
+
+					if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+					{
+						// backward compatibility checks
+						// old: single DSM client
+						// new: array of DSM clients
+						const FString JsonString = Response->GetContentAsString();
+						TSharedPtr<FJsonValue> JsonParsed;
+						const TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonString);
+						bool bSuccess = false;
+						int32 ErrorCode = 0;
+						FString ErrorMessage;
+						if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+						{
+							ErrorCode = (int32)ErrorCodes::JsonDeserializationFailed;
+							const TArray<TSharedPtr<FJsonValue>>* JsonArray;
+							const TSharedPtr<FJsonObject>* JsonObject;
+							if (JsonParsed->TryGetArray(JsonArray))
+							{
+								TArray<FAccelByteModelsDSMClient> DsmClients;
+								if (FJsonObjectConverter::JsonArrayToUStruct(*JsonArray, &DsmClients,0 ,0))
+								{
+									for (const auto& DsmClient : DsmClients)
+									{
+										if (DsmClient.Provider == Provider && DsmClient.Status == "HEALTHY")
+										{
+											bSuccess = true;
+											OnSuccess.ExecuteIfBound(DsmClient);
+											return;
+										}
+									}
+
+									if (bSuccess == false)
+									{
+										ErrorCode = (int32)ErrorCodes::InvalidResponse;
+										ErrorMessage = FString::Printf(TEXT("Cannot found healthy DSM for provider '%s' region '%s'"), *Provider, *Region);
+									}
+								}
+							}
+							else if (JsonParsed->TryGetObject(JsonObject))
+							{
+								FAccelByteModelsDSMClient DsmClient;
+								if (FJsonObjectConverter::JsonObjectToUStruct(JsonObject->ToSharedRef(), &DsmClient, 0, 0))
+								{
+									bSuccess = true;
+								   OnSuccess.ExecuteIfBound(DsmClient);
+									return;
+								}
+							}
+						}
+
+						if (!bSuccess)
+						{
+							if (ErrorMessage.IsEmpty())
+							{
+								ErrorMessage = ErrorMessages::Default.at(ErrorCode);
+							}
+							OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+						}
+					} 
+					else
+					{
+						int32 Code;
+						FString Message;
+						HandleHttpError(Request, Response, Code, Message);
+						OnError.ExecuteIfBound(Code, Message);
+					}
+
+				}), FPlatformTime::Seconds());
 			}
 		}
 
@@ -428,47 +491,64 @@ namespace AccelByte
 			TArray<FString> Switches;
 			FCommandLine::Parse(CommandParams, Tokens, Switches);
 			UE_LOG(LogTemp, Log, TEXT("Params: %s"), CommandParams);
-			bool bIsProviderFound = false;
-			bool bIsGameVersionFound = false;
 			for (auto Param : Switches)
 			{
 				if (Param.Contains("provider"))
 				{
 					TArray<FString> ArraySplit;
 					Param.ParseIntoArray(ArraySplit, TEXT("="), 1);
-					FString ProviderArgValue = ArraySplit[1];
-					for (const auto& entry : PROVIDER_TABLE)
-					{
-						if (entry.Value == ProviderArgValue)
-						{
-							Provider = entry.Key;
-							bIsProviderFound = true;
-						}
-					}
+					Provider = ArraySplit[1];
 				}
-				if (Param.Contains("game_version"))
+				else if (Param.Contains("game_version"))
 				{
 					TArray<FString> ArraySplit;
 					Param.ParseIntoArray(ArraySplit, TEXT("="), 1);
 					Game_version = ArraySplit[1];
-					bIsGameVersionFound = true;
 				}
-				if (bIsProviderFound && bIsGameVersionFound)
+				else if (Param.Contains("region"))
 				{
-					break;
+					TArray<FString> ArraySplit;
+					Param.ParseIntoArray(ArraySplit, TEXT("="), 1);
+					Region = ArraySplit[1];
+				}
+			}
+		}
+
+		void RemoveMemberAttributeFromBackend(FJsonObject& jsonObject)
+		{
+			if (jsonObject.HasField("matching_allies"))
+			{
+				const TArray<TSharedPtr<FJsonValue>>* matching_allies;
+				if (jsonObject.TryGetArrayField("matching_allies", matching_allies))
+				{
+					for (int i = 0; i < matching_allies->Num(); i++)
+					{
+						const TArray<TSharedPtr<FJsonValue>>* matching_parties;
+						if ((*matching_allies)[i]->AsObject()->TryGetArrayField("matching_parties", matching_parties))
+						{
+							for (int j = 0; j < matching_parties->Num(); j++)
+							{
+								const TSharedPtr<FJsonObject>* matching_party;
+								if ((*matching_parties)[j]->TryGetObject(matching_party))
+								{
+									const TSharedPtr<FJsonObject>* partyAttribute;
+									if ((*matching_party)->TryGetObjectField("party_attributes", partyAttribute))
+									{
+										if ((*partyAttribute)->HasField("member_attributes"))
+										{
+											(*partyAttribute)->RemoveField("member_attributes");
+										}
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
 
 		ServerDSM::ServerDSM(const AccelByte::ServerCredentials& Credentials, const AccelByte::ServerSettings& Settings)
 		{
-			PROVIDER_TABLE.Add(EProvider::AGONES, "agones");
-			PROVIDER_TABLE.Add(EProvider::AMPD, "ampd");
-			PROVIDER_TABLE.Add(EProvider::AWS, "aws");
-			PROVIDER_TABLE.Add(EProvider::BAREMETAL, "baremetal");
-			PROVIDER_TABLE.Add(EProvider::I3D, "i3d");
-			PROVIDER_TABLE.Add(EProvider::DEFAULT, "");
-
 			HeartBeatDelegate = FTickerDelegate::CreateRaw(this, &ServerDSM::HeartBeatTick);
 
 			// Agones has different heartbeat request-response. See ServerDSM::PollAgonesHeartBeat()
@@ -479,9 +559,21 @@ namespace AccelByte
 
 				if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 				{
-					if (Response->GetContentLength() > 0)
+					if (Response->GetContent().Num() > 0)
 					{
-						HandleHttpResultOk(Response, OnMatchRequest);
+						HandleHttpResultOk(Response, THandler<FJsonObject>::CreateLambda([OnSuccess = OnMatchRequest](const FJsonObject& jsonObject)
+						{
+							FJsonObject copyJsonObject = FJsonObject(jsonObject);
+							RemoveMemberAttributeFromBackend(copyJsonObject);
+							TSharedRef<FJsonObject> JsonObjectRef = MakeShared<FJsonObject>(copyJsonObject);
+							FAccelByteModelsMatchRequest MatchRequest;
+							bool bParseSuccess = FJsonObjectConverter::JsonObjectToUStruct<FAccelByteModelsMatchRequest>(JsonObjectRef, &MatchRequest, 0, 0);
+
+							if (bParseSuccess)
+							{
+								OnSuccess.ExecuteIfBound(MatchRequest);
+							}
+						}));
 					}
 
 					return;
@@ -506,7 +598,7 @@ namespace AccelByte
 			});
 		}
 
-        ServerDSM::~ServerDSM() {}
+		ServerDSM::~ServerDSM() {}
 
 #if AGONES_PLUGIN_FOUND
 		void ServerDSM::InitiateAgones(FVoidHandler OnSuccess)
@@ -570,16 +662,28 @@ namespace AccelByte
 							GameServer->ObjectMeta.Annotations.GetKeys(ListOfKey);
 							if (ListOfKey.Contains(AGONES_MATCH_DETAILS_ANNOTATION))
 							{
+								FAccelByteModelsMatchRequest MatchRequestDeserialized;
 								FString MatchDetails = GameServer->ObjectMeta.Annotations[AGONES_MATCH_DETAILS_ANNOTATION];
-								FAccelByteModelsMatchRequest StructResponse;
-								bool bParseSuccess = FJsonObjectConverter::JsonObjectStringToUStruct(MatchDetails, &StructResponse, 0, 0);
-								if (bParseSuccess)
+
+								TSharedPtr<FJsonObject> jsonObjectPtr = MakeShareable(new FJsonObject);
+								TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(MatchDetails);
+								bool bDeserializeSuccess = FJsonSerializer::Deserialize(Reader, jsonObjectPtr);
+								TSharedRef<FJsonObject> jsonObjectRef = jsonObjectPtr.ToSharedRef();
+								RemoveMemberAttributeFromBackend(jsonObjectRef.Get());
+
+								bool bParseSuccess = FJsonObjectConverter::JsonObjectToUStruct<FAccelByteModelsMatchRequest>(jsonObjectRef, &MatchRequestDeserialized, 0, 0);
+
+								if (bParseSuccess == false)
 								{
-									OnMatchRequest.ExecuteIfBound(StructResponse);
+									OnHeartBeatError.ExecuteIfBound(404, TEXT("Agones GetGameServer's match-details annotation is wrong."));
+								}
+								if (MatchRequestDeserialized.Session_id == "")
+								{
+									OnHeartBeatError.ExecuteIfBound(404, TEXT("Agones GetGameServer's match-details annotation is wrong."));
 								}
 								else
 								{
-									OnHeartBeatError.ExecuteIfBound(404, TEXT("Agones GetGameServer's match-details annotation is wrong."));
+									OnMatchRequest.ExecuteIfBound(MatchRequestDeserialized);
 								}
 							}
 							else
@@ -601,5 +705,5 @@ namespace AccelByte
 			FAgonesModule::GetHook().Health();
 		}
 #endif
-    } // Namespace GameServerApi
+	} // Namespace GameServerApi
 } // Namespace AccelByte

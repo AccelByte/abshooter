@@ -10,9 +10,10 @@
 #include "AccelByteUe4Sdk/Public/Models/AccelByteUserModels.h"
 #include "AccelByteUserBlueprints.generated.h"
 
-DECLARE_DYNAMIC_DELEGATE_OneParam(FDUserDataHandler, const FUserData&, Result);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FDUserDataHandler, const FAccountUserData&, Result);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FDUserRegisterHandler, const FRegisterResponse&, Result);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FDPlatformLinksHandler, const FPagedPlatformLinks&, PlatformLinks);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FDUserEligiblePlayHandler, const bool, Result);
 
 UCLASS(Blueprintable, BlueprintType)
 class UBPUser : public UBlueprintFunctionLibrary
@@ -60,10 +61,13 @@ public:
 	static void GetPlatformLinks(const FDPlatformLinksHandler& OnSuccess, const FDErrorHandler& OnError);
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | User | Api")
-	static void LinkOtherPlatform(const FString& PlatformId, const FString& Ticket, const FDHandler& OnSuccess, const FDErrorHandler& OnError);
+	static void LinkOtherPlatform(EAccelBytePlatformType PlatformType, const FString& Ticket, const FDHandler& OnSuccess, const FDErrorHandler& OnError);
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | User | Api")
-	static void UnlinkOtherPlatform(const FString& PlatformId, const FDHandler& OnSuccess, const FDErrorHandler& OnError);
+	static void UnlinkOtherPlatform(EAccelBytePlatformType PlatformType, const FDHandler& OnSuccess, const FDErrorHandler& OnError);
+
+	UFUNCTION(BlueprintCallable, Category = "AccelByte | User | Api")
+	static void GetUserEligibleToPlay(const FDUserEligiblePlayHandler& OnSuccess, const FDErrorHandler& OnError);
 
 	UFUNCTION(BlueprintCallable, Category = "AccelByte | User | Api")
 	static void GetUserByUserId(const FString& UserId, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError);

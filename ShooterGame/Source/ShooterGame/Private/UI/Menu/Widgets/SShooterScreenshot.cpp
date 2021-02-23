@@ -1198,7 +1198,7 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 	TArray<FString> Tags = { FString::Printf(TEXT("SlotIndex=%d"), Index) };
 	FString SlotId = LocalSlots[Index].SlotId;
 
-	LocalSlots[Index].Status = STATUS_PENDING_CONST_STRING;
+	LocalSlots[Index].Status_DEPRECATED = STATUS_PENDING_CONST_STRING;
 	LocalSlots[Index].Checksum = MD5HashArray(ImageData);
 
 	SaveScreenshotMetadata();
@@ -1220,7 +1220,7 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 			LocalSlots[Index].Namespace = Output.Namespace;
 			LocalSlots[Index].OriginalName = Output.OriginalName;
 			LocalSlots[Index].SlotId = Output.SlotId;
-			LocalSlots[Index].Status = Output.Status;
+			LocalSlots[Index].Status_DEPRECATED = Output.Status_DEPRECATED;
 			LocalSlots[Index].StoredName = Output.StoredName;
 			LocalSlots[Index].Tags = Output.Tags;
 			LocalSlots[Index].DateAccessed = Output.DateAccessed;
@@ -1491,7 +1491,7 @@ void SShooterScreenshot::OnReceiveSlotImage(const TArray64<uint8>& Result64, con
 	// If the specified index doesn't exist, abort the operation.
 	if (SlotIndex >= LocalSlots.Num()) { return; }
 
-	if (LocalSlots[SlotIndex].Status == STATUS_PENDING_CONST_STRING)
+	if (LocalSlots[SlotIndex].Status_DEPRECATED == STATUS_PENDING_CONST_STRING)
 	{
 		SaveScreenshotCloudImage(SlotIndex, Result64);
 		ConflictImages.Add(SlotIndex, ImageBrush);
@@ -1582,7 +1582,7 @@ void SShooterScreenshot::OnResolveSlot(int32 Index)
 				LoadScreenshotImage(Index, ImageData64);
                 TArray<uint8> ImageData(MoveTemp(ImageData64));
 
-				LocalSlots[Index].Status = STATUS_PENDING_CONST_STRING;
+				LocalSlots[Index].Status_DEPRECATED = STATUS_PENDING_CONST_STRING;
 				LocalSlots[Index].Checksum = MD5HashArray(ImageData);
 
 				SaveScreenshotMetadata();
@@ -1601,7 +1601,7 @@ void SShooterScreenshot::RemoveErrorSlots()
 	// Cleanup pending local slot
 	for (auto& slot : LocalSlots)
 	{
-		if (slot.Status == STATUS_PENDING_CONST_STRING)
+		if (slot.Status_DEPRECATED == STATUS_PENDING_CONST_STRING)
 		{
 			slot = FAccelByteModelsSlot();
 		}
@@ -1645,7 +1645,7 @@ void SShooterScreenshot::RefreshFromCloud()
 	for (int i = 0; i < LocalSlots.Num(); i++)
 	{
 		FAccelByteModelsSlot LocalSlot = LocalSlots[i];
-		bool Pending = LocalSlot.Status == STATUS_PENDING_CONST_STRING;
+		bool Pending = LocalSlot.Status_DEPRECATED == STATUS_PENDING_CONST_STRING;
 		if (!LocalSlot.SlotId.IsEmpty() || Pending)
 		{
 			SavedScreenshotList[i]->Checksum = LocalSlot.Checksum;
@@ -1733,7 +1733,7 @@ void SShooterScreenshot::RefreshFromCloud()
 				else
 				{
 					if (!LocalSlots[SlotIndex].SlotId.IsEmpty() && LocalSlots[SlotIndex].Checksum != Slot.Checksum
-						&& LocalSlots[SlotIndex].Status == STATUS_PENDING_CONST_STRING
+						&& LocalSlots[SlotIndex].Status_DEPRECATED == STATUS_PENDING_CONST_STRING
 						)
 					{
 						ConflictSlots.Add(SlotIndex, Slot);

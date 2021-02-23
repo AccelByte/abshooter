@@ -34,8 +34,9 @@
 #include "Server/Models/AccelByteMatchmakingModels.h"
 
 SLobby::SLobby()
-	: OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
-	, ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	:  ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	  ,OverlayBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))
+	
 {
 
 }
@@ -1101,8 +1102,9 @@ TSharedRef<ITableRow> SLobby::MakeListViewWidget(TSharedPtr<FFriendEntryDeprecat
 		void Construct(const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTable, TSharedPtr<FFriendEntryDeprecated> InItem, SLobby* Parent)
 		{
 			Item = InItem;
+#if !UE_SERVER //cause compilation error on Linux 64 Build, I shall disable it for now
 			ParentClass = TWeakPtr<SLobby, ESPMode::NotThreadSafe>(StaticCastSharedRef<SLobby>(Parent->AsShared()));
-
+#endif
 
 			SMultiColumnTableRow< TSharedPtr<FFriendEntryDeprecated> >::Construct(FTableRowArgs().Style(&LobbyStyle->FriendRowStyle), InOwnerTable);
 		}

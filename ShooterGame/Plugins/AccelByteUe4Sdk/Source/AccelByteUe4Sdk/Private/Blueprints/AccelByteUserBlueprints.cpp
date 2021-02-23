@@ -66,7 +66,7 @@ void UBPUser::Upgrade(const FString& Username, const FString& Password, const FD
 {
 	FRegistry::User.Upgrade(
 		Username, Password,
-		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
+		THandler<FAccountUserData>::CreateLambda([OnSuccess](const FAccountUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
 		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }
@@ -84,7 +84,7 @@ void UBPUser::UpgradeAndVerify(const FString& Username, const FString& Password,
 {
 	FRegistry::User.UpgradeAndVerify(
 		Username, Password, VerificationCode,
-		THandler<FUserData>::CreateLambda([OnSuccess](const FUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
+		THandler<FAccountUserData>::CreateLambda([OnSuccess](const FAccountUserData& Result) { OnSuccess.ExecuteIfBound(Result); }),
 		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }
@@ -134,24 +134,33 @@ void UBPUser::GetPlatformLinks(const FDPlatformLinksHandler& OnSuccess, const FD
 	);
 }
 
-void UBPUser::LinkOtherPlatform(const FString& PlatformId, const FString& Ticket, const FDHandler& OnSuccess, const FDErrorHandler& OnError)
+void UBPUser::LinkOtherPlatform(EAccelBytePlatformType PlatformType, const FString& Ticket, const FDHandler& OnSuccess, const FDErrorHandler& OnError)
 {
 	FRegistry::User.LinkOtherPlatform(
-		PlatformId, Ticket,
+		PlatformType, Ticket,
 		FVoidHandler::CreateLambda([OnSuccess]() { OnSuccess.ExecuteIfBound(); }),
-		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
+		FCustomErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage, const FJsonObject& MessageVariables) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }
 	
-void UBPUser::UnlinkOtherPlatform(const FString& PlatformId, const FDHandler& OnSuccess, const FDErrorHandler& OnError)
+void UBPUser::UnlinkOtherPlatform(EAccelBytePlatformType PlatformType, const FDHandler& OnSuccess, const FDErrorHandler& OnError)
 {
 	
 	FRegistry::User.UnlinkOtherPlatform(
-		PlatformId,
+		PlatformType,
 		FVoidHandler::CreateLambda([OnSuccess]() { OnSuccess.ExecuteIfBound(); }),
 		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
 	);
 }
+
+void UBPUser::GetUserEligibleToPlay(const FDUserEligiblePlayHandler& OnSuccess, const FDErrorHandler& OnError)
+{
+	FRegistry::User.GetUserEligibleToPlay(
+		THandler<bool>::CreateLambda([OnSuccess](bool result) {OnSuccess.ExecuteIfBound(result); }),
+		FErrorHandler::CreateLambda([OnError](int32 ErrorCode, const FString& ErrorMessage) { OnError.ExecuteIfBound(ErrorCode, ErrorMessage); })
+	);
+}
+
 
 void UBPUser::GetUserByUserId(const FString& UserId, const FDUserDataHandler& OnSuccess, const FDErrorHandler& OnError)
 {
