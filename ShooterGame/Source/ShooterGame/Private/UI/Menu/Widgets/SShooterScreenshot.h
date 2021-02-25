@@ -142,9 +142,9 @@ private:
 	void ResolveUseLocalScreenshot(int32 Index);
 	bool LoadScreenshotImage(int32 Index, TArray64<uint8>& Result);
 	void DeleteScreenshotImage(int32 Index);
-
+	bool CheckIfDownloadedSlotValid(int32 Index);
 	void SaveToCloud(int32 Index);
-
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrushFromFile(FString Path);
 	TArray<FScreenshotEntry> PreviousSelectedScreenshot;
 
 	TSharedPtr<FScreenshotComboBoxGroup> ComboBoxGroup;

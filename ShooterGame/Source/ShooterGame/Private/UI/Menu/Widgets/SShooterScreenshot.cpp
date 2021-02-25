@@ -28,6 +28,7 @@
 #include "Runtime/Engine/Public/ImageUtils.h"
 #include "Models/ShooterGalleryModels.h"
 #include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
@@ -1189,6 +1190,30 @@ void SShooterScreenshot::DeleteScreenshotImage(int32 Index)
 	PlatformFile.DeleteFile(*ImageName);
 }
 
+bool SShooterScreenshot::CheckIfDownloadedSlotValid(int32 Index)
+{
+	FString ScreenshotsDir = GetUserScreenshotsDir();
+
+	if (ScreenshotsDir.IsEmpty())
+	{
+		return false;
+	}
+
+	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
+
+	if (!FPaths::FileExists(ImageName))
+	{
+		return false;
+	}
+
+	TArray<uint8> Data;
+	FFileHelper::LoadFileToArray(Data, *ImageName);
+	
+	FString Hash = MD5HashArray(Data);
+	bool Result = Hash == LocalSlots[Index].Checksum;
+	return Result;
+}
+
 void SShooterScreenshot::SaveToCloud(int32 Index)
 {
 	TArray64<uint8> ImageData64;
@@ -1283,6 +1308,11 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 	}
 }
 
+TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrushFromFile(FString Path)
+{
+	return TSharedPtr<FSlateDynamicImageBrush>();
+}
+
 void SShooterScreenshot::SaveMetaData(FString FileName, FDateTime DateTaken)
 {
 	//make sure it's updated
@@ -1300,7 +1330,7 @@ void SShooterScreenshot::SaveMetaData(FString FileName, FDateTime DateTaken)
 	Slot.DateModified = DateTaken;
 	Slot.Namespace = Namespace;
 	Slot.MimeType = "image/png";
-	Slot.Label = "Screenshot";
+	Slot.Label = FileName;
 	Slot.OriginalName = FileName;
 	Slot.StoredName = FileName;
 	TArray<uint8> data;
@@ -1448,8 +1478,7 @@ FReply SShooterScreenshot::OnKeyDown(const FGeometry& MyGeometry, const FKeyEven
 
 TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString ContentType, FName ResourceName, const TArray<uint8>& ImageData)
 {
-	TSharedPtr<FSlateDynamicImageBrush> Brush;
-
+	
 	uint32 BytesPerPixel = 4;
 	int32 Width = 0;
 	int32 Height = 0;
@@ -1475,9 +1504,11 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString Cont
 		RgbFormat = ERGBFormat::BGRA;
 	}
 
-	TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
+	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(ImageFormat);
 	if (ImageWrapper.IsValid() && ImageWrapper->SetCompressed(ImageData.GetData(), ImageData.Num()))
 	{
+		TSharedPtr<FSlateDynamicImageBrush> Brush;
+
 		Width = ImageWrapper->GetWidth();
 		Height = ImageWrapper->GetHeight();
 
@@ -1488,11 +1519,17 @@ TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrush(FString Cont
             DecodedImage = RawData;
             bSucceeded = true;
         }
+
+		FSlateApplication::Get().GetRenderer()->GenerateDynamicImageResource(ResourceName, ImageWrapper->GetWidth(), ImageWrapper->GetHeight(),
+			RawData
+		);
+
+		Brush = MakeShareable(new FSlateDynamicImageBrush(ResourceName, FVector2D(ImageWrapper->GetWidth(), ImageWrapper->GetHeight())));
+		return Brush;
     }
 
-    // This parameter required TArray
 
-	return Brush;
+	return nullptr;
 }
 
 void SShooterScreenshot::LoadSingleSlot(const FAccelByteModelsSlot& Slot, int32 SlotIndex)
@@ -1774,7 +1811,7 @@ void SShooterScreenshot::RefreshFromCloud()
 					}
 
 					TSharedPtr<FScreenshotEntry> SavedSlot = SavedScreenshotList[SlotIndex];
-					if (SavedSlot->Checksum != Slot.Checksum)
+					if (!CheckIfDownloadedSlotValid(SlotIndex))
 					{
 						LoadSingleSlot(Slot, SlotIndex);
 					}
