@@ -27,6 +27,7 @@
 #include "Runtime/ImageWrapper/Public/IImageWrapper.h"
 #include "Runtime/Engine/Public/ImageUtils.h"
 #include "Models/ShooterGalleryModels.h"
+#include "Misc/FileHelper.h"
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
@@ -1094,6 +1095,7 @@ void SShooterScreenshot::LoadScreenshotMetadata()
 	FScreenshotSave ScreenshotSave;
 	FJsonObjectConverter::JsonObjectStringToUStruct(SaveString, &ScreenshotSave, 0, 0);
 	LocalSlots = ScreenshotSave.Screenshots;
+	
 }
 
 void SShooterScreenshot::SaveLocalScreenshotImage(int32 Index, const TArray64<uint8>& Binary)
@@ -1279,6 +1281,34 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 		FRegistry::CloudStorage.UpdateSlot(SlotId, ImageData, "Screenshot.png", Tags, Label, "",
 			OnSuccess, OnProgress, OnError);
 	}
+}
+
+void SShooterScreenshot::SaveMetaData(FString FileName, FDateTime DateTaken)
+{
+	//make sure it's updated
+	LoadScreenshotMetadata();
+	FString ScreenshotDir = GetScreenshotsDir();
+	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
+	FString SavePath = ScreenshotDir / GI->UserProfileInfo.UserId + ".json";
+
+	FString UserId = AccelByte::FRegistry::Credentials.GetUserId();
+	FString Namespace = AccelByte::FRegistry::Settings.Namespace;
+	FAccelByteModelsSlot Slot;
+	Slot.UserId = UserId;
+	Slot.DateAccessed = DateTaken;
+	Slot.DateCreated  = DateTaken;
+	Slot.DateModified = DateTaken;
+	Slot.Namespace = Namespace;
+	Slot.MimeType = "image/png";
+	Slot.Label = "Screenshot";
+	Slot.OriginalName = FileName;
+	Slot.StoredName = FileName;
+	TArray<uint8> data;
+	FFileHelper::LoadFileToArray(data, *FileName);
+	Slot.Checksum = MD5HashArray(data);
+
+	LocalSlots.Add(Slot);
+	SaveScreenshotMetadata();
 }
 
 void SShooterScreenshot::BuildScreenshotItem()
