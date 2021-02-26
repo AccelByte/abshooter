@@ -1817,7 +1817,12 @@ void SShooterScreenshot::RefreshFromCloud()
 					}
 					else
 					{
+						TArray64<uint8> Result64;
+						LoadScreenshotImage(SlotIndex, Result64);
+						TArray<uint8> Result(MoveTemp(Result64));
+						auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
 						SavedScreenshotList[i]->State = DONE;
+						SavedScreenshotList[i]->Image = ImageBrush;
 					}
 				}
 			}
