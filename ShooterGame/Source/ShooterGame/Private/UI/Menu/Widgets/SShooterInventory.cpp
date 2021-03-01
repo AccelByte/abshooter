@@ -54,7 +54,11 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 
 	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
-
+	auto emptyLabel = SNew(STextBlock).Text(FText::FromString(TEXT("Empty")))
+		.Visibility(TAttribute<EVisibility>::Create([&]()
+			{
+				return EVisibility::Collapsed;
+			}));
 	ChildSlot
 	.VAlign(VAlign_Fill)
 	.HAlign(HAlign_Fill)
@@ -130,18 +134,6 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 		]
 #pragma endregion Content
 		+ SOverlay::Slot()
-		.VAlign(VAlign_Center)
-		.HAlign(HAlign_Center)
-		[
-			SNew(STextBlock)
-			.Text(FText::FromString(TEXT("Empty")))
-			.Visibility(TAttribute<EVisibility>::Create([&]()
-			{
-				return InventoryList.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed;
-			}))
-		]
-		
-		+ SOverlay::Slot()
 		.VAlign(VAlign_Bottom)
 		.HAlign(HAlign_Right)
 		.Padding(0, 0, 200, 17)
@@ -174,7 +166,15 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 				.Image(&MenuStyle->EscapeMainMenuInfo)
 			]
 		]
+		+ SOverlay::Slot()
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
+			[
+				emptyLabel
+			]
 	];
+	emptyText = emptyLabel;
+
 	//BuildInventoryItem();
 }
 
@@ -215,7 +215,7 @@ float SShooterInventory::GetItemHeight() const
 void SShooterInventory::BuildInventoryItem()
 {
 	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
-	
+
 #if PLATFORM_WINDOWS
 	FString Locale = FWindowsPlatformMisc::GetDefaultLocale();
 #elif PLATFORM_MAC
@@ -227,6 +227,13 @@ void SShooterInventory::BuildInventoryItem()
 #elif PLATFORM_XBOXONE
     FString Locale = FXboxCommonPlatformMisc::GetDefaultLocale();
 #endif
+	
+	if (InventoryList.Num() == 0) {
+		emptyText->SetVisibility(EVisibility::Visible);
+	}
+	else {
+		emptyText->SetVisibility(EVisibility::Collapsed);
+	}
 
 	if (!bRequestInventoryList)
 	{
