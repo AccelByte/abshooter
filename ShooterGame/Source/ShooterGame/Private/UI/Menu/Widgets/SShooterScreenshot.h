@@ -57,6 +57,10 @@ public:
 	/** needed for every widget */
 	void Construct(const FArguments& InArgs);
 
+	/** Should be called when a screenshot is taken */
+
+	void SaveMetaData(FString FileName, FDateTime DateTaken);
+
 	/** if we want to receive focus */
 	virtual bool SupportsKeyboardFocus() const override { return true; }
 
@@ -93,6 +97,8 @@ public:
 
 	void RemoveErrorSlots();
 
+	FString GetScreenshotsDir();
+	FString GetUserScreenshotsDir();
 private:
 	/** if menu is currently opened*/
 	bool bIsMenuUp;
@@ -124,8 +130,7 @@ private:
 	void UpdateCurrentScreenshotList();
 
 	FVector2D GetScreenSize() const;
-	FString GetScreenshotsDir();
-	FString GetUserScreenshotsDir();
+	
 	bool IsScreenshotMetadataExists();
 	void SaveScreenshotMetadata();
 	void LoadScreenshotMetadata();
@@ -137,9 +142,9 @@ private:
 	void ResolveUseLocalScreenshot(int32 Index);
 	bool LoadScreenshotImage(int32 Index, TArray64<uint8>& Result);
 	void DeleteScreenshotImage(int32 Index);
-
+	bool CheckIfDownloadedSlotValid(int32 Index);
 	void SaveToCloud(int32 Index);
-
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrushFromFile(FString Path);
 	TArray<FScreenshotEntry> PreviousSelectedScreenshot;
 
 	TSharedPtr<FScreenshotComboBoxGroup> ComboBoxGroup;
