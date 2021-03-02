@@ -228,13 +228,6 @@ void SShooterInventory::BuildInventoryItem()
     FString Locale = FXboxCommonPlatformMisc::GetDefaultLocale();
 #endif
 	
-	if (InventoryList.Num() == 0) {
-		emptyText->SetVisibility(EVisibility::Visible);
-	}
-	else {
-		emptyText->SetVisibility(EVisibility::Collapsed);
-	}
-
 	if (!bRequestInventoryList)
 	{
 		bRequestInventoryList = true;
@@ -247,6 +240,15 @@ void SShooterInventory::BuildInventoryItem()
 		FRegistry::Item.GetItemsByCriteria(Criteria, 0, 20,
 			AccelByte::THandler<FAccelByteModelsItemPagingSlicedResult>::CreateSP(this, &SShooterInventory::OnGetItemsByCriteria),
 			AccelByte::FErrorHandler::CreateSP(this, &SShooterInventory::OnGetItemsByCriteriaError));
+	}
+}
+
+void SShooterInventory::SetLabelEmpty() {
+	if (InventoryList.Num() == 0) {
+		emptyText->SetVisibility(EVisibility::Visible);
+	}
+	else {
+		emptyText->SetVisibility(EVisibility::Collapsed);
 	}
 }
 
@@ -358,6 +360,8 @@ void SShooterInventory::GetUserEntitlements()
 		}
 
 		InventoryListWidget->RequestListRefresh();
+		//set label after checking inventory
+		SetLabelEmpty();
 	}), AccelByte::FErrorHandler::CreateLambda([&](int32 Code, FString Message)
 	{
 		UE_LOG(LogTemp, Display, TEXT("Query entitlement failed: code: %d, message: %s"), Code, *Message)

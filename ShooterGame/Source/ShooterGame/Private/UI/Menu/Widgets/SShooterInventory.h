@@ -67,6 +67,7 @@ protected:
 
 	TSharedPtr<SWidget> MessageDialogWidget;
 	TSharedPtr<STextBlock> emptyText;
+	void SetLabelEmpty();
 
 	bool bRequestInventoryList = false;
 	
