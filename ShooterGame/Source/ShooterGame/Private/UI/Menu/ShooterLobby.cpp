@@ -795,6 +795,11 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 
 	FString LeavingUserId = LeaveInfo.UserID;
+	int32 IndexLeave = PartyMembers.IndexOfByPredicate([LeavingUserId](UPartyMemberEntryUI* Entry) {
+		return Entry->Data.UserId == LeavingUserId;
+		});
+	FString DisplayNameLeave = PartyMembers[IndexLeave]->Data.DisplayName;
+
 	PartyMembers.RemoveAll([LeavingUserId](UPartyMemberEntryUI* Entry) {
 		return Entry->Data.UserId == LeavingUserId;
 	});
@@ -808,16 +813,20 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 		PartyMembers[Index]->Data.isLeader = true;
 	}
 
+	
+	FString _message = "You have left the Party.";
 	if (LeaderId == GameInstance->UserToken.User_id)
 	{
 		LobbyMenuUI->ShowGameModeComboBox(true);
 	}
+	
+	if(LeavingUserId != LeaderId) {
+		_message = FString::Printf(TEXT("%s has left the Party."), *DisplayNameLeave);
+	}
 
 	UpdatePartyMemberList();
-
 	TWeakObjectPtr<UGeneralNotificationPopupUI> NotificationPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-
-	NotificationPopup->Show(ENotificationType::NOTIFICATION, FString("You have left the Party."));
+	NotificationPopup->Show(ENotificationType::NOTIFICATION, _message);
 }
 
 void ShooterLobby::OnInvitePartyResponse(const FAccelByteModelsPartyInviteResponse& Response)
