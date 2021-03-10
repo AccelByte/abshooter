@@ -1214,6 +1214,18 @@ void ShooterLobby::OnDsNotification(const FAccelByteModelsDsNotice& Notice)
 {
 	UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
 
+	if (Notice.Ip == "" && Notice.Status == "" && Notice.PodName == "" && Notice.Status.Contains("unable"))
+	{
+		TWeakObjectPtr<UGeneralNotificationPopupUI> Msgbox = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+		Msgbox->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Unable to start match!"));
+		UE_LOG(LogShooter, Error, TEXT("UNABLE TO START MATCH %s"), *Notice.Status);
+		CancelMatchmaking();
+	}
+	else
+	{
+		UE_LOG(LogShooter, Warning, TEXT("status %s"), *Notice.Status);
+	}
+
 	if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
 	{
 		FString ServerAddress;
