@@ -158,7 +158,7 @@ void AShooterGame_FreeForAll::EndMatch()
 			for (const auto& partyMember : party.party_members)
 			{
 				int32 Rank = 0;
-				FAccelByteModelsMatchmakingMember member;
+				FAccelByteModelsMatchmakingMember member{ 0, 0, 0, TEXT("") };
 				member.user_id = partyMember.user_id;
 				// Find player
 				for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)

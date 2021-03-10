@@ -483,6 +483,20 @@ void AShooterGameMode::CreateBotControllers()
 	}
 }
 
+void AShooterGameMode::Logout(AController* Exiting)
+{
+	AShooterPlayerController* Controller = Cast<AShooterPlayerController>(Exiting);
+	if (Controller)
+	{
+		AShooterPlayerState* PlayerState = Cast<AShooterPlayerState>(Controller->PlayerState);
+		if (PlayerState)
+		{
+			PlayerState->SetQuitter(true);
+		}
+	}
+	
+}
+
 AShooterAIController* AShooterGameMode::CreateBot(int32 BotNum)
 {
 	FActorSpawnParameters SpawnInfo;
