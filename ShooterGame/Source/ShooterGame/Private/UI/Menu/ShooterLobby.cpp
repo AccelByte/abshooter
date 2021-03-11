@@ -795,10 +795,12 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 
 	FString LeavingUserId = LeaveInfo.UserID;
-	int32 IndexLeave = PartyMembers.IndexOfByPredicate([LeavingUserId](UPartyMemberEntryUI* Entry) {
+	const int32 LeavingPlayerIndex = PartyMembers.IndexOfByPredicate([LeavingUserId](UPartyMemberEntryUI* Entry) 
+		{
 		return Entry->Data.UserId == LeavingUserId;
 		});
-	FString DisplayNameLeave = PartyMembers[IndexLeave]->Data.DisplayName;
+
+	const FString LeavingPlayerDisplayName = PartyMembers[LeavingPlayerIndex]->Data.DisplayName;
 
 	PartyMembers.RemoveAll([LeavingUserId](UPartyMemberEntryUI* Entry) {
 		return Entry->Data.UserId == LeavingUserId;
@@ -813,15 +815,15 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 		PartyMembers[Index]->Data.isLeader = true;
 	}
 
-	
-	FString _message = "You have left the Party.";
 	if (LeaderId == GameInstance->UserToken.User_id)
 	{
 		LobbyMenuUI->ShowGameModeComboBox(true);
 	}
-	
-	if(LeavingUserId != LeaderId) {
-		_message = FString::Printf(TEXT("%s has left the Party."), *DisplayNameLeave);
+
+	FString _message = TEXT("You have left the Party.");
+	if(LeavingUserId != LeaderId) 
+	{
+		_message = FString::Printf(TEXT("%s has left the Party."), *LeavingPlayerDisplayName);
 	}
 
 	UpdatePartyMemberList();
