@@ -54,7 +54,8 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 
 	const FShooterInventoryStyle* InventoryStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterInventoryStyle>("DefaultShooterInventoryStyle");
 	const FShooterMenuStyle* MenuStyle = &FShooterStyle::Get().GetWidgetStyle<FShooterMenuStyle>("DefaultShooterMenuStyle");
-	auto emptyLabel = SNew(STextBlock).Text(FText::FromString(TEXT("Empty")))
+	//we need local variable here....
+	auto LocalEmptyLabel = SNew(STextBlock).Text(FText::FromString(TEXT("Empty")))
 		.Visibility(TAttribute<EVisibility>::Create([&]()
 			{
 				return EVisibility::Collapsed;
@@ -170,12 +171,11 @@ void SShooterInventory::Construct(const FArguments& InArgs)
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
 			[
-				emptyLabel
+				LocalEmptyLabel //....because if we use EmptyText instead, it won't compile, idk why. 
 			]
 	];
-	emptyText = emptyLabel;
-
-	//BuildInventoryItem();
+	EmptyText = LocalEmptyLabel; //we will need this reference down the road.
+	
 }
 
 float SShooterInventory::GetScreenWidth() const
@@ -243,12 +243,15 @@ void SShooterInventory::BuildInventoryItem()
 	}
 }
 
-void SShooterInventory::SetLabelEmpty() {
-	if (InventoryList.Num() == 0) {
-		emptyText->SetVisibility(EVisibility::Visible);
+void SShooterInventory::SetLabelEmpty() 
+{
+	if (InventoryList.Num() == 0) 
+	{
+		EmptyText->SetVisibility(EVisibility::Visible);
 	}
-	else {
-		emptyText->SetVisibility(EVisibility::Collapsed);
+	else 
+	{
+		EmptyText->SetVisibility(EVisibility::Collapsed);
 	}
 }
 

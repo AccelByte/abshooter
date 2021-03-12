@@ -29,6 +29,7 @@
 #include "Models/ShooterGalleryModels.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "UMG/GeneralNotificationPopupUI.h"
 
 using namespace AccelByte::Api;
 const int SAVE_SLOT_SIZE = 4;
@@ -992,7 +993,7 @@ FVector2D SShooterScreenshot::GetScreenSize() const
 	return Result;
 }
 
-FString SShooterScreenshot::GetScreenshotsDir()
+FString SShooterScreenshot::GetScreenshotsDir() const
 {
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	FString ScreenshotsDir = FPaths::ProjectSavedDir() / "Screenshots";
@@ -1008,7 +1009,7 @@ FString SShooterScreenshot::GetScreenshotsDir()
 	return ScreenshotsDir;
 }
 
-FString SShooterScreenshot::GetUserScreenshotsDir()
+FString SShooterScreenshot::GetUserScreenshotsDir() const
 {
 	IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
@@ -1190,28 +1191,40 @@ void SShooterScreenshot::DeleteScreenshotImage(int32 Index)
 	PlatformFile.DeleteFile(*ImageName);
 }
 
-bool SShooterScreenshot::CheckIfDownloadedSlotValid(int32 Index)
+bool SShooterScreenshot::IsDownloadedSlotValid(int32 Index) const
 {
-	FString ScreenshotsDir = GetUserScreenshotsDir();
+	if (Index < 4)
+	{
+		const FString ScreenshotsDir = GetUserScreenshotsDir();
 
-	if (ScreenshotsDir.IsEmpty())
+		if (ScreenshotsDir.IsEmpty())
+		{
+			return false;
+		}
+
+		const FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
+
+		if (!FPaths::FileExists(ImageName))
+		{
+			return false;
+		}
+
+		TArray<uint8> Data;
+		bool Result = FFileHelper::LoadFileToArray(Data, *ImageName);
+
+		if (!Result)
+		{
+			return false;
+		}
+
+		const FString Hash = MD5HashArray(Data);
+		Result = Hash == LocalSlots[Index].Checksum;
+		return Result;
+	}
+	else
 	{
 		return false;
 	}
-
-	FString ImageName = ScreenshotsDir / "Screenshot-" + FString::FromInt(Index) + ".png";
-
-	if (!FPaths::FileExists(ImageName))
-	{
-		return false;
-	}
-
-	TArray<uint8> Data;
-	FFileHelper::LoadFileToArray(Data, *ImageName);
-	
-	FString Hash = MD5HashArray(Data);
-	bool Result = Hash == LocalSlots[Index].Checksum;
-	return Result;
 }
 
 void SShooterScreenshot::SaveToCloud(int32 Index)
@@ -1308,21 +1321,21 @@ void SShooterScreenshot::SaveToCloud(int32 Index)
 	}
 }
 
-TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrushFromFile(FString Path)
+TSharedPtr<FSlateDynamicImageBrush> SShooterScreenshot::CreateBrushFromFile(const FString& Path)
 {
 	return TSharedPtr<FSlateDynamicImageBrush>();
 }
 
-void SShooterScreenshot::SaveMetaData(FString FileName, FDateTime DateTaken)
+void SShooterScreenshot::SaveMetaData(const FString& FileName, const FDateTime&  DateTaken)
 {
 	//make sure it's updated
 	LoadScreenshotMetadata();
-	FString ScreenshotDir = GetScreenshotsDir();
 	UShooterGameInstance* const GI = Cast<UShooterGameInstance>(PlayerOwner->GetGameInstance());
-	FString SavePath = ScreenshotDir / GI->UserProfileInfo.UserId + ".json";
+	const FString ScreenshotDir = GetScreenshotsDir();
+	const FString SavePath = ScreenshotDir / GI->UserProfileInfo.UserId + ".json";
+	const FString UserId = AccelByte::FRegistry::Credentials.GetUserId();
+	const FString Namespace = AccelByte::FRegistry::Settings.Namespace;
 
-	FString UserId = AccelByte::FRegistry::Credentials.GetUserId();
-	FString Namespace = AccelByte::FRegistry::Settings.Namespace;
 	FAccelByteModelsSlot Slot;
 	Slot.UserId = UserId;
 	Slot.DateAccessed = DateTaken;
@@ -1334,7 +1347,14 @@ void SShooterScreenshot::SaveMetaData(FString FileName, FDateTime DateTaken)
 	Slot.OriginalName = FileName;
 	Slot.StoredName = FileName;
 	TArray<uint8> data;
-	FFileHelper::LoadFileToArray(data, *FileName);
+	const bool OpenSuccess = FFileHelper::LoadFileToArray(data, *FileName);
+	if (!OpenSuccess)
+	{
+		UE_LOG(LogShooter, Error, TEXT("ERROR, failed to load the image file! %s"), *FileName);
+		TWeakObjectPtr<UGeneralNotificationPopupUI> Msgbox = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GI, *GI->GeneralNotificationPopupClass.Get()));
+		Msgbox->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Failed to load the image file!"));
+		return;
+	}
 	Slot.Checksum = MD5HashArray(data);
 
 	LocalSlots.Add(Slot);
@@ -1811,7 +1831,7 @@ void SShooterScreenshot::RefreshFromCloud()
 					}
 
 					TSharedPtr<FScreenshotEntry> SavedSlot = SavedScreenshotList[SlotIndex];
-					if (!CheckIfDownloadedSlotValid(SlotIndex))
+					if (!IsDownloadedSlotValid(SlotIndex))
 					{
 						LoadSingleSlot(Slot, SlotIndex);
 					}
@@ -1819,8 +1839,10 @@ void SShooterScreenshot::RefreshFromCloud()
 					{
 						TArray64<uint8> Result64;
 						LoadScreenshotImage(SlotIndex, Result64);
+						//load the file, convert it to TArray from TArray64, then make the brush from the image (function only takes TArray array type)
 						TArray<uint8> Result(MoveTemp(Result64));
 						auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
+						//mark it as done
 						SavedScreenshotList[i]->State = DONE;
 						SavedScreenshotList[i]->Image = ImageBrush;
 					}

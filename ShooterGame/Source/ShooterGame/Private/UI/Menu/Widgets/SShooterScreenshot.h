@@ -59,7 +59,7 @@ public:
 
 	/** Should be called when a screenshot is taken */
 
-	void SaveMetaData(FString FileName, FDateTime DateTaken);
+	void SaveMetaData(const FString& FileName, const FDateTime&  DateTaken);
 
 	/** if we want to receive focus */
 	virtual bool SupportsKeyboardFocus() const override { return true; }
@@ -97,8 +97,8 @@ public:
 
 	void RemoveErrorSlots();
 
-	FString GetScreenshotsDir();
-	FString GetUserScreenshotsDir();
+	FString GetScreenshotsDir() const;
+	FString GetUserScreenshotsDir() const;
 private:
 	/** if menu is currently opened*/
 	bool bIsMenuUp;
@@ -142,9 +142,9 @@ private:
 	void ResolveUseLocalScreenshot(int32 Index);
 	bool LoadScreenshotImage(int32 Index, TArray64<uint8>& Result);
 	void DeleteScreenshotImage(int32 Index);
-	bool CheckIfDownloadedSlotValid(int32 Index);
+	bool IsDownloadedSlotValid(int32 Index) const;
 	void SaveToCloud(int32 Index);
-	TSharedPtr<FSlateDynamicImageBrush> CreateBrushFromFile(FString Path);
+	TSharedPtr<FSlateDynamicImageBrush> CreateBrushFromFile(const FString&  Path);
 	TArray<FScreenshotEntry> PreviousSelectedScreenshot;
 
 	TSharedPtr<FScreenshotComboBoxGroup> ComboBoxGroup;

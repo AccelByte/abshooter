@@ -485,11 +485,9 @@ void AShooterGameMode::CreateBotControllers()
 
 void AShooterGameMode::Logout(AController* Exiting)
 {
-	AShooterPlayerController* Controller = Cast<AShooterPlayerController>(Exiting);
-	if (Controller)
+	if (AShooterPlayerController* Controller = Cast<AShooterPlayerController>(Exiting))
 	{
-		AShooterPlayerState* PlayerState = Cast<AShooterPlayerState>(Controller->PlayerState);
-		if (PlayerState)
+		if (AShooterPlayerState* PlayerState = Cast<AShooterPlayerState>(Controller->PlayerState))
 		{
 			PlayerState->SetQuitter(true);
 		}
