@@ -1161,6 +1161,10 @@ void AShooterPlayerController::TakeScreenshot()
 	
 		ScreenshotWidget->SaveMetaData(FileName, Now);
 	}
+	else
+	{
+		UE_LOG(LogShooter, Error, TEXT("ScreenshotWidget is not valid (nullptr?)!"));
+	}
 }
 
 void AShooterPlayerController::ToggleScreenshotWindow()

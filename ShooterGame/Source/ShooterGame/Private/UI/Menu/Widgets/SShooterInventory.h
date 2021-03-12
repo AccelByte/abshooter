@@ -66,7 +66,9 @@ protected:
 	TSharedPtr<STextBlock> LoadingDialogText;
 
 	TSharedPtr<SWidget> MessageDialogWidget;
-	TSharedPtr<STextBlock> emptyText;
+	
+	/** This is use to reference "Empty" label text */
+	TSharedPtr<STextBlock> EmptyText;
 	void SetLabelEmpty();
 
 	bool bRequestInventoryList = false;
