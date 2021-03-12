@@ -799,8 +799,10 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 		{
 		return Entry->Data.UserId == LeavingUserId;
 		});
-
-	const FString LeavingPlayerDisplayName = PartyMembers[LeavingPlayerIndex]->Data.DisplayName;
+	FString LeavingPlayerDisplayName = TEXT("");
+	if (PartyMembers.IsValidIndex(LeavingPlayerIndex)) {
+		LeavingPlayerDisplayName = PartyMembers[LeavingPlayerIndex]->Data.DisplayName;
+	}
 
 	PartyMembers.RemoveAll([LeavingUserId](UPartyMemberEntryUI* Entry) {
 		return Entry->Data.UserId == LeavingUserId;
