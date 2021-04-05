@@ -1149,7 +1149,22 @@ void AShooterPlayerController::ToggleChatWindow()
 
 void AShooterPlayerController::TakeScreenshot()
 {
-	FScreenshotRequest::RequestScreenshot("screenshot.png", false, true);
+	if (ScreenshotWidget.IsValid())
+	{
+		const FDateTime Now = FDateTime().Now();
+		const FString ImageDirectory = ScreenshotWidget->GetScreenshotsDir();
+		const FString FileName = FString::Printf(TEXT("Screenshot_%d%02d%02d_%02d%02d%02d_%03d.png"),
+			Now.GetYear(), Now.GetMonth(), Now.GetDay(),
+			Now.GetHour(), Now.GetMinute(), Now.GetSecond(), Now.GetMillisecond());
+		const FString ImagePath = ImageDirectory / FileName;
+		FScreenshotRequest::RequestScreenshot(ImagePath, false, true);
+	
+		ScreenshotWidget->SaveMetaData(FileName, Now);
+	}
+	else
+	{
+		UE_LOG(LogShooter, Error, TEXT("ScreenshotWidget is not valid (nullptr?)!"));
+	}
 }
 
 void AShooterPlayerController::ToggleScreenshotWindow()

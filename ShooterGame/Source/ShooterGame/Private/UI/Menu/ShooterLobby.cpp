@@ -795,6 +795,16 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 	AccelByte::FRegistry::Lobby.SendInfoPartyRequest();
 
 	FString LeavingUserId = LeaveInfo.UserID;
+	const int32 LeavingPlayerIndex = PartyMembers.IndexOfByPredicate([LeavingUserId](UPartyMemberEntryUI* Entry) 
+		{
+		return Entry->Data.UserId == LeavingUserId;
+		});
+	FString LeavingPlayerDisplayName = TEXT("");
+	if (PartyMembers.IsValidIndex(LeavingPlayerIndex)) 
+	{
+		LeavingPlayerDisplayName = PartyMembers[LeavingPlayerIndex]->Data.DisplayName;
+	}
+
 	PartyMembers.RemoveAll([LeavingUserId](UPartyMemberEntryUI* Entry) {
 		return Entry->Data.UserId == LeavingUserId;
 	});
@@ -813,11 +823,15 @@ void ShooterLobby::OnPartyLeaveNotification(const FAccelByteModelsLeavePartyNoti
 		LobbyMenuUI->ShowGameModeComboBox(true);
 	}
 
+	FString _message = TEXT("You have left the Party.");
+	if(LeavingUserId != LeaderId) 
+	{
+		_message = FString::Printf(TEXT("%s has left the Party."), *LeavingPlayerDisplayName);
+	}
+
 	UpdatePartyMemberList();
-
 	TWeakObjectPtr<UGeneralNotificationPopupUI> NotificationPopup = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
-
-	NotificationPopup->Show(ENotificationType::NOTIFICATION, FString("You have left the Party."));
+	NotificationPopup->Show(ENotificationType::NOTIFICATION, _message);
 }
 
 void ShooterLobby::OnInvitePartyResponse(const FAccelByteModelsPartyInviteResponse& Response)
@@ -1213,6 +1227,18 @@ void ShooterLobby::OnCancelMatchmakingResponse(const FAccelByteModelsMatchmaking
 void ShooterLobby::OnDsNotification(const FAccelByteModelsDsNotice& Notice)
 {
 	UE_LOG(LogOnlineGame, Log, TEXT("DS Notif Status: %s"), *Notice.Status);
+
+	if (Notice.Ip == "" && Notice.Message.Contains("unable"))
+	{
+		TWeakObjectPtr<UGeneralNotificationPopupUI> Msgbox = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GameInstance.Get(), *GameInstance->GeneralNotificationPopupClass.Get()));
+		Msgbox->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Unable to start match!"));
+		UE_LOG(LogShooter, Error, TEXT("UNABLE TO START MATCH %s"), *Notice.Status);
+		CancelMatchmaking();
+	}
+	else
+	{
+		UE_LOG(LogShooter, Warning, TEXT("status %s"), *Notice.Status);
+	}
 
 	if (Notice.Status.Compare(TEXT("READY")) == 0 || Notice.Status.Compare(TEXT("BUSY")) == 0)
 	{

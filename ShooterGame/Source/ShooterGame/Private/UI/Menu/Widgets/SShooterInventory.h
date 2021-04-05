@@ -36,6 +36,7 @@ public:
 
 	/** creates single item widget, called for every list item */
 	TSharedRef<ITableRow> OnGenerateWidgetForTileView(TSharedPtr<FInventoryEntry> Item, const TSharedRef<STableViewBase>& OwnerTable);
+	
 
 	void EntrySelectionChanged(TSharedPtr<FInventoryEntry> InItem, ESelectInfo::Type SelectInfo);
 
@@ -65,8 +66,13 @@ protected:
 	TSharedPtr<STextBlock> LoadingDialogText;
 
 	TSharedPtr<SWidget> MessageDialogWidget;
+	
+	/** This is use to reference "Empty" label text */
+	TSharedPtr<STextBlock> EmptyText;
+	void SetLabelEmpty();
 
 	bool bRequestInventoryList = false;
+	
 
 	FSimpleDelegate OnBuyItemFinished;
 

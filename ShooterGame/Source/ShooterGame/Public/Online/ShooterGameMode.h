@@ -69,6 +69,9 @@ class AShooterGameMode : public AGameMode
 	/** Creates AIControllers for all bots */
 	void CreateBotControllers();
 
+	/** Called when player quits/disconnected forcefully **/
+	virtual void Logout(AController* Exiting) override;
+
 	/** Create a bot */
 	AShooterAIController* CreateBot(int32 BotNum);
 
