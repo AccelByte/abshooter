@@ -44,7 +44,7 @@ bool UPartyMemberEntryUI::Initialize()
 			DefaultAvatar = *FShooterImageUtils::CreateBrush(TEXT("png"), FName(*ImagePath), ImageData).Get();
 		}
 	}
-
+	SetKickButtonState(ESlateVisibility::Hidden);
 	return true;
 }
 
@@ -91,13 +91,32 @@ void UPartyMemberEntryUI::SetListItemObjectInternal(UObject* InObject)
 		}
 
 		WaitingResponseText->SetVisibility(ESlateVisibility::Collapsed);
-		if (!Entry->Data.isMySelf && Entry->Data.onInvitation) WaitingResponseText->SetVisibility(ESlateVisibility::Visible);
+		if (!Entry->Data.isMySelf && Entry->Data.onInvitation) 
+		{
+			WaitingResponseText->SetVisibility(ESlateVisibility::Visible);
+		}
+		else
+		{
+			SetKickButtonState(ESlateVisibility::Visible);
+		}
 
-		if (Entry->Data.isMySelf) PartyButtonSwitcher->SetActiveWidget(LeaveButton);
-		else PartyButtonSwitcher->SetActiveWidget(KickButton);
+		if (Entry->Data.isMySelf)
+		{
+			PartyButtonSwitcher->SetActiveWidget(LeaveButton);
+		}
+		else
+		{
+			PartyButtonSwitcher->SetActiveWidget(KickButton);
+		}
 
-		if (!Entry->Data.isMySelf && !Entry->Data.isKickable) PartyButtonSwitcher->SetVisibility(ESlateVisibility::Collapsed);
-		else PartyButtonSwitcher->SetVisibility(ESlateVisibility::Visible);
+		if (!Entry->Data.isMySelf && !Entry->Data.isKickable)
+		{
+			PartyButtonSwitcher->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		else
+		{
+			PartyButtonSwitcher->SetVisibility(ESlateVisibility::Visible);
+		}
 	}
 
 	EntryInterface = Entry->EntryInterface;
