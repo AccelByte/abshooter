@@ -1840,8 +1840,8 @@ void SShooterScreenshot::RefreshFromCloud()
 						TArray64<uint8> Result64;
 						LoadScreenshotImage(SlotIndex, Result64);
 						//load the file, convert it to TArray from TArray64, then make the brush from the image (function only takes TArray array type)
-						TArray<uint8> Result(MoveTemp(Result64));
-						auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), Result);
+						TArray<uint8> ResultTemp(MoveTemp(Result64));
+						auto ImageBrush = CreateBrush(TEXT("image/png"), FName(*Slot.Checksum), ResultTemp);
 						//mark it as done
 						SavedScreenshotList[i]->State = DONE;
 						SavedScreenshotList[i]->Image = ImageBrush;
