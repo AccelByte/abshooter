@@ -1,3 +1,5 @@
 {
-    "version": "2.2.0"
+    "version": "2.2.0",
+	"Client": "2.2.1-t",
+	"Server": "2.0.6-tested-test-ci",
 }
