@@ -38,7 +38,7 @@
 #include "Api/AccelByteQos.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
-#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
 #include "HttpModule.h"
 #include "HttpManager.h"
 #include "ShooterGameTelemetry.h"
@@ -361,82 +361,6 @@ void UShooterGameInstance::GameServerLogin()
 		ShooterGameTelemetry::Get().EnableHeartbeat();
 
 		UE_LOG(LogTemp, Log, TEXT("\tServer successfully login."));
-		FRegistry::ServerDSM.SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest>::CreateLambda([](const FAccelByteModelsMatchRequest& matchRequest)
-		{
-			UE_LOG(LogTemp, Log, TEXT("\tServer got heartbeat match request."));
-			UGameEngine* GameEngine = CastChecked<UGameEngine>(GEngine);
-			if (GameEngine)
-			{
-				UWorld* World = GameEngine->GetGameWorld();
-				if (World)
-				{
-					// Chandra : Temporary Solution, i don't really think this is a good design as adding subsequent Game Mode will be a pain
-					AShooterGame_FreeForAll* FFAGameMode = Cast<AShooterGame_FreeForAll>(World->GetAuthGameMode());
-					AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
-					if (GameMode)
-					{
-						if (matchRequest.Session_id.IsEmpty()) { return; }
-						// Prevent Session to be created when match hasn't begun
-						if (!GameMode->IsMatchStarted())
-						{
-							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-							MatchmakingInfo.channel = matchRequest.Game_mode;
-							MatchmakingInfo.match_id = matchRequest.Session_id;
-							for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
-							{
-								FAccelByteModelsMatchmakingParty tmp;
-								tmp.party_id = partyMember.Matching_parties[0].Party_id;
-								tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
-								for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
-								{
-									tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
-								}
-								MatchmakingInfo.matching_parties.Add(tmp);
-							}
-							GameMode->SetupMatch(MatchmakingInfo);
-							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
-						}
-					}
-					else if (FFAGameMode)
-					{
-						if (matchRequest.Session_id.IsEmpty()) { return; }
-						// Prevent Session to be created when match hasn't begun
-						if (!FFAGameMode->IsMatchStarted())
-						{
-							FAccelByteModelsMatchmakingInfo MatchmakingInfo;
-							MatchmakingInfo.channel = matchRequest.Game_mode;
-							MatchmakingInfo.match_id = matchRequest.Session_id;
-							for (FAccelByteModelsMatchingAlly partyMember : matchRequest.Matching_allies)
-							{
-								FAccelByteModelsMatchmakingParty tmp;
-								tmp.party_id = partyMember.Matching_parties[0].Party_id;
-								tmp.leader_id = partyMember.Matching_parties[0].Party_members[0].User_id;
-								for (int i = 0; i < partyMember.Matching_parties[0].Party_members.Num(); i++)
-								{
-									tmp.party_members.Add({ partyMember.Matching_parties[0].Party_members[i].User_id });
-								}
-								MatchmakingInfo.matching_parties.Add(tmp);
-							}
-							FFAGameMode->SetupMatch(MatchmakingInfo);
-							UE_LOG(LogTemp, Log, TEXT("\t\tSuccessfully claim match from heartbeat response!"))
-						}
-					}
-					else
-					{
-						UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameMode not found"));
-					}
-				}
-				else
-				{
-					UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: World not found"));
-				}
-			}
-			else
-			{
-				UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to claim match from heartbeat response: GameEngine not found"));
-			}
-		}));
-		FRegistry::ServerDSM.ConfigureHeartBeat(true, ShooterGameConfig::Get().ServerHeartbeatInterval_);
 
 		FVoidHandler onRegisterServerSuccess = FVoidHandler::CreateLambda([&bClientLoginDone]()
 		{
@@ -447,7 +371,7 @@ void UShooterGameInstance::GameServerLogin()
 		// Deregister & re-register itself IF registration failed on local server due to conflict
 		AccelByte::FErrorHandler onRegisterServerFailed = AccelByte::FErrorHandler::CreateLambda([&, onSuccess = onRegisterServerSuccess](int32 ErrorCode, FString ErrorMessage)
 		{
-			if (ErrorCode == 409)
+			if (ErrorCode == 9014143)
 			{
 				if (ShooterGameConfig::Get().IsLocalMode_)
 				{
@@ -480,13 +404,12 @@ void UShooterGameInstance::GameServerLogin()
 		{
 			FRegistry::ServerDSM.RegisterServerToDSM(ShooterGameConfig::Get().ServerPort_, onRegisterServerSuccess, onRegisterServerFailed);
 		}
-	}),
-		AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
+	}), 
+	AccelByte::FErrorHandler::CreateLambda([&bClientLoginDone](int32 ErrorCode, FString ErrorMessage)
 	{
 		bClientLoginDone = true;
 		UE_LOG(LogTemp, Fatal, TEXT("\t\tFailed to login client.\nError code: %d\nError message:%s"), ErrorCode, *ErrorMessage);
-	})
-		);
+	}));
 
 	/** Do blocking, wait for game server login response */
 	double lastTime = FPlatformTime::Seconds();

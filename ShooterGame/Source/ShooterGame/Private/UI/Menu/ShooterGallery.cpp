@@ -56,7 +56,7 @@ void ShooterGallery::GetSlots()
 						AddEmptyGalleryEntry(SlotResult);
 						GetSlot(SlotResult);
 					}
-					else if(Index != INDEX_NONE && SlotResult.DateModified.ToUnixTimestamp() > ScreenshotMetadata.Screenshots[Index].DateModified.ToUnixTimestamp())
+					else if(Index != INDEX_NONE && (SlotResult.DateModified > ScreenshotMetadata.Screenshots[Index].DateModified))
 					{
 						DeleteScreenshotImage(SlotResult.SlotId);
 						AddEmptyGalleryEntry(SlotResult);
@@ -283,7 +283,7 @@ void ShooterGallery::LoadScreenshotFromMetadata()
 		int32 Index = ScreenshotMetadata.Screenshots.IndexOfByPredicate([LocalSlot](FAccelByteModelsSlot Slot) {
 			return Slot.SlotId == LocalSlot.SlotId;
 		});
-		if (Index == INDEX_NONE || LocalSlot.DateModified.ToUnixTimestamp() > ScreenshotMetadata.Screenshots[Index].DateModified.ToUnixTimestamp())
+		if (Index == INDEX_NONE || LocalSlot.DateModified > ScreenshotMetadata.Screenshots[Index].DateModified)
 		{
 			AddSavedGalleryEntry(LocalSlot);
 		}

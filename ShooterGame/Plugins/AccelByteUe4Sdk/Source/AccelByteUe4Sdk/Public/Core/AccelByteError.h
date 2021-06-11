@@ -14,6 +14,7 @@
 
 #include "Core/AccelByteReport.h"
 #include "Models/AccelByteUserModels.h"
+#include "Models/AccelByteLobbyModels.h"
 #include "AccelByteError.generated.h"
 
 DECLARE_DYNAMIC_DELEGATE(FDHandler);
@@ -28,18 +29,24 @@ struct ACCELBYTEUE4SDK_API FErrorInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
 		int32 ErrorCode = -1;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
+		int32 Code = -1;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
 		FString ErrorMessage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Models | Error")
+		FString Message;
 };
 
 namespace AccelByte
 {
 #if ENGINE_MINOR_VERSION > 25
 	template <typename T> using THandler = TDelegate<void(const T&)>;
+	template <typename T1, typename T2> using THandlerPayloadModifier = TDelegate<T1(T2)>;
 	using FVoidHandler = TDelegate<void()>;
 	using FErrorHandler = TDelegate<void(int32 /*ErrorCode*/, const FString& /* ErrorMessage */)>;
 	using FCustomErrorHandler = TDelegate<void(int32 /*ErrorCode*/, const FString& /* ErrorMessage */, const FJsonObject& /* MessageVariables */)>;
 #else
 	template <typename T> using THandler = TBaseDelegate<void, const T&>;
+	template <typename T1, typename T2> using THandlerPayloadModifier = TBaseDelegate<T1, T2>;
 	using FVoidHandler = TBaseDelegate<void>;
 	using FErrorHandler = TBaseDelegate<void, int32 /*ErrorCode*/, const FString& /* ErrorMessage */>;
 	using FCustomErrorHandler = TBaseDelegate<void, int32 /*ErrorCode*/, const FString& /* ErrorMessage */, const FJsonObject& /* MessageVariables */>;
@@ -298,6 +305,25 @@ namespace AccelByte
 		LeaderboardConfigAlreadyExist = 71132,
 		LeaderboardRankingNotFound = 71235,
 		//
+		//CloudSave Error Code List
+		//
+		GameRecordNotFoundException = 18003,
+		GetGameRecordBadRequestException = 18004,
+		CreateGameRecordValueTooBigException = 18015,
+		PlayerRecordNotFoundException = 18022,
+		PlayerRecordGetterIsNotOwnerException = 18023,
+		PlayerRecordEditorIsNotOwnerException = 18035,
+		PlayerPublicRecordNotFoundException = 18081,
+		GameRecordValidationErrorException = 18055,
+		GameRecordPreconditionFailedException = 18056,
+		PlayerPublicRecordValidationErrorException = 18102,
+		PlayerRecordPreconditionFailedException = 18103,
+		//
+		//DSM Error Code List
+		//
+		DedicatedServerNotFoundException = 9014183,
+		DedicatedServerConfigNotFoundException = 9014123,
+		//
 		//Client side Error Code List
 		//
 		UnknownError = 14000,
@@ -305,11 +331,17 @@ namespace AccelByte
 		InvalidRequest = 14003,
 		InvalidResponse = 14004,
 		NetworkError = 14005,
+		IsNotLoggedIn = 14006,
 		WebSocketConnectFailed = 14201,
 		//
 		//GameServer-side Error Code List
 		//
-		DsRegistrationConflict = 9014143
+		DsRegistrationConflict = 9014143,
+		//
+		//PartyStorage Error Code List
+		// 
+		PartyStorageOutdatedUpdateData = 11903,
+		PartyNotFound = 11901,
 	};
 
 
@@ -332,6 +364,7 @@ namespace AccelByte
 		FErrorInfo Error;
 		Error.NumericErrorCode = -1;
 		Error.ErrorCode = -1;
+		Error.Code = -1;
 		int32 Code = 0;
 		OutMessage = "";
 		if (Response.IsValid())
@@ -345,6 +378,10 @@ namespace AccelByte
 				else if (Error.ErrorCode != -1)
 				{
 					Code = Error.ErrorCode;
+				}
+				else if (Error.Code != -1)
+				{
+					Code = Error.Code;
 				}
 				else
 				{
@@ -371,11 +408,16 @@ namespace AccelByte
 		{
 			OutMessage += " " + Error.ErrorMessage;
 		}
-
-		TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
-		TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
-		FJsonSerializer::Deserialize(Reader, JsonObject);
-		OutMessageVariables = *JsonObject.Get()->TryGetField("messageVariables")->AsObject();
+		if (Response.IsValid())
+		{
+			TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
+			TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+			FJsonSerializer::Deserialize(Reader, JsonObject);
+			if (JsonObject.Get()->HasField("messageVariables"))
+			{
+				OutMessageVariables = *JsonObject.Get()->TryGetField("messageVariables")->AsObject();
+			}
+		}
 
 		// Debug message. Delete this code section for production
 #if UE_BUILD_DEBUG
@@ -440,6 +482,35 @@ namespace AccelByte
 		OnSuccess.ExecuteIfBound(Response->GetContentAsString());
 	}
 
+	inline void HandleHttpResultOk(FHttpResponsePtr Response, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess)
+	{
+		// custom http result for LobbyServer.GetPartyStorage
+		FString jsonString = Response->GetContentAsString();
+		int index = jsonString.Find("\"updatedAt\"");
+		int startIndex = 0, endIndex = 0;
+
+		bool foundFirst = false;
+		bool foundLast = false;
+		for (int32 i = index; i < jsonString.Len(); i++)
+		{
+			if (FChar::IsDigit(jsonString[i]) && !foundFirst)
+			{
+				startIndex = i;
+				foundFirst = true;
+			}
+			else if (!FChar::IsDigit(jsonString[i]) && foundFirst && !foundLast)
+			{
+				endIndex = (i + 1);
+				foundLast = true;
+			}
+		}
+		jsonString.InsertAt(startIndex, "\"");
+		jsonString.InsertAt(endIndex, "\"");
+		FAccelByteModelsPartyDataNotif PartyData;
+		FJsonObjectConverter::JsonObjectStringToUStruct(jsonString, &PartyData, 0, 0);
+		OnSuccess.ExecuteIfBound(PartyData);
+	}
+
 	inline void HandleHttpResultOk(FHttpResponsePtr Response, const THandler<FJsonObject>& OnSuccess)
 	{
 		TSharedPtr<FJsonObject> JsonObject = MakeShareable(new FJsonObject);
@@ -453,7 +524,7 @@ namespace AccelByte
 	{
 		return FHttpRequestCompleteDelegate::CreateLambda(
 			[OnSuccess, OnError]
-		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
+		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bFinished)
 		{
 			Report report;
 			report.GetHttpResponse(Request, Response);
@@ -461,6 +532,12 @@ namespace AccelByte
 			if (Response.IsValid() && EHttpResponseCodes::IsOk(Response->GetResponseCode()))
 			{
 				HandleHttpResultOk(Response, OnSuccess);
+				return;
+			}
+
+			if (!bFinished)
+			{
+				OnError.ExecuteIfBound(static_cast<int32>(ErrorCodes::NetworkError), "Request not sent.");
 				return;
 			}
 
@@ -476,7 +553,7 @@ namespace AccelByte
 	{
 		return FHttpRequestCompleteDelegate::CreateLambda(
 			[OnSuccess, OnError]
-		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSuccessful)
+		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bFinished)
 		{
 			Report report;
 			report.GetHttpResponse(Request, Response);
@@ -487,6 +564,13 @@ namespace AccelByte
 				return;
 			}
 
+
+			if (!bFinished)
+			{
+                OnError.ExecuteIfBound(static_cast<int32>(ErrorCodes::NetworkError), "Request not sent.", FJsonObject{});
+                return;
+            }
+
 			int32 Code;
 			FString Message;
 			FJsonObject MessageVariables;
@@ -494,5 +578,4 @@ namespace AccelByte
 			OnError.ExecuteIfBound(Code, Message, MessageVariables);
 		});
 	}
-
 } // Namespace AccelByte

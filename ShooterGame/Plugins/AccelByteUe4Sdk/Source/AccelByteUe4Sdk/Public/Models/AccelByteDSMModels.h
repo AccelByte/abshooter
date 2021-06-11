@@ -5,6 +5,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "JsonObjectWrapper.h"
+
 #include "AccelByteDSMModels.generated.h"
 
 USTRUCT(BlueprintType)
@@ -73,7 +75,7 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsMatchingParty
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchingParty")
 	TArray<FAccelByteModelsUser> Party_members;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | MatchingParty")
-	TMap<FString, FString> Party_attributes;
+	FJsonObjectWrapper Party_attributes;
 };
 
 USTRUCT(BlueprintType)
@@ -144,4 +146,12 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsServerInfo
 		FString Status;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | ServerInfo")
 		FString Last_update;
+};
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsServerSessionResponse
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AccelByte | Server | DSM | Models | SessionResponse")
+		FString Session_id;
 };

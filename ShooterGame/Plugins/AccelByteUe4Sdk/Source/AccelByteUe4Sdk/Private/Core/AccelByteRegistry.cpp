@@ -1,4 +1,4 @@
-// Copyright (c) 2018 - 2020 AccelByte Inc. All Rights Reserved.
+// Copyright (c) 2018 - 2021 AccelByte Inc. All Rights Reserved.
 // This is licensed software from AccelByte Inc, for limitations
 // and restrictions contact your company contract manager.
 
@@ -22,6 +22,7 @@
 #include "Api/AccelByteGameTelemetryApi.h"
 #include "Api/AccelByteAgreementApi.h"
 #include "Api/AccelByteAchievementApi.h"
+#include "Api/AccelByteSessionBrowserApi.h"
 #include "GameServerApi/AccelByteServerOauth2Api.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerStatisticApi.h"
@@ -29,6 +30,9 @@
 #include "GameServerApi/AccelByteServerQosManagerApi.h"
 #include "GameServerApi/AccelByteServerGameTelemetryApi.h"
 #include "GameServerApi/AccelByteServerAchievementApi.h"
+#include "GameServerApi/AccelByteServerMatchmakingApi.h"
+#include "GameServerApi/AccelByteServerLobby.h"
+#include "GameServerApi/AccelByteServerCloudSaveApi.h"
 
 using namespace AccelByte;
 using namespace AccelByte::Api;
@@ -56,6 +60,7 @@ Api::Leaderboard FRegistry::Leaderboard(FRegistry::Credentials, FRegistry::Setti
 Api::GameTelemetry FRegistry::GameTelemetry(FRegistry::Credentials, FRegistry::Settings);
 Api::Agreement FRegistry::Agreement(FRegistry::Credentials, FRegistry::Settings);
 Api::Achievement FRegistry::Achievement(FRegistry::Credentials, FRegistry::Settings);
+Api::SessionBrowser FRegistry::SessionBrowser(FRegistry::Credentials, FRegistry::Settings);
 GameServerApi::ServerOauth2 FRegistry::ServerOauth2(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerDSM FRegistry::ServerDSM(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerStatistic FRegistry::ServerStatistic(FRegistry::ServerCredentials, FRegistry::ServerSettings);
@@ -63,3 +68,6 @@ GameServerApi::ServerEcommerce FRegistry::ServerEcommerce(FRegistry::ServerCrede
 GameServerApi::ServerQosManager FRegistry::ServerQosManager(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerGameTelemetry FRegistry::ServerGameTelemetry(FRegistry::ServerCredentials, FRegistry::ServerSettings);
 GameServerApi::ServerAchievement FRegistry::ServerAchievement(FRegistry::ServerCredentials, FRegistry::ServerSettings);
+GameServerApi::ServerMatchmaking FRegistry::ServerMatchmaking(FRegistry::ServerCredentials, FRegistry::ServerSettings);
+GameServerApi::ServerLobby FRegistry::ServerLobby(FRegistry::ServerCredentials, FRegistry::ServerSettings);
+GameServerApi::ServerCloudSave FRegistry::ServerCloudSave(FRegistry::ServerCredentials, FRegistry::ServerSettings);

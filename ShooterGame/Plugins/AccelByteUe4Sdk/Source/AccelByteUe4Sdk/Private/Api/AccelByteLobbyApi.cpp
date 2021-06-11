@@ -11,6 +11,9 @@
 #include "Core/AccelByteHttpRetryScheduler.h"
 #include "Core/AccelByteSettings.h"
 
+DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteLobby, Log, All);
+DEFINE_LOG_CATEGORY(LogAccelByteLobby);
+
 namespace AccelByte
 {
 namespace Api
@@ -52,6 +55,9 @@ namespace Api
 		const FString RejectFriends = TEXT("rejectFriendsRequest");
 		const FString LoadFriendList = TEXT("listOfFriendsRequest");
 		const FString GetFriendshipStatus = TEXT("getFriendshipStatusRequest");
+
+		//Signaling
+		const FString SignalingP2PNotif = TEXT("signalingP2PNotif");
 	}
 
 	namespace LobbyResponse
@@ -73,6 +79,7 @@ namespace Api
 		const FString PartyJoinNotif = TEXT("partyJoinNotif");
 		const FString PartyKick = TEXT("partyKickResponse");
 		const FString PartyKickNotif = TEXT("partyKickNotif");
+		const FString PartyDataUpdateNotif = TEXT("partyDataUpdateNotif");
 
 		// Chat
 		const FString PersonalChat = TEXT("personalChatResponse");
@@ -114,6 +121,9 @@ namespace Api
 		// Friends + Notification
 		const FString AcceptFriendsNotif = TEXT("acceptFriendsNotif");
 		const FString RequestFriendsNotif = TEXT("requestFriendsNotif");
+
+		//Signaling
+		const FString SignalingP2PNotif = TEXT("signalingP2PNotif");
 	}
 
 	namespace Prefix
@@ -123,6 +133,7 @@ namespace Api
 		const FString Presence = TEXT("presence");
 		const FString Matchmaking = TEXT("matchmaking");
 		const FString Friends = TEXT("friends");
+		const FString Signaling = TEXT("signaling");
 	}
 
 void Lobby::Connect()
@@ -132,15 +143,18 @@ void Lobby::Connect()
 
 	if (!WebSocket.IsValid())
 	{
-		TMap<FString, FString> Headers;
-		Headers.Add("Authorization", "Bearer " + Credentials.GetUserSessionId());
-		FModuleManager::Get().LoadModuleChecked(FName(TEXT("WebSockets")));
-		WebSocket = FWebSocketsModule::Get().CreateWebSocket(*Settings.LobbyServerUrl, TEXT("wss"), Headers);
+		CreateWebSocket();
 	}
 
 	if (WebSocket->IsConnected())
 	{
 		return;
+	}
+
+	if (bWasWsConnectionError)
+	{
+		// websocket state is error can't be reconnect, need to create a new instance
+		CreateWebSocket();
 	}
 
 	if (LobbyTickDelegateHandle.IsValid())
@@ -149,20 +163,11 @@ void Lobby::Connect()
 		LobbyTickDelegateHandle.Reset();
 	}
 
-	WebSocket->OnMessage().Clear();
-	WebSocket->OnConnected().Clear();
-	WebSocket->OnConnectionError().Clear();
-	WebSocket->OnClosed().Clear();
-
-	WebSocket->OnMessage().AddRaw(this, &Lobby::OnMessage);
-	WebSocket->OnConnected().AddRaw(this, &Lobby::OnConnected);
-	WebSocket->OnConnectionError().AddRaw(this, &Lobby::OnConnectionError);
-	WebSocket->OnClosed().AddRaw(this, &Lobby::OnClosed);
 	LobbyTickDelegateHandle = FTicker::GetCoreTicker().AddTicker(LobbyTickDelegate, LobbyTickPeriod);
 
 	WebSocket->Connect();
 	WsEvents |= EWebSocketEvent::Connect;
-	UE_LOG(LogTemp, Display, TEXT("Connecting to %s"), *Settings.LobbyServerUrl);
+	UE_LOG(LogAccelByteLobby, Display, TEXT("Connecting to %s"), *Settings.LobbyServerUrl);
 }
 
 void Lobby::Disconnect()
@@ -185,10 +190,10 @@ void Lobby::Disconnect()
 		WebSocket->OnClosed().Clear();
 		WebSocket->Close();
 
-		WebSocket = nullptr;
+		WebSocket.Reset();
 	}
 
-	if (GEngine) UE_LOG(LogTemp, Display, TEXT("Disconnected"));
+	if (GEngine) UE_LOG(LogAccelByteLobby, Display, TEXT("Disconnected"));
 }
 
 bool Lobby::IsConnected() const
@@ -347,14 +352,14 @@ void Lobby::GetAllAsyncNotification()
 	{
 		FString Content = FString::Printf(TEXT("type: offlineNotificationRequest\nid:%s"), *FGuid::NewGuid().ToString(EGuidFormats::Digits));
 		WebSocket->Send(Content);
-		UE_LOG(LogTemp, Display, TEXT("Get async notification (id=%s)"), *Content)
+		UE_LOG(LogAccelByteLobby, Display, TEXT("Get async notification (id=%s)"), *Content)
 	}
 }
 
 //-------------------------------------------------------------------------------------------------
 // Matchmaking
 //-------------------------------------------------------------------------------------------------
-FString Lobby::SendStartMatchmaking(FString GameMode, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies, TMap<FString, FString> PartyAttributes)
+FString Lobby::SendStartMatchmaking(FString GameMode, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies, TMap<FString, FString> PartyAttributes, TArray<FString> TempPartyUserIds)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
@@ -407,17 +412,46 @@ FString Lobby::SendStartMatchmaking(FString GameMode, FString ServerName, FStrin
 		Contents.Append(FString::Printf(TEXT("partyAttributes: {%s}"), *partyAttributeSerialized));
 	}
 
+	if (TempPartyUserIds.Num() > 0)
+	{
+		FString STempParty = TEXT("");
+		for (int i = 0; i < TempPartyUserIds.Num(); i++)
+		{
+			STempParty.Append(FString::Printf(TEXT("%s"), *TempPartyUserIds[i]));
+			if (i + 1 < TempPartyUserIds.Num())
+			{
+				STempParty.Append(TEXT(","));
+			}
+		}
+		Contents.Append(FString::Printf(TEXT("tempParty: %s\n"), *STempParty));
+	}
+
 	return SendRawRequest(LobbyRequest::StartMatchmaking, Prefix::Matchmaking,
 		Contents);
 }
 
-FString Lobby::SendCancelMatchmaking(FString GameMode)
+FString Lobby::SendStartMatchmaking(FString GameMode, TArray<FString> TempPartyUserIds, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies, TMap<FString, FString> PartyAttributes)
+{
+	return SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies, PartyAttributes, TempPartyUserIds);
+}
+
+FString Lobby::SendStartMatchmaking(FString GameMode, TMap<FString, FString> PartyAttributes, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies, TArray<FString> TempPartyUserIds)
+{
+	return SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies, PartyAttributes, TempPartyUserIds);
+}
+
+FString Lobby::SendStartMatchmaking(FString GameMode, TMap<FString, FString> PartyAttributes, TArray<FString> TempPartyUserIds, FString ServerName, FString ClientVersion, TArray<TPair<FString, float>> Latencies)
+{
+	return SendStartMatchmaking(GameMode, ServerName, ClientVersion, Latencies, PartyAttributes, TempPartyUserIds);
+}
+
+FString Lobby::SendCancelMatchmaking(FString GameMode, bool IsTempParty)
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
 	return SendRawRequest(LobbyRequest::CancelMatchmaking, Prefix::Matchmaking,
-		FString::Printf(TEXT("gameMode: %s\n"), *GameMode));
+		FString::Printf(TEXT("gameMode: %s\nisTempParty: %s"), *GameMode, (IsTempParty ? TEXT("true") : TEXT("false"))));
 }
 
 FString Lobby::SendReadyConsentRequest(FString MatchId)
@@ -515,15 +549,8 @@ void Lobby::BulkFriendRequest(FAccelByteModelsBulkFriendsRequest UserIds, FVoidH
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
 
-	FString url;
-	url = FRegistry::Settings.IamServerUrl;
-	if (url.Contains("/iam"))
-	{
-		url.RemoveFromEnd("/iam");
-	}
-
 	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
-	FString Url = FString::Printf(TEXT("%s/friends/namespaces/%s/users/%s/add/bulk"), *url, *Credentials.GetUserNamespace(), *Credentials.GetUserId());
+	FString Url = FString::Printf(TEXT("%s/friends/namespaces/%s/users/%s/add/bulk"), *Settings.BaseUrl, *Credentials.GetUserNamespace(), *Credentials.GetUserId());
 	FString Verb = TEXT("POST");
 	FString ContentType = TEXT("application/json");
 	FString Accept = TEXT("application/json");
@@ -538,6 +565,50 @@ void Lobby::BulkFriendRequest(FAccelByteModelsBulkFriendsRequest UserIds, FVoidH
 	Request->SetHeader(TEXT("Accept"), Accept);
 	Request->SetContentAsString(Contents);
 	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+}
+
+void Lobby::GetPartyStorage(const FString & PartyId, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess, const FErrorHandler & OnError)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url = FString::Printf(TEXT("%s/lobby/v1/public/party/namespaces/%s/parties/%s"), *Settings.BaseUrl, *Credentials.GetUserNamespace(), *PartyId);
+	FString Verb = TEXT("GET");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, OnError), FPlatformTime::Seconds());
+}
+
+void Lobby::WritePartyStorage(const FString & PartyId, TFunction<FJsonObjectWrapper(FJsonObjectWrapper)> PayloadModifier, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess, const FErrorHandler & OnError, uint32 RetryAttempt)
+{
+	TSharedPtr<PartyStorageWrapper> Wrapper = MakeShared<PartyStorageWrapper>();
+	Wrapper->PartyId = PartyId;
+	Wrapper->OnSuccess = OnSuccess;
+	Wrapper->OnError = OnError;
+	Wrapper->RemainingAttempt = RetryAttempt;
+	Wrapper->PayloadModifier = PayloadModifier;
+	WritePartyStorageRecursive(Wrapper);
+}
+
+//-------------------------------------------------------------------------------------------------
+// Signaling
+//-------------------------------------------------------------------------------------------------
+FString Lobby::SendSignalingMessage(const FString& UserId, const FString& Message) 
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+	
+	return SendRawRequest(LobbyRequest::SignalingP2PNotif, Prefix::Signaling,
+		FString::Printf(TEXT("destinationId: %s\nmessage: %s\n"), *UserId, *Message));
 }
 
 void Lobby::UnbindEvent()
@@ -561,19 +632,21 @@ void Lobby::UnbindEvent()
 	AcceptFriendsNotif.Unbind();
 	RequestFriendsNotif.Unbind();
 	ChannelChatNotif.Unbind();
+	PartyDataUpdateNotif.Unbind();
 }
 
 void Lobby::OnConnected()
 {
 	WsEvents |= EWebSocketEvent::Connected;
-	UE_LOG(LogTemp, Display, TEXT("Connected"));
+	UE_LOG(LogAccelByteLobby, Display, TEXT("Connected"));
 	ConnectSuccess.ExecuteIfBound();
 }
 
 void Lobby::OnConnectionError(const FString& Error)
 {
 	WsEvents |= EWebSocketEvent::ConnectionError;
-	UE_LOG(LogTemp, Display, TEXT("Error connecting: %s"), *Error);
+	bWasWsConnectionError = true;
+	UE_LOG(LogAccelByteLobby, Display, TEXT("Error connecting: %s"), *Error);
 	ConnectError.ExecuteIfBound(static_cast<std::underlying_type<ErrorCodes>::type>(ErrorCodes::WebSocketConnectFailed), ErrorMessages::Default.at(static_cast<std::underlying_type<ErrorCodes>::type>(ErrorCodes::WebSocketConnectFailed)) + TEXT(" Reason: ") + Error);
 }
 
@@ -588,7 +661,7 @@ void Lobby::OnClosed(int32 StatusCode, const FString& Reason, bool WasClean)
 		WsEvents |= EWebSocketEvent::Closed;
 	}
 
-	UE_LOG(LogTemp, Display, TEXT("Connection closed. Status code: %d  Reason: %s Clean: %d"), StatusCode, *Reason, WasClean);
+	UE_LOG(LogAccelByteLobby, Display, TEXT("Connection closed. Status code: %d  Reason: %s Clean: %d"), StatusCode, *Reason, WasClean);
 	ConnectionClosed.ExecuteIfBound(StatusCode, Reason, WasClean);
 }
 
@@ -603,7 +676,7 @@ FString Lobby::SendRawRequest(FString MessageType, FString MessageIDPrefix, FStr
 			Content.Append(FString::Printf(TEXT("\n%s"), *CustomPayload));
 		}
 		WebSocket->Send(Content);
-		UE_LOG(LogTemp, Display, TEXT("Sending request: %s"), *Content);
+		UE_LOG(LogAccelByteLobby, Display, TEXT("Sending request: %s"), *Content);
 		return MessageID;
 	}
 	return TEXT("");
@@ -655,7 +728,7 @@ bool Lobby::Tick(float DeltaTime)
 			TimeSinceConnectionLost = FPlatformTime::Seconds();
 			BackoffDelay = InitialBackoffDelay;
 			RandomizedBackoffDelay = BackoffDelay + (FMath::RandRange(-InitialBackoffDelay, InitialBackoffDelay) / 4);
-			WebSocket->Connect();
+			Connect();
 			WsState = EWebSocketState::Reconnecting;
 		}
 		else if ((FPlatformTime::Seconds() - TimeSinceLastPing) >= PingDelay)
@@ -688,6 +761,12 @@ bool Lobby::Tick(float DeltaTime)
 				BackoffDelay *= 2;
 			}
 			RandomizedBackoffDelay = BackoffDelay + (FMath::RandRange(-BackoffDelay, BackoffDelay) / 4);
+			if (bWasWsConnectionError)
+			{
+				// websocket state is error can't be reconnect, need to create a new instance
+				CreateWebSocket();
+			}
+
 			WebSocket->Connect();
 			TimeSinceLastReconnect = FPlatformTime::Seconds();
 		}
@@ -708,6 +787,31 @@ bool Lobby::Tick(float DeltaTime)
 FString Lobby::GenerateMessageID(FString Prefix)
 {
 	return FString::Printf(TEXT("%s-%d"), *Prefix, FMath::RandRange(1000, 9999));
+}
+
+void Lobby::CreateWebSocket()
+{
+	bWasWsConnectionError = false;
+
+	if(WebSocket.IsValid())
+	{
+		WebSocket->OnMessage().Clear();
+		WebSocket->OnConnected().Clear();
+		WebSocket->OnConnectionError().Clear();
+		WebSocket->OnClosed().Clear();
+		WebSocket->Close();
+		WebSocket.Reset();
+	}
+
+	TMap<FString, FString> Headers;
+	Headers.Add("Authorization", "Bearer " + Credentials.GetUserSessionId());
+	FModuleManager::Get().LoadModuleChecked(FName(TEXT("WebSockets")));
+	WebSocket = FWebSocketsModule::Get().CreateWebSocket(*Settings.LobbyServerUrl, TEXT("wss"), Headers);
+
+	WebSocket->OnMessage().AddRaw(this, &Lobby::OnMessage);
+	WebSocket->OnConnected().AddRaw(this, &Lobby::OnConnected);
+	WebSocket->OnConnectionError().AddRaw(this, &Lobby::OnConnectionError);
+	WebSocket->OnClosed().AddRaw(this, &Lobby::OnClosed);
 }
 
 FString Lobby::LobbyMessageToJson(FString Message)
@@ -817,21 +921,21 @@ FString Lobby::LobbyMessageToJson(FString Message)
 
 void Lobby::OnMessage(const FString& Message)
 {
-	UE_LOG(LogTemp, Display, TEXT("Raw Lobby Response\n%s"), *Message);
+	UE_LOG(LogAccelByteLobby, Display, TEXT("Raw Lobby Response\n%s"), *Message);
 	FString ParsedJson = LobbyMessageToJson(Message);
-	UE_LOG(LogTemp, Display, TEXT("JSON Version: %s"), *ParsedJson);
+	UE_LOG(LogAccelByteLobby, Display, TEXT("JSON Version: %s"), *ParsedJson);
 	TSharedPtr<FJsonObject> JsonParsed;
 	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(ParsedJson);
 	if (!FJsonSerializer::Deserialize(JsonReader, JsonParsed))
 	{
-		UE_LOG(LogTemp, Display, TEXT("Failed to Deserialize. Json: %s"), *ParsedJson);
+		UE_LOG(LogAccelByteLobby, Display, TEXT("Failed to Deserialize. Json: %s"), *ParsedJson);
 		return;
 	}
 	FString lobbyResponseType = JsonParsed->GetStringField("type");
 	int lobbyResponseCode = 0;
 	if (lobbyResponseType.Contains("Response"))
 		lobbyResponseCode = JsonParsed->GetIntegerField("code");
-	UE_LOG(LogTemp, Display, TEXT("Type: %s"), *lobbyResponseType);
+	UE_LOG(LogAccelByteLobby, Display, TEXT("Type: %s"), *lobbyResponseType);
 
 #define HANDLE_LOBBY_MESSAGE(MessageType, Model, ResponseCallback) \
 if (lobbyResponseType.Equals(MessageType)) \
@@ -865,6 +969,7 @@ return; \
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PartyJoin, FAccelByteModelsPartyJoinReponse, PartyJoinResponse);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PartyKick, FAccelByteModelsKickPartyMemberResponse, PartyKickResponse);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PartyKickNotif, FAccelByteModelsGotKickedFromPartyNotice, PartyKickNotif);
+	HANDLE_LOBBY_MESSAGE(LobbyResponse::PartyDataUpdateNotif, FAccelByteModelsPartyDataNotif, PartyDataUpdateNotif);
 
 	// Chat
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::PersonalChat, FAccelByteModelsPersonalMessageResponse, PersonalChatResponse);
@@ -929,10 +1034,86 @@ return; \
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::AcceptFriendsNotif, FAccelByteModelsAcceptFriendsNotif, AcceptFriendsNotif);
 	HANDLE_LOBBY_MESSAGE(LobbyResponse::RequestFriendsNotif, FAccelByteModelsRequestFriendsNotif, RequestFriendsNotif);
 
+	// Signaling
+	if (lobbyResponseType.Equals(LobbyResponse::SignalingP2PNotif))
+	{
+		SignalingP2P.ExecuteIfBound(JsonParsed->GetStringField(TEXT("destinationId")), JsonParsed->GetStringField(TEXT("message")));
+		return;
+	}
+
 #undef HANDLE_LOBBY_MESSAGE
 #ifdef DEBUG_LOBBY_MESSAGE
 	ParsingError.ExecuteIfBound(-1, FString::Printf(TEXT("Warning: Unhandled message %s, Raw: %s"), *lobbyResponseType, *ParsedJson));
 #endif
+}
+
+void Lobby::RequestWritePartyStorage(const FString& PartyId, const FAccelByteModelsPartyDataUpdateRequest& Data, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess, const FErrorHandler& OnError, FSimpleDelegate OnConflicted)
+{
+	Report report;
+	report.GetFunctionLog(FString(__FUNCTION__));
+
+	FString Authorization = FString::Printf(TEXT("Bearer %s"), *Credentials.GetUserSessionId());
+	FString Url = FString::Printf(TEXT("%s/lobby/v1/public/party/namespaces/%s/parties/%s/attributes"), *Settings.BaseUrl, *Credentials.GetUserNamespace(), *PartyId);
+	FString Verb = TEXT("PUT");
+	FString ContentType = TEXT("application/json");
+	FString Accept = TEXT("application/json");
+
+	FString Contents = "{\n";
+	FString CustomAttribute;
+	FJsonObjectConverter::UStructToJsonObjectString(Data.Custom_attribute, CustomAttribute);
+	FString UpdatedAt = FString::Printf(TEXT("\"updatedAt\": %lld"), Data.UpdatedAt);
+	FString CustomString = FString::Printf(TEXT("\"custom_attribute\": %s"), *CustomAttribute);
+	Contents += UpdatedAt;
+	Contents += ",\n";
+	Contents += CustomString;
+	Contents += "}";
+
+	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL(Url);
+	Request->SetHeader(TEXT("Authorization"), Authorization);
+	Request->SetVerb(Verb);
+	Request->SetHeader(TEXT("Content-Type"), ContentType);
+	Request->SetHeader(TEXT("Accept"), Accept);
+	Request->SetContentAsString(Contents);
+
+	FErrorHandler ErrorHandler = AccelByte::FErrorHandler::CreateLambda([OnConflicted](int32 Code, FString Message)
+	{
+		if (Code == (int32)ErrorCodes::StatusPreconditionFailed || Code == (int32)ErrorCodes::PartyStorageOutdatedUpdateData)
+		{
+			OnConflicted.ExecuteIfBound();
+		}
+	});
+
+	FRegistry::HttpRetryScheduler.ProcessRequest(Request, CreateHttpResultHandler(OnSuccess, ErrorHandler), FPlatformTime::Seconds());
+}
+
+void Lobby::WritePartyStorageRecursive(TSharedPtr<PartyStorageWrapper> DataWrapper)
+{
+	if (DataWrapper->RemainingAttempt <= 0)
+	{
+		DataWrapper->OnError.ExecuteIfBound(412, TEXT("Exhaust all retry attempt to modify party storage.."));
+	}
+
+	GetPartyStorage(DataWrapper->PartyId,
+		THandler<FAccelByteModelsPartyDataNotif>::CreateLambda([this, DataWrapper](FAccelByteModelsPartyDataNotif Result)
+		{
+			Result.Custom_attribute = DataWrapper->PayloadModifier(Result.Custom_attribute);
+
+			FAccelByteModelsPartyDataUpdateRequest PartyStorageBodyRequest;
+
+			PartyStorageBodyRequest.UpdatedAt = FCString::Atoi64(*Result.UpdatedAt);
+			PartyStorageBodyRequest.Custom_attribute = Result.Custom_attribute;
+
+			RequestWritePartyStorage(DataWrapper->PartyId, PartyStorageBodyRequest, DataWrapper->OnSuccess, DataWrapper->OnError, FSimpleDelegate::CreateLambda([this, DataWrapper]() {
+				DataWrapper->RemainingAttempt--;
+				WritePartyStorageRecursive(DataWrapper);
+			}));
+		}),
+		FErrorHandler::CreateLambda([DataWrapper](int32 ErrorCode, FString ErrorMessage)
+		{
+			DataWrapper->OnError.ExecuteIfBound(ErrorCode, ErrorMessage);
+		})
+		);
 }
 
 Lobby::Lobby(const AccelByte::Credentials& Credentials, const AccelByte::Settings& Settings, float PingDelay, float InitialBackoffDelay, float MaxBackoffDelay, float TotalTimeout, TSharedPtr<IWebSocket> WebSocket)

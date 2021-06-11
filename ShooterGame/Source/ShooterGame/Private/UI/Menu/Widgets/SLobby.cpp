@@ -18,7 +18,7 @@
 #include "SShooterConfirmationDialog.h"
 #include "ShooterGameUserSettings.h"
 #include "SShooterNotificationPopup.h"
-#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
 #include "SLobbyChat.h"
 #include "ShooterGameConfig.h"
 #include "Engine/World.h"
@@ -31,7 +31,7 @@
 
 #define LOCTEXT_NAMESPACE "ShooterGame.HUD.Menu"
 #define SIMULATE_SETUP_MATCHMAKING 0
-#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
 
 SLobby::SLobby()
 	:  ConfirmationBackgroundBrush(FLinearColor(0, 0, 0, 0.8f))

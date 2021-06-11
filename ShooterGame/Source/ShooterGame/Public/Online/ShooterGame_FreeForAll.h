@@ -2,7 +2,9 @@
 
 #pragma once
 
-#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "CoreMinimal.h"
+#include "Models/ShooterMatchInfoModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
 #include "ShooterGame_FreeForAll.generated.h"
 
 class AShooterPlayerState;
@@ -15,6 +17,7 @@ class AShooterGame_FreeForAll : public AShooterGameMode
 
 	void PreLogin(const FString & Options, const FString & Address, const FUniqueNetIdRepl & UniqueId, FString & ErrorMessage) override;
 
+
 	void PostLogin(APlayerController* NewPlayer) override;
 
 	/** initialize replicated game data */
@@ -24,6 +27,7 @@ class AShooterGame_FreeForAll : public AShooterGameMode
 
 	virtual void RestartGame() override;
 	virtual void EndMatch() override;
+
 protected:
 
 	/** best player */
@@ -36,12 +40,13 @@ protected:
 	/** check if PlayerState is a winner */
 	virtual bool IsWinner(AShooterPlayerState* PlayerState) const override;
 
-	FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+	FAccelByteModelsMatchmakingResult MatchmakingInfo;
 
 public:
-	void SetupMatch(const FAccelByteModelsMatchmakingInfo& Info);
+	void SetupMatch(const FAccelByteModelsMatchmakingResult& Info);
 	bool IsMatchStarted();
-	FAccelByteModelsMatchInfo GetMatchInfo();
+	void GetSessionData();
+	FShooterMatchInfo GetMatchInfo();
 
 	bool ResetMatch(bool Force = false);
 };

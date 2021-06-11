@@ -3,8 +3,9 @@
 // and restrictions contact your company contract manager.
 
 #pragma once
-#include "Runtime/Launch/Resources/Version.h"
+
 #include "CoreMinimal.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "AccelByteGeneralModels.h"
 #include "AccelByteUserModels.generated.h"
 
@@ -16,6 +17,8 @@ enum class EAccelBytePlatformType : uint8
 {
 	Steam,
 	PS4,
+	PS4CrossGen,
+	PS5,
 	Live,
 	Google,
 	Facebook,
@@ -194,7 +197,6 @@ struct ACCELBYTEUE4SDK_API FAccountUserData
 
 // backward compatibility with previous AccelByte SDK codes
 // remove this if you are using FUserData from Unreal PhysicsCore
-
 #if ENGINE_MINOR_VERSION < 26
 using FUserData = FAccountUserData;
 #endif
@@ -231,6 +233,8 @@ struct ACCELBYTEUE4SDK_API FPlatformLink
 		FString PlatformUserId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | LinkedPlatform")
 		FString UserId;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | LinkedPlatform")
+		FString AccountGroup;
 };
 
 UENUM(BlueprintType)
@@ -250,7 +254,7 @@ struct ACCELBYTEUE4SDK_API FVerificationCodeRequest
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | SendVerificationCodeRequest")
 		FString LanguageTag;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | SendVerificationCodeRequest")
-		FString LoginID;
+		FString EmailAddress;
 };
 
 USTRUCT(BlueprintType)
@@ -400,4 +404,24 @@ struct ACCELBYTEUE4SDK_API FLinkPlatformAccountRequest
 		FString PlatformId;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | LinkPlatformAccountRequest")
 		FString PlatformUserId;
+};
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FUpdateEmailRequest
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | UpdateEmailRequest")
+		FString Code;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | UpdateEmailRequest")
+		FString EmailAddress;
+};
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FJsonWebTokenResponse
+{
+	GENERATED_BODY()
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | UpdateEmailRequest")
+		FString Jwt_token;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | UserManagement | Models | UpdateEmailRequest")
+		FString Session_id;
 };

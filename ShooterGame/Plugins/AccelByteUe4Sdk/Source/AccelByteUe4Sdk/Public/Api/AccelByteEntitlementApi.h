@@ -40,6 +40,20 @@ public:
 	void QueryUserEntitlements(const FString& EntitlementName, const FString& ItemId, const int32& Offset, const int32& Limit, const THandler<FAccelByteModelsEntitlementPagingSlicedResult>& OnSuccess, const FErrorHandler & OnError, EAccelByteEntitlementClass EntitlementClass, EAccelByteAppType AppType);
 
 	/**
+	* @brief Get list of user's Entitlement(s).
+	*
+	* @param EntitlementName The name of the entitlement (optional).
+	* @param ItemIds Item's id (optional).
+	* @param Offset Offset of the list that has been sliced based on Limit parameter (optional, default = 0).
+	* @param Limit The limit of item on page (optional).
+	* @param OnSuccess This will be called when the operation success. The result is const FAccelByteModelsEntitlementPagingSlicedResult.
+	* @param OnError This will be called when the operation failed.
+	* @param EntitlementClass Class of the entitlement (optional).
+	* @param AppType This is the type of application that entitled (optional).
+	*/
+	void QueryUserEntitlements(const FString& EntitlementName, const TArray<FString>& ItemIds, const int32& Offset, const int32& Limit, const THandler<FAccelByteModelsEntitlementPagingSlicedResult>& OnSuccess, const FErrorHandler & OnError, EAccelByteEntitlementClass EntitlementClass, EAccelByteAppType AppType);
+
+	/**
 	* @brief Get user's Entitlement by the EntitlementId.
 	*
 	* @param EntitlementId The id of the entitlement.
@@ -127,6 +141,14 @@ public:
 	*/
 	void UpdateDistributionReceiver(const FString& ExtUserId, const FAccelByteModelsAttributes Attributes, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 
+	/**
+	 * @brief Sync entitlement from 3rd party platform purchase.
+	 *
+	 * @param PlatformType The platform type identifier for sync entitlement.
+	 * @param OnSuccess This will be called when the operation success.
+	 * @param OnError This will be called when the operation failed.
+	 */
+	void SyncPlatformPurchase(EAccelBytePlatformSync PlatformType, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 private:
 	Entitlement() = delete;
 	Entitlement(Entitlement const&) = delete;

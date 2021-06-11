@@ -30,7 +30,7 @@ void TelemetryDispatcher(TSharedPtr<FJsonObject> JsonObject, const FString& Even
 {
 	FAccelByteModelsTelemetryBody TelemetryBody{ "abshooter", EventName, JsonObject };
 #if UE_SERVER
-	FRegistry::GameTelemetry.Send(
+	FRegistry::ServerGameTelemetry.Send(
 		TelemetryBody,
 		FVoidHandler::CreateLambda([EventName]()
 		{

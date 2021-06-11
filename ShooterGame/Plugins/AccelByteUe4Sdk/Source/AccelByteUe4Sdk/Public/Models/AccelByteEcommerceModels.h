@@ -17,7 +17,8 @@ enum class EAccelByteItemType : uint8
 	COINS,
 	INGAMEITEM,
 	BUNDLE,
-	CODE
+	CODE,
+	SUBSCRIPTION
 };
 
 UENUM(BlueprintType)
@@ -115,6 +116,26 @@ enum class EAccelByteCreditUserWalletSource : uint8
 	REFERRAL_BONUS,
 	REDEEM_CODE,
 	REFUND,
+	OTHER
+};
+
+UENUM(BlueprintType) 
+enum class EAccelByteSubscriptionCycle : uint8 
+{
+	WEEKLY = 0,
+	MONTHLY,
+	QUARTERLY,
+	YEARLY
+};
+
+UENUM(BlueprintType)
+enum class EAccelBytePlatformSync : uint8
+{
+	STEAM = 0,
+	XBOX_LIVE,
+	PLAYSTATION,
+	STADIA,
+	EPIC_GAMES,
 	OTHER
 };
 
@@ -864,6 +885,17 @@ struct ACCELBYTEUE4SDK_API FAccelByteModelsCreditUserWalletRequest
 		EAccelByteCreditUserWalletSource Source;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Wallet | Models | CreditUserWalletRequest")
 		FString Reason;
+};
+
+
+USTRUCT(BlueprintType)
+struct ACCELBYTEUE4SDK_API FAccelByteModelsDebitUserWalletRequest
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Wallet | Models | CreditUserWalletRequest")
+	int32 Amount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AccelByte | Wallet | Models | CreditUserWalletRequest")
+	FString Reason;
 };
 
 #pragma endregion WalletModelsField

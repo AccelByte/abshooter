@@ -114,6 +114,11 @@ public:
      */
     DECLARE_DELEGATE_OneParam(FPartyKickNotif, const FAccelByteModelsGotKickedFromPartyNotice&);   // Passive
 
+	/**
+	 * @brief delegate for handling member kicked from party event
+	 */
+	DECLARE_DELEGATE_OneParam(FPartyDataUpdateNotif, const FAccelByteModelsPartyDataNotif&);
+
 
     // Chat
     /**
@@ -262,6 +267,12 @@ public:
 	 */
 	DECLARE_DELEGATE_OneParam(FRequestFriendsNotif, const FAccelByteModelsRequestFriendsNotif&);
 
+	//Signaling
+	/**
+	 * @brief delegate for handling signaling P2P message
+	 */
+	DECLARE_DELEGATE_TwoParams(FSignalingP2P, const FString&, const FString&);
+
 	DECLARE_DELEGATE(FConnectSuccess);
 	DECLARE_DELEGATE_ThreeParams(FConnectionClosed, int32 /* StatusCode */, const FString& /* Reason */, bool /* WasClean */);
 	
@@ -384,15 +395,53 @@ public:
 	* @param ClientVersion The version of DS, fill it blank to choose the default version.
 	* @param Latencies list of servers and their latencies to client, DSM will created the server on one of this list. Fill it blank if you use Local DS.
 	* @param PartyAttributes String map custom attributes to be added on matchmaking and also will be passed to ds too. Example: {"Map":"Dungeon1", "Rank":"B", "Stage":"04"}
+	* @param TempPartyUserIds UserIDs to form a temporary party with (include user who started the matchmaking). Temporary party will disband when matchmaking finishes.
 	*/
-	FString SendStartMatchmaking(FString GameMode, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>(), TMap<FString, FString> PartyAttributes = TMap<FString, FString>());
+	FString SendStartMatchmaking(FString GameMode, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>(), TMap<FString, FString> PartyAttributes = TMap<FString, FString>(), TArray<FString> TempPartyUserIds = TArray<FString>());
+
+	/**
+	* @brief start the matchmaking
+	*
+	* @param GameMode The mode that party member want to play.
+	* @param TempPartyUserIds UserIDs to form a temporary party with (include user who started the matchmaking). Temporary party will disband when matchmaking finishes.
+	* @param ServerName The Local DS name, fill it blank if you don't use Local DS.
+	* @param ClientVersion The version of DS, fill it blank to choose the default version.
+	* @param Latencies list of servers and their latencies to client, DSM will created the server on one of this list. Fill it blank if you use Local DS.
+	* @param PartyAttributes String map custom attributes to be added on matchmaking and also will be passed to ds too. Example: {"Map":"Dungeon1", "Rank":"B", "Stage":"04"}
+	*/
+	FString SendStartMatchmaking(FString GameMode, TArray<FString> TempPartyUserIds, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>(), TMap<FString, FString> PartyAttributes = TMap<FString, FString>());
+
+	/**
+	* @brief start the matchmaking
+	*
+	* @param GameMode The mode that party member want to play.
+	* @param PartyAttributes String map custom attributes to be added on matchmaking and also will be passed to ds too. Example: {"Map":"Dungeon1", "Rank":"B", "Stage":"04"}
+	* @param ServerName The Local DS name, fill it blank if you don't use Local DS.
+	* @param ClientVersion The version of DS, fill it blank to choose the default version.
+	* @param Latencies list of servers and their latencies to client, DSM will created the server on one of this list. Fill it blank if you use Local DS.
+	* @param TempPartyUserIds UserIDs to form a temporary party with (include user who started the matchmaking). Temporary party will disband when matchmaking finishes.
+	*/
+	FString SendStartMatchmaking(FString GameMode, TMap<FString, FString> PartyAttributes, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>(), TArray<FString> TempPartyUserIds = TArray<FString>());
+
+	/**
+	* @brief start the matchmaking
+	*
+	* @param GameMode The mode that party member want to play.
+	* @param PartyAttributes String map custom attributes to be added on matchmaking and also will be passed to ds too. Example: {"Map":"Dungeon1", "Rank":"B", "Stage":"04"}
+	* @param TempPartyUserIds UserIDs to form a temporary party with (include user who started the matchmaking). Temporary party will disband when matchmaking finishes.
+	* @param ServerName The Local DS name, fill it blank if you don't use Local DS.
+	* @param ClientVersion The version of DS, fill it blank to choose the default version.
+	* @param Latencies list of servers and their latencies to client, DSM will created the server on one of this list. Fill it blank if you use Local DS.
+	*/
+	FString SendStartMatchmaking(FString GameMode, TMap<FString, FString> PartyAttributes, TArray<FString> TempPartyUserIds, FString ServerName = TEXT(""), FString ClientVersion = TEXT(""), TArray<TPair<FString, float>> Latencies = TArray<TPair<FString, float>>());
 
 	/**
 	* @brief cancel the currently running matchmaking process
 	*
 	* @param GameMode The mode that party member want to cancel.
+	* @param IsTemParty Is canceling matchmaking that was started using temporary party.
 	*/
-	FString SendCancelMatchmaking(FString GameMode);
+	FString SendCancelMatchmaking(FString GameMode, bool IsTempParty = false);
 
 	/**
 	* @brief send ready consent request
@@ -454,6 +503,14 @@ public:
 	* @param UserId Targeted user ID.
 	*/
 	void GetFriendshipStatus(FString UserId);
+
+	/**
+	 * @brief Send a signaling message to another user.
+	 *
+	 * @param UserId The recipient's user ID.
+	 * @param Message Signaling message to be sent.
+	 */
+	FString SendSignalingMessage(const FString& UserId, const FString& Message);
 
 	/**
 	* @brief Unbind all delegates set previously.
@@ -581,6 +638,11 @@ public:
 	{
 		PartyKickResponse = OnInvitePartyKickMemberResponse;
 	};
+
+	void SetPartyDataUpdateResponseDelegate(FPartyDataUpdateNotif OnPartyDataUpdateResponse) 
+	{
+		PartyDataUpdateNotif = OnPartyDataUpdateResponse;
+	}
 
 	// Chat
 	/**
@@ -818,7 +880,17 @@ public:
 		GetFriendshipStatusResponse = OnGetFriendshipStatusResponse;
 	};
 
-	/*
+	/**
+	* @brief Set SignalingP2P delegate.
+	*
+	* @param OnSignalingP2P Delegate that will be set.
+	*/
+	void SetSignalingP2PDelegate(FSignalingP2P OnSignalingP2P)
+	{
+		SignalingP2P = OnSignalingP2P;
+	};
+
+	/**
 	* @brief Bulk add friend(s), don't need any confirmation from the player.
 	*
 	* @param UserIds the list of UserId you want to make friend with.
@@ -826,6 +898,28 @@ public:
 	* @param OnError This will be called when the operation failed. 
 	*/
 	void BulkFriendRequest(FAccelByteModelsBulkFriendsRequest UserIds, FVoidHandler OnSuccess, FErrorHandler OnError);
+
+	/**
+	* @brief  Get party storage (attributes) by party ID.
+	*
+	* @param PartyId Targeted party Id.
+	* @param OnSuccess This will be called when the operation succeeded. Will return FAccelByteModelsPartyDataNotif model.
+	* @param OnError This will be called when the operation failed.
+	*/
+	void GetPartyStorage(const FString& PartyId, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess, const FErrorHandler& OnError);
+
+	/**
+	* @brief  Write party storage (attributes) data to the targeted party ID.
+	* Beware:
+	* Object will not be write immediately, please take care of the original object until it written.
+	*
+	* @param PartyId Targeted party Id.
+	* @param PayloadModifier Function to modify the latest party data with your customized modifier.
+	* @param OnSuccess This will be called when the operation succeeded. Will return FAccelByteModelsPartyDataNotif model.
+	* @param OnError This will be called when the operation failed.
+	* @param RetryAttempt the number of retry to do when there is an error in writing to party storage (likely due to write conflicts).
+	*/
+	void WritePartyStorage(const FString& PartyId, TFunction<FJsonObjectWrapper(FJsonObjectWrapper)> PayloadModifier, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess, const FErrorHandler& OnError, uint32 RetryAttempt = 1);
 
 	static FString LobbyMessageToJson(FString Message);
 
@@ -843,12 +937,14 @@ private:
     FString SendRawRequest(FString MessageType, FString MessageIDPrefix, FString CustomPayload = TEXT(""));
     bool Tick(float DeltaTime);
     FString GenerateMessageID(FString Prefix = TEXT(""));
+	void CreateWebSocket();
 
 	const float LobbyTickPeriod = 0.5;
 	const float PingDelay;
 	const float InitialBackoffDelay;
 	const float MaxBackoffDelay;
 	const float TotalTimeout;
+	bool bWasWsConnectionError = false;
 	float BackoffDelay;
 	float RandomizedBackoffDelay;
 	float TimeSinceLastPing;
@@ -877,6 +973,7 @@ private:
     FPartyJoinNotif PartyJoinNotif;
     FPartyKickResponse PartyKickResponse;
     FPartyKickNotif PartyKickNotif;
+	FPartyDataUpdateNotif PartyDataUpdateNotif;
 
     // Chat
     FPersonalChatResponse PersonalChatResponse;
@@ -918,6 +1015,22 @@ private:
 	// Friends + Notification
 	FAcceptFriendsNotif AcceptFriendsNotif;
 	FRequestFriendsNotif RequestFriendsNotif;
+
+	struct PartyStorageWrapper
+	{
+		FString PartyId;
+		int RemainingAttempt;
+		THandler<FAccelByteModelsPartyDataNotif> OnSuccess;
+		FErrorHandler OnError;
+		TFunction<FJsonObjectWrapper(FJsonObjectWrapper)> PayloadModifier;
+	};
+
+	void RequestWritePartyStorage(const FString& PartyId, const FAccelByteModelsPartyDataUpdateRequest& Data, const THandler<FAccelByteModelsPartyDataNotif>& OnSuccess, const FErrorHandler& OnError, FSimpleDelegate OnConflicted = NULL);
+
+	void WritePartyStorageRecursive(TSharedPtr<PartyStorageWrapper> DataWrapper);
+
+	//Signaling P2P
+	FSignalingP2P SignalingP2P;
 };
 
 } // Namespace Api

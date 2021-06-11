@@ -9,8 +9,15 @@
 #include "Runtime/Online/HTTP/Public/Http.h"
 #include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
 #include "ShooterGameConfig.h"
+#include "Models/ShooterMatchInfoModels.h"
+
+// AccelByte's
+#include "Core/AccelByteRegistry.h"
+#include "Core/AccelByteHttpRetryScheduler.h"
 #include "GameServerApi/AccelByteServerDSMApi.h"
 #include "GameServerApi/AccelByteServerStatisticApi.h"
+#include "GameServerApi/AccelByteServerMatchmakingApi.h"
+#include "Models/AccelByteMatchmakingModels.h"
 
 
 AShooterGame_FreeForAll::AShooterGame_FreeForAll(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
@@ -26,14 +33,71 @@ void AShooterGame_FreeForAll::PreLogin(const FString & Options, const FString & 
 	FString MatchIdOpt = UGameplayStatics::ParseOption(Options, TEXT("MatchId"));
 	FString UserIdOpt = UGameplayStatics::ParseOption(Options, TEXT("UserId"));
 
-	if (this->MatchmakingInfo.match_id.IsEmpty())
+	if (FRegistry::ServerCredentials.GetMatchId().IsEmpty())
 	{
-		ErrorMessage = TEXT("[ERROR] Match is not initialized");
-		UE_LOG(LogOnlineGame, Display, TEXT("%s"), *ErrorMessage);
-		return;
+		// get session Id
+		FRegistry::ServerDSM.GetSessionId(THandler<FAccelByteModelsServerSessionResponse>::CreateLambda([&](FAccelByteModelsServerSessionResponse response)
+		{
+			FRegistry::ServerCredentials.SetMatchId(response.Session_id);
+			UE_LOG(LogOnlineGame, Display, TEXT("Fetching Session Id got %s"), *FRegistry::ServerCredentials.GetMatchId());
+			if (FRegistry::ServerCredentials.GetMatchId().IsEmpty())
+			{
+				ErrorMessage = TEXT("Session is not available yet");
+				UE_LOG(LogOnlineGame, Display, TEXT("[ERROR] %s"), *ErrorMessage);
+			}
+		}), 
+			FErrorHandler::CreateLambda([&](int32 errorCode, FString eMessage)
+		{
+			ErrorMessage = FString::Printf(TEXT("GetSessionId Error code %d message %s"), errorCode, *eMessage);
+			UE_LOG(LogOnlineGame, Display, TEXT("[ERROR] %s"), *ErrorMessage);
+		}
+		));
+
+		UE_LOG(LogOnlineGame, Display, TEXT("Fetching Session Id..."));
+		double LastTime = FPlatformTime::Seconds();
+		while (FRegistry::ServerCredentials.GetMatchId().IsEmpty() && ErrorMessage.IsEmpty())
+		{
+			const double AppTime = FPlatformTime::Seconds();
+			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+			FTicker::GetCoreTicker().Tick(AppTime - LastTime);
+			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+			LastTime = AppTime;
+			FPlatformProcess::Sleep(0.5f);
+		}
+		UE_LOG(LogOnlineGame, Display, TEXT("Fetch session id complete"));
 	}
 
-	if (this->MatchmakingInfo.match_id != MatchIdOpt)
+
+	if(MatchmakingInfo.Match_id.IsEmpty() || !ErrorMessage.IsEmpty())
+	{
+		// get getMatchInfo
+		FRegistry::ServerMatchmaking.QuerySessionStatus(FRegistry::ServerCredentials.GetMatchId(), THandler<FAccelByteModelsMatchmakingResult>::CreateLambda([&](FAccelByteModelsMatchmakingResult result)
+		{
+			MatchmakingInfo = result;
+			SetupMatch(result);
+		}), 
+			FErrorHandler::CreateLambda([&](int32 errorCode, FString eMessage)
+		{
+			ErrorMessage = FString::Printf(TEXT("QuerySessionInfo Error code %d message %s"), errorCode, *eMessage);
+			UE_LOG(LogOnlineGame, Display, TEXT("[ERROR] %s"), *ErrorMessage);
+		}));
+
+		UE_LOG(LogOnlineGame, Display, TEXT("Fetching Match Info..."));
+		double LastTime = FPlatformTime::Seconds();
+		while (MatchmakingInfo.Match_id.IsEmpty() && ErrorMessage.IsEmpty())
+		{
+			const double AppTime = FPlatformTime::Seconds();
+			FHttpModule::Get().GetHttpManager().Tick(AppTime - LastTime);
+			FTicker::GetCoreTicker().Tick(AppTime - LastTime);
+			FRegistry::HttpRetryScheduler.PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+			LastTime = AppTime;
+			FPlatformProcess::Sleep(0.5f);
+		}
+		UE_LOG(LogOnlineGame, Display, TEXT("Fetching Match info complete"));
+	}
+
+
+	if (this->MatchmakingInfo.Match_id != MatchIdOpt)
 	{
 		AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
 		if (MyGameState)
@@ -49,24 +113,22 @@ void AShooterGame_FreeForAll::PreLogin(const FString & Options, const FString & 
 	};
 
 	bool UserFound = false;
-	for (const auto& Party : MatchmakingInfo.matching_parties)
+	for (const auto& Allies : MatchmakingInfo.Matching_allies)
 	{
-		if (Party.party_id == PartyIdOpt)
+		for(const auto& Party : Allies.Matching_parties)
+		if (Party.Party_id == PartyIdOpt)
 		{
-			for (const auto& Member : Party.party_members)
+			for (const auto& Member : Party.Party_members)
 			{
-				if (Member.user_id == UserIdOpt)
+				if (Member.User_id == UserIdOpt)
 				{
 					UserFound = true;
 					break;
 				}
 			}
-			if (Party.leader_id == UserIdOpt)
-			{
-				UserFound = true;
-				break;
-			}
+			if (UserFound) break;
 		}
+		if (UserFound) break;
 	}
 
 	if (!UserFound)
@@ -78,6 +140,30 @@ void AShooterGame_FreeForAll::PreLogin(const FString & Options, const FString & 
 
 	// GameSession can be NULL if the match is over
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+}
+
+void AShooterGame_FreeForAll::GetSessionData()
+{
+	FRegistry::ServerDSM.GetSessionId(THandler<FAccelByteModelsServerSessionResponse>::CreateLambda([this](const FAccelByteModelsServerSessionResponse& sessionResponse)
+	{
+		if(sessionResponse.Session_id.IsEmpty())
+		{
+			UE_LOG(LogOnlineGame, Display, TEXT("Session not claimed yet"));
+			return;
+		}
+
+		FRegistry::ServerMatchmaking.QuerySessionStatus(sessionResponse.Session_id, THandler<FAccelByteModelsMatchmakingResult>::CreateLambda([this](const FAccelByteModelsMatchmakingResult& mmResult)
+		{
+			MatchmakingInfo = mmResult;
+		}), 
+			FErrorHandler::CreateLambda([](int32 errorCode, FString errorMsg)
+		{
+			UE_LOG(LogOnlineGame, Display, TEXT("Error Query Session Status, code %s msg %s"), errorCode, *errorMsg);
+		}));
+	}), FErrorHandler::CreateLambda([](int32 errorCode, FString errorMsg)
+	{
+		UE_LOG(LogOnlineGame, Display, TEXT("Error Fetching Session Id, code %s msg %s"), errorCode, *errorMsg);
+	}));
 }
 
 void AShooterGame_FreeForAll::PostLogin(APlayerController* NewPlayer)
@@ -110,24 +196,29 @@ FString AShooterGame_FreeForAll::InitNewPlayer(APlayerController * NewPlayerCont
 	FString MatchIdOpt = UGameplayStatics::ParseOption(Options, TEXT("MatchId"));
 	FString UserIdOpt = UGameplayStatics::ParseOption(Options, TEXT("UserId"));
 
-	bool AllJoined = true;
-	for (auto& Party : MatchmakingInfo.matching_parties)
+	// Loop for set member joined, 
+	// not sure if it's affected something so I'll comment it for now
+	/*for (auto& Allies : MatchmakingInfo.Matching_allies)
 	{
-		if (Party.party_id == PartyIdOpt)
+		for (auto& Party : Allies.Matching_parties)
 		{
-			for (auto& Member : Party.party_members)
+			if (Party.Party_id == PartyIdOpt)
 			{
-				if (Member.user_id == UserIdOpt)
+				for (auto& Member : Party.Party_members)
 				{
-					Member.joined = true;
-				}
-				else if (!Member.joined)
-				{
-					AllJoined = false;
+					if (Member.User_id == UserIdOpt)
+					{
+						// set member isjoined
+						FShooterMemberAttribute member = new FShooterMemberAttribute();
+						member.user_id = Member.User_id;
+						member.joined = true;
+						auto sharedMember = MakeShared(member);
+						Members->Add(member);
+					}
 				}
 			}
 		}
-	}
+	}*/
 
 	AShooterPlayerState* NewPlayerState = CastChecked<AShooterPlayerState>(NewPlayerController->PlayerState);
 	NewPlayerState->SetPartyId(PartyIdOpt);
@@ -140,61 +231,66 @@ void AShooterGame_FreeForAll::RestartGame()
 {
 	UE_LOG(LogTemp, Display, TEXT("[MATCH] RestartGame"));
 	Super::RestartGame();
-	MatchmakingInfo.match_id = "";
-	MatchmakingInfo.matching_parties.Empty();
+	MatchmakingInfo.Match_id = "";
+	MatchmakingInfo.Matching_allies.Empty();
 }
 
 void AShooterGame_FreeForAll::EndMatch()
 {
-	if (MatchmakingInfo.matching_parties.Num() > 0)
+#if UE_SERVER
+	if (MatchmakingInfo.Matching_allies.Num() > 0)
 	{
 		// This is called on the Super after EndMatch in ShooterGameMode::FinishMatch(), should we move it there instead to prevent double calling, or remove the one at FinishMatch()
 		DetermineMatchWinner();
 		TArray<FAccelByteModelsBulkUserStatItemInc> matchResults_;
 		AShooterPlayerState* MVP = nullptr;
 
-		for (const auto& party : MatchmakingInfo.matching_parties)
+		for (auto Allies : MatchmakingInfo.Matching_allies)
 		{
-			for (const auto& partyMember : party.party_members)
+			for (const auto& party : Allies.Matching_parties)
 			{
-				int32 Rank = 0;
-				FAccelByteModelsMatchmakingMember member{ 0, 0, 0, TEXT("") };
-				member.user_id = partyMember.user_id;
-				// Find player
-				for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
+				for (const auto& partyMember : party.Party_members)
 				{
-					AShooterPlayerState* PlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
-					if (PlayerState->GetUserId() == member.user_id)
+					int32 Rank = 0;
+					int32 match = 0;
+					int32 kill = 0;
+					int32 death = 0;
+					// Fill the data for Statistic Reporting
+					// Find player
+					for (int32 i = 0; i < GameState->PlayerArray.Num(); i++)
 					{
-						// Fill the data for Statistic Reporting
-						member.match = 1;
-						member.kill = PlayerState->GetKills();
-						member.death = PlayerState->GetDeaths();
-
-						if (PlayerState->GetScore() > 0)
+						AShooterPlayerState* PlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
+						if (PlayerState->GetUserId() == partyMember.User_id)
 						{
-							if (MVP == nullptr)
+							match = 1;
+							kill = PlayerState->GetKills();
+							death = PlayerState->GetDeaths();
+
+							if (PlayerState->GetScore() > 0)
 							{
-								MVP = PlayerState;
-							}
-							else if (MVP->GetScore() < PlayerState->GetScore())
-							{
-								MVP = PlayerState;
+								if (MVP == nullptr)
+								{
+									MVP = PlayerState;
+								}
+								else if (MVP->GetScore() < PlayerState->GetScore())
+								{
+									MVP = PlayerState;
+								}
 							}
 						}
 					}
-				}
-				if (member.kill > 0) 
-				{ 
-					matchResults_.Add({ (float)member.kill, member.user_id, ShooterGameConfig::Get().StatisticCodeKill_ }); 
-				}
-				if (member.match > 0) 
-				{
-					matchResults_.Add({ (float)member.match, member.user_id, ShooterGameConfig::Get().StatisticCodeMatch_ }); 
-				}
-				if (member.death > 0) 
-				{
-					matchResults_.Add({ (float)member.death, member.user_id, ShooterGameConfig::Get().StatisticCodeDeath_ }); 
+					if (kill > 0) 
+					{ 
+						matchResults_.Add({ (float)kill, partyMember.User_id, ShooterGameConfig::Get().StatisticCodeKill_ });
+					}
+					if (match > 0) 
+					{
+						matchResults_.Add({ (float)match, partyMember.User_id, ShooterGameConfig::Get().StatisticCodeMatch_ });
+					}
+					if (death > 0) 
+					{
+						matchResults_.Add({ (float)death, partyMember.User_id, ShooterGameConfig::Get().StatisticCodeDeath_ });
+					}
 				}
 			}
 		}
@@ -236,7 +332,7 @@ void AShooterGame_FreeForAll::EndMatch()
 		{
 			// Temporary Solution to fix Server Exited right after Match Ended.
 
-			FRegistry::ServerDSM.SendShutdownToDSM(true, MatchmakingInfo.match_id,
+			FRegistry::ServerDSM.SendShutdownToDSM(true, MatchmakingInfo.Match_id,
 				FVoidHandler::CreateLambda([this]()
 					{
 						FTimerHandle EndMatchTimerHandle;
@@ -257,11 +353,12 @@ void AShooterGame_FreeForAll::EndMatch()
 					}));
 		}
 	}
+#endif
 
 	UE_LOG(LogTemp, Display, TEXT("[MATCH] EndMatch"));
 	Super::EndMatch();
-	MatchmakingInfo.match_id = "";
-	MatchmakingInfo.matching_parties.Empty();
+	MatchmakingInfo.Match_id = "";
+	MatchmakingInfo.Matching_allies.Empty();
 }
 
 void AShooterGame_FreeForAll::DetermineMatchWinner()
@@ -294,10 +391,10 @@ bool AShooterGame_FreeForAll::IsWinner(AShooterPlayerState* PlayerState) const
 	return PlayerState && !PlayerState->IsQuitter() && PlayerState == WinnerPlayerState;
 }
 
-void AShooterGame_FreeForAll::SetupMatch(const FAccelByteModelsMatchmakingInfo & Info)
+void AShooterGame_FreeForAll::SetupMatch(const FAccelByteModelsMatchmakingResult& Info)
 {
 	// clear previous match
-	RequestFinishAndExitToMainMenu();
+	//RequestFinishAndExitToMainMenu();
 
 	// set state to WaitingToStart
 	AShooterGameState* const MyGameState = Cast<AShooterGameState>(GameState);
@@ -308,12 +405,12 @@ void AShooterGame_FreeForAll::SetupMatch(const FAccelByteModelsMatchmakingInfo &
 
 bool AShooterGame_FreeForAll::IsMatchStarted()
 {
-	return !MatchmakingInfo.match_id.IsEmpty();
+	return !MatchmakingInfo.Match_id.IsEmpty();
 }
 
-FAccelByteModelsMatchInfo AShooterGame_FreeForAll::GetMatchInfo()
+FShooterMatchInfo AShooterGame_FreeForAll::GetMatchInfo()
 {
-	FAccelByteModelsMatchInfo MatchInfo;
+	FShooterMatchInfo MatchInfo;
 	MatchInfo.matchmaking_info = MatchmakingInfo;
 	MatchInfo.remaining_time = -1;
 
@@ -329,7 +426,7 @@ FAccelByteModelsMatchInfo AShooterGame_FreeForAll::GetMatchInfo()
 		const AShooterPlayerState* const PlayerState = Cast<AShooterPlayerState>(GameState->PlayerArray[i]);
 		if (PlayerState)
 		{
-			FAccelByteModelsMatchPlayer Player;
+			FShooterMatchPlayer Player;
 			Player.name = PlayerState->GetPlayerName();
 			Player.user_id = PlayerState->GetUserId();
 			MatchInfo.players.Add(Player);
@@ -350,8 +447,8 @@ bool AShooterGame_FreeForAll::ResetMatch(bool Force)
 			{
 				// clear previous match
 				RequestFinishAndExitToMainMenu();
-				MatchmakingInfo.match_id = "";
-				MatchmakingInfo.matching_parties.Empty();
+				MatchmakingInfo.Match_id = "";
+				MatchmakingInfo.Matching_allies.Empty();
 			}
 			return true;
 		}

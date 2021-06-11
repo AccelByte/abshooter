@@ -6,7 +6,7 @@
 #include "GameDelegates.h"
 #include "WebServer.h"
 #include "UObject/PackageReload.h"
-#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
 #include "Runtime/JsonUtilities/Public/JsonObjectConverter.h"
 #include "Online/ShooterGame_TeamDeathMatch.h"
 
@@ -98,7 +98,7 @@ static void WebServerDelegate(int32 UserIndex, const FString& Action, const FStr
 				AShooterGame_TeamDeathMatch* GameMode = Cast<AShooterGame_TeamDeathMatch>(World->GetAuthGameMode());
 				if (GameMode)
 				{
-					FAccelByteModelsMatchInfo Info = GameMode->GetMatchInfo();
+					FShooterMatchInfo Info = GameMode->GetMatchInfo();
 					FJsonObjectConverter::UStructToJsonObjectString(Info, Body, 0, 0, 0);
 					Code = "200";
 				}

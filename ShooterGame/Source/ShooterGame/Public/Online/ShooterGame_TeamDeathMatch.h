@@ -2,7 +2,8 @@
 
 #pragma once
 
-#include "Server/Models/AccelByteMatchmakingModels.h"
+#include "Models/AccelByteMatchmakingModels.h"
+#include "Models/ShooterMatchInfoModels.h"
 #include "ShooterGame_TeamDeathMatch.generated.h"
 
 class AShooterPlayerState;
@@ -57,19 +58,17 @@ protected:
 	/** initialization for bot after spawning */
 	virtual void InitBot(AShooterAIController* AIC, int32 BotNum) override;	
 
-	FAccelByteModelsMatchmakingInfo MatchmakingInfo;
+	FAccelByteModelsMatchmakingResult MatchmakingInfo;
 
 public:
 	/** initialization for a match after getting matchmaking info from lobby*/
-	void SetupMatch(const FAccelByteModelsMatchmakingInfo& Info);
-
-	bool SetupSecondParty(const FAccelByteModelsMatchmakingInfo& Info);
+	void SetupMatch(const FAccelByteModelsMatchmakingResult& Info);
 
 	/** checking whether the match has started or not */
 	bool IsMatchStarted();
 
 	/** get match related info */
-	FAccelByteModelsMatchInfo GetMatchInfo();
+	FShooterMatchInfo GetMatchInfo();
 
 	/** revert matchmaking info */
 	bool ResetMatch(bool Force = false);

@@ -8,9 +8,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Core/AccelByteError.h"
 #include "Models/AccelByteDSMModels.h"
-#if AGONES_PLUGIN_FOUND
-#include "Agones.h"
-#endif
 
 class IWebSocket;
 
@@ -26,16 +23,6 @@ enum class EServerType :uint8
 	NONE,
 	CLOUDSERVER,
 	LOCALSERVER
-};
-
-enum class EProvider : uint8
-{
-	AGONES,
-	AMPD,
-	AWS,
-	BAREMETAL,
-	I3D,
-	DEFAULT
 };
 
 /**
@@ -89,40 +76,12 @@ public:
     void DeregisterLocalServerFromDSM(const FString& ServerName, const FVoidHandler& OnSuccess, const FErrorHandler& OnError);
 
 	/*
-	 * @brief Configure automatic heart beat on register. Must be called before calling RegisterServerToDSM or RegisterLocalServerToDSM
+	 * @brief Get Session ID of a claimed DS. Will return empty string OnSucess if DS is not claimed yet.
 	 *
-	 * @param bIsAutomatic true if you want heartbeat triggered automatically, false if you want poll heartbeat manually all the time.
-	 * @param TimeoutSeconds Timeout in seconds when heartbeat automatically triggered.
-	 * @param ErrorRetry Max consecutive heartbeat error, will stop send heartbeat when reach the number.
-	*/
-	void ConfigureHeartBeat(bool bIsAutomatic = true, int TimeoutSeconds = 5, int ErrorRetry = 5);
-
-	/*
-	 * @brief Poll heartbeat manually. It will raise OnMatchRequest event if DSM send match request data in heartbeat response
-	*/
-	void PollHeartBeat();
-
-	/*
-	 * @brief Set handler delegate for OnMatchRequest event when DSM send match request data in heartbeat response
-	 *
-	 * @param OnMatchRequest This delegate will be called if DSM send match request data in heartbeat response
-	*/
-	void SetOnMatchRequest(THandler<FAccelByteModelsMatchRequest> OnMatchRequest);
-
-	/*
-	 * @brief Set handler delegate for OnHeartBeatError event when heartbeat get error in sequence for several times
-	 *
-	 * @param OnHeartBeatError This delegate will be called if heartbeat get error in sequence for several times
-	*/
-	void SetOnHeartBeatErrorDelegate(const FErrorHandler& OnError);
-
-	/*
-	 * @brief This will get the Regional DSM Url based on the smallest latency.
-	 *
-	 * @param OnSuccess This will be called when the operation succeeded. Will return model FAccelByteModelsDSMClient.
+	 * @param OnSuccess This will be called when the operation succeeded, The result is const FAccelByteModelsServerSessionResponse.
 	 * @param OnError This will be called when the operation failed.
 	*/
-	void GetRegionDSMUrl(const THandler<FAccelByteModelsDSMClient>& OnSuccess, const FErrorHandler& OnError);
+	void GetSessionId(const THandler<FAccelByteModelsServerSessionResponse>& OnSuccess, const FErrorHandler& OnError);
 
 	void SetServerName(const FString Name){ ServerName = Name; };
 	void SetServerType(EServerType Type){ ServerType = Type; };
@@ -141,7 +100,6 @@ private:
 	ServerDSM& operator=(ServerDSM const&) = delete; // Copy assignment operator
 	ServerDSM& operator=(ServerDSM &&) = delete; // Move assignment operator
 
-	bool HeartBeatTick(float DeltaTime);
 	void GetPubIp(const THandler<FAccelByteModelsPubIp>& OnSuccess, const FErrorHandler& OnError);
 
 	FString ServerName = "";
@@ -150,38 +108,8 @@ private:
 	FString Game_version = "";
 	EServerType ServerType = EServerType::NONE;
 	FHttpRequestCompleteDelegate OnRegisterResponse;
-	FHttpRequestCompleteDelegate OnHeartBeatResponse;
-	THandler<FAccelByteModelsMatchRequest> OnMatchRequest;
-	bool bHeartbeatIsAutomatic = false;
-	int HeartBeatTimeoutSeconds = 0;
-	int HeartBeatErrorRetry = 0;
-	FErrorHandler OnHeartBeatError;
-	FTickerDelegate HeartBeatDelegate;
-	FDelegateHandle HeartBeatDelegateHandle;
-	THandler<TArray<TPair<FString, float>>> GetLatenciesDelegate;
-	THandler<FAccelByteModelsDSMClient> GetServerUrlDelegate;
 	THandler<FAccelByteModelsPubIp> GetPubIpDelegate;
-	int HeartBeatRetryCount = 0;
-	
-	TMap<EProvider, FString> PROVIDER_TABLE;
-
-
-
-#if AGONES_PLUGIN_FOUND
-public:
-	/*
-	 * @brief Poll agones heartbeat manually. It will raise OnMatchRequest event if DSM send match request data in heartbeat response
-	*/
-	void PollAgonesHeartBeat();
-
-private:
-	void InitiateAgones(FVoidHandler OnSuccess);
-	void ShutdownAgones(FVoidHandler OnSuccess);
-	FGameServerRequestCompleteDelegate OnAgonesHeartBeatResponse;
-	FGameServerRequestCompleteDelegate OnAgonesHealthCheckResponse;
-	FTickerDelegate OnAgonesHealthCheckTimeup;
-#endif
 };
 
-} // Namespace GameServerApi
+	} // Namespace GameServerApi
 } // Namespace AccelByte

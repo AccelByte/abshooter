@@ -5,6 +5,10 @@
 #include "Core/AccelByteHttpRetryScheduler.h"
 #include "Core/AccelByteReport.h"
 #include "Core/AccelByteRegistry.h"
+#include <algorithm>
+
+DECLARE_LOG_CATEGORY_EXTERN(LogAccelByteHttpRetry, Log, All);
+DEFINE_LOG_CATEGORY(LogAccelByteHttpRetry);
 
 using namespace std;
 
@@ -42,10 +46,7 @@ bool FHttpRetryScheduler::ProcessRequest(const FHttpRequestPtr& Request, const F
 
 	bool bIsStarted = Request->ProcessRequest();
 
-	if (bIsStarted)
-	{
-		RetryList.Add(MakeShared<FHttpRetryTask>(Request, CompleteDelegate, RequestTime, InitialDelay));
-	}
+	RetryList.Add(MakeShared<FHttpRetryTask>(Request, CompleteDelegate, RequestTime, InitialDelay));
 
 	return bIsStarted;
 }
@@ -59,14 +60,12 @@ bool FHttpRetryScheduler::PollRetry(double CurrentTime, Credentials& UserCredent
 
 	TArray<TSharedRef<FHttpRetryTask>> CompletedTasks;
 
-	RetryList.RemoveAll([CurrentTime, &UserCredentials, &CompletedTasks](const TSharedRef<FHttpRetryTask>& CurrentTask)
+	RetryList.RemoveAll([CurrentTime, &CompletedTasks](const TSharedRef<FHttpRetryTask>& CurrentTask)
 	{
 		if (!CurrentTask->Request.IsValid())
 		{
 			return true;
 		}
-
-        int status = CurrentTask->Request->GetStatus();
 
 		if (CurrentTask->ScheduledRetry)
 		{
@@ -115,6 +114,14 @@ bool FHttpRetryScheduler::PollRetry(double CurrentTime, Credentials& UserCredent
 
 				return true;
 			}
+		case EHttpRequestStatus::NotStarted:
+			if (CurrentTime >= CurrentTask->RequestTime + FHttpRetryScheduler::TotalTimeout)
+			{
+				CompletedTasks.Add(CurrentTask);
+				return true;
+			}
+
+			return false;
 		case EHttpRequestStatus::Failed_ConnectionError: //network error
 			if (CurrentTime >= CurrentTask->RequestTime + FHttpRetryScheduler::TotalTimeout)
 			{
@@ -126,18 +133,18 @@ bool FHttpRetryScheduler::PollRetry(double CurrentTime, Credentials& UserCredent
 
 			return false;
 		case EHttpRequestStatus::Failed: //request cancelled
-		case EHttpRequestStatus::NotStarted:
 			CompletedTasks.Add(CurrentTask);
 
 			return true;
+		default:
+			return false;
 		}
-
-		return false;
 	});
 
 	for (const auto& Task : CompletedTasks)
 	{
-		Task->CompleteDelegate.ExecuteIfBound(Task->Request, Task->Request->GetResponse(), Task->Request->GetResponse().IsValid());
+		const FHttpRequestPtr& Request = Task->Request;
+		Task->CompleteDelegate.ExecuteIfBound(Request, Request->GetResponse(), HttpRequest::IsFinished(Request));
 	}
 
 	return true;
@@ -164,11 +171,29 @@ void FHttpRetryScheduler::Shutdown()
 	}
 
 	// flush http requests
-	if (RetryList.Num() == 0)
+	if (RetryList.Num() != 0)
 	{
-		FHttpModule::Get().GetHttpManager().Flush(false);
+		double MaxFlushTimeSeconds = -1.0;
+		GConfig->GetDouble(TEXT("HTTP"), TEXT("MaxFlushTimeSeconds"), MaxFlushTimeSeconds, GEngineIni);
+
+		if (MaxFlushTimeSeconds <= 0)
+		{
+			UE_LOG(LogAccelByteHttpRetry, Log, TEXT("HTTP MaxFlushTimeSeconds is not configured, it may prevent the shutdown, until all requests flushed"));
+		}
+
+		// try flush once
+		FHttpModule::Get().GetHttpManager().Flush(true);
 		FHttpModule::Get().GetHttpManager().Tick(0);
 		PollRetry(FPlatformTime::Seconds(), FRegistry::Credentials);
+		// cancel unfinished http requests, so don't hinder the shutdown
+		for (auto& Task : RetryList)
+		{
+			if (Task->Request.IsValid() && Task->Request->GetStatus() == EHttpRequestStatus::Processing)
+			{
+				Task->Request->CancelRequest();
+			}
+		}
+		RetryList.Empty();
 	};
 }
 

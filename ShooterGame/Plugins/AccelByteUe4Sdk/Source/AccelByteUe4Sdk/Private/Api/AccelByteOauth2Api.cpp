@@ -101,8 +101,9 @@ void Oauth2::GetSessionIdWithDeviceGrant(const FString& ClientId, const FString&
 {
 	Report report;
 	report.GetFunctionLog(FString(__FUNCTION__));
-
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	const TArray<uint8> MacAddr = FPlatformMisc::GetMacAddress();
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	FString MacAddressString;
 	for (TArray<uint8>::TConstIterator it(MacAddr);it;++it)
 	{
@@ -121,7 +122,7 @@ void Oauth2::GetSessionIdWithDeviceGrant(const FString& ClientId, const FString&
 	FString Verb            = TEXT("POST");
 	FString ContentType     = TEXT("application/x-www-form-urlencoded");
 	FString Accept          = TEXT("application/json");
-	FString Content         = FString::Printf(TEXT("device_id=%s"), *DeviceId);
+	FString Content         = FString::Printf(TEXT("device_id=%s"), *FGenericPlatformHttp::UrlEncode(*DeviceId));
 
 	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
@@ -151,7 +152,7 @@ void Oauth2::GetSessionIdWithPlatformGrant(const FString& ClientId, const FStrin
     FString Verb            = TEXT("POST");
     FString ContentType     = TEXT("application/x-www-form-urlencoded");
     FString Accept          = TEXT("application/json");
-    FString Content         = FString::Printf(TEXT("platform_token=%s"), *PlatformToken);
+    FString Content         = FString::Printf(TEXT("platform_token=%s"), *FGenericPlatformHttp::UrlEncode(PlatformToken));
 
 	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
@@ -211,7 +212,7 @@ void Oauth2::Logout(const FString& AccessToken, const FVoidHandler& OnSuccess, c
 	FString Verb            = TEXT("POST");
 	FString ContentType     = TEXT("application/x-www-form-urlencoded");
 	FString Accept          = TEXT("application/json");
-	FString Content         = FString::Printf(TEXT("token=%s"), *AccessToken);
+	FString Content         = FString::Printf(TEXT("token=%s"), *FGenericPlatformHttp::UrlEncode(*AccessToken));
 
 	FHttpRequestPtr Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Url);
