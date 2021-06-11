@@ -1193,7 +1193,7 @@ void SShooterScreenshot::DeleteScreenshotImage(int32 Index)
 
 bool SShooterScreenshot::IsDownloadedSlotValid(int32 Index) const
 {
-	if (Index < 4)
+	if (Index < LocalSlots.Num()) //should be 4 at maximum, because there are only 4 slots available
 	{
 		const FString ScreenshotsDir = GetUserScreenshotsDir();
 
@@ -1351,8 +1351,13 @@ void SShooterScreenshot::SaveMetaData(const FString& FileName, const FDateTime& 
 	if (!OpenSuccess)
 	{
 		UE_LOG(LogShooter, Error, TEXT("ERROR, failed to load the image file! %s"), *FileName);
+		//currently disabled the message box below due to...
+		/*GI->GetFirstLocalPlayerController()->SetInputMode(FInputModeUIOnly());
 		TWeakObjectPtr<UGeneralNotificationPopupUI> Msgbox = MakeWeakObjectPtr<UGeneralNotificationPopupUI>(CreateWidget<UGeneralNotificationPopupUI>(GI, *GI->GeneralNotificationPopupClass.Get()));
-		Msgbox->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Failed to load the image file!"));
+		FOnNotificationCloseButtonClicked OnCloseButtonClickedDelegate = FOnNotificationCloseButtonClicked::CreateLambda([this, GI]() {
+			GI->GetFirstLocalPlayerController()->SetInputMode(FInputModeGameOnly()); //...problem in this part (it won't set the control to game mode, weird)
+		});
+		Msgbox->Show(ENotificationType::ERROR_UNKNOWN, TEXT("Failed to load the image file!"), OnCloseButtonClickedDelegate);*/
 		return;
 	}
 	Slot.Checksum = MD5HashArray(data);

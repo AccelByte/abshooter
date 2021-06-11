@@ -1163,7 +1163,7 @@ void AShooterPlayerController::TakeScreenshot()
 	}
 	else
 	{
-		UE_LOG(LogShooter, Error, TEXT("ScreenshotWidget is not valid (nullptr?)!"));
+		UE_LOG(LogShooter, Error, TEXT("Can't take screenshot due to ScreenshotWidget is not valid (nullptr?)!"));
 	}
 }
 

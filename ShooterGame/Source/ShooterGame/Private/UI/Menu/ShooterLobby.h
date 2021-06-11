@@ -19,7 +19,7 @@
 
 #include "ShooterGameConfig.h"
 
-#define READY_CONSENT_TIMEOUT 25
+#define READY_CONSENT_TIMEOUT 20
 
 /** Handle Lobby stuffs. */
 class ShooterLobby : public TSharedFromThis<ShooterLobby>, public ILobbyMenuInterface, public IFriendSearchResultEntryInterface, public IFriendEntryInterface, public IIncomingFriendRequstPopupInterface,
@@ -157,11 +157,15 @@ private:
 	*/
 	void AddPartyMember(FString UserId, bool isLeader = false);
 
+	bool IsLeader() const;
+
 	/** Update party member list. */
 	void UpdatePartyMemberList();
 
 	/** Update party member list based on matchmaking status. */
 	void UpdatePartyMatchmakingStatus(const bool bMatchmakingStarted);
+
+	void UpdateLobbyMenuMatchmakingState();
 
 	#pragma region Override Lobby Menu Interface
 	/**
@@ -211,6 +215,9 @@ private:
 	
 	/* Countdown for Matchmaking until timeout, currently hardcoded based on Server. */
 	int32 MatchmakingCountdown = READY_CONSENT_TIMEOUT;
+
+	/* Countdown seconds for matchmaking ban lift */
+	int32 MatchmakingBanPeriod = 0;
 
 	/**
 	* @brief Start the Match, called in DSNotif to signify the game is ready to begin.
@@ -368,4 +375,7 @@ private:
 
 	/** Current Game Mode for the matchmaking. */
 	FGameModeEntry CurrenGameMode;
+
+	/** Holds value if this player is leader or not */
+	bool bIsLeader;
 };

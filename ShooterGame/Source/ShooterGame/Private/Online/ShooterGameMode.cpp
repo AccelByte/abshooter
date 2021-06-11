@@ -492,7 +492,7 @@ void AShooterGameMode::Logout(AController* Exiting)
 			PlayerState->SetQuitter(true);
 		}
 	}
-	
+	Super::Logout(Exiting);
 }
 
 AShooterAIController* AShooterGameMode::CreateBot(int32 BotNum)
