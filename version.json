@@ -1,5 +1,6 @@
 {
-    "version": "2.2.0",
-    "Client": "2.2.1-t",
-    "Server": "2.0.6-tested-test-ci"
+    "version": "2.3.0",
+    "Client": "2.3.0-t",
+    "Server": "2.0.7-nomad",
+	"sdk": "2.34.0"
 }

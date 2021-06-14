@@ -1,4 +1,11 @@
 # Changelog
+## 2.3.0 (Unreleased)
+## Added
+- AccelByte Justice SDK 2.34.0
+
+## Fixed
+- Fixed game server code compatibility with new SDK
+- Fixed game client cannot connect with game server local & cloud
 
 ## 2.2.0 (2021-02-23)
 
