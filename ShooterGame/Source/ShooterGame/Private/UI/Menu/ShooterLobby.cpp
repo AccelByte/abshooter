@@ -954,7 +954,7 @@ void ShooterLobby::OnLeavePartyResponse(const FAccelByteModelsLeavePartyResponse
 
 		UpdateFriendList();
 
-		bIsLeader = false;
+		bIsLeader = true;
 		UpdateLobbyMenuMatchmakingState();
 	}
 	else if (Response.Code != TEXT("0"))
